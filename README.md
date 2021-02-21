@@ -1,1 +1,1 @@
-# cmput404-group-project register and login
+# cmput404-group-project
