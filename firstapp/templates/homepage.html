@@ -1,0 +1,9 @@
+{% extends "index.html" %}
+
+{% block content %}
+{% if user.is_authenticated %}
+This is {{ user.username }} HomePage
+{% endif %}
+
+{% endblock %}
+    
