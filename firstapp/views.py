@@ -1,4 +1,5 @@
 from django.shortcuts import render, HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
@@ -13,6 +14,17 @@ import os
 from random import randrange as rand
 from datetime import datetime
 
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+#from rest_framework.permissions import IsAuthenticated
+from .permissions import EditPermission
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authtoken.models import Token
+
+FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
+
+ADD_QUERY = "INSERT INTO posts VALUES (%d, %d, '%s', '%s', '%s', ?, '%s');"
+EDIT_QUERY = "UPDATE posts SET post_id=%d, user_id=%d, title='%s', description='%s', contenttype='%s', content=?, tstamp='%s' WHERE post_id=%d AND user_id =%d;"
+
 # Create your views here.
 def index(request):
     #if request.user.is_authenticated:
@@ -20,7 +32,13 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        return render(request, 'homepage.html')
+        conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+        cursor = conn.cursor()
+        cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+        data = cursor.fetchall()[0]
+        user_id,token = data[0], data[1]
+        conn.close()
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token})
     
 def signup(request):
     success = False
@@ -28,11 +46,13 @@ def signup(request):
         form = UserForm(request.POST)
         if form.is_valid():
             user = form.save()
-         #   new_username = form.cleaned_data.get('username')
-          #  new_password = form.cleaned_data.get('password1')
-           # user = authenticate(username = new_username, password=new_password)
-        #    login(request, new_user)
-        #    user.save()
+            new_username = form.cleaned_data.get('username')
+            new_password = form.cleaned_data.get('password1')
+            user = authenticate(username = new_username, password=new_password)
+            auth_login(request, user)
+            Token(user=user).save()
+            user.save()
+
             success = True
             messages.success(request, "congrat!successful signup!")
            # return render(request, 'index.html')
@@ -52,7 +72,7 @@ def login(request):
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
-            form = auth_login(request, user)
+            auth_login(request, user)
           #  return HttpResponseRedirect(reverse('index'))
             return HttpResponseRedirect(reverse('home'))
         else:
@@ -66,23 +86,77 @@ def login(request):
         context = {'form':form}
         return render(request, 'login.html', context)
 
-FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
-
-POST_QUERY = "INSERT INTO posts VALUES (%d, %d, '%s', '%s', '%s', ?, '%s');"
 
 
-# CSRF Exempt stops the browser from authenticating when submitting a form, when users are required to login, this decorator will need to be deleted!
-@csrf_exempt
-def post(request,post_id):
-    return HttpResponse("Specific post of author will go here")
-
-@csrf_exempt
-def allposts(request):
+@api_view(['GET','POST','PUT','DELETE'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([EditPermission])
+def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"social.db")
+    token = str(request.auth)
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
+    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
+    data = cursor.fetchall()
+    if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
+    cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
+    data = cursor.fetchall()
+    print(method)
+    if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n")
+    elif len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
+
+    if method == 'GET':
+        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%a,\n\t"timestamp":%s,\n}\n'
+        resp = pretty_template % data[0]
+    else:
+        cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+        user_token = cursor.fetchall()[0][0]
+        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
+
+        if method == 'POST':
+            p = request.POST
+            try:
+                cursor.execute(EDIT_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now()),post_id,user_id),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+                conn.commit()
+                resp = "Succesfully modified post: %d\n" % post_id
+            except MultiValueDictKeyError:
+                resp = "Failed to modify post:\nInvalid parameters\n"  
+        elif method == 'PUT':
+            p = request.POST
+            try:
+                cursor.execute(ADD_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now())),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+                conn.commit()
+                resp = "Succesfully added post: %d\n" % post_id
+            except MultiValueDictKeyError:
+                resp = "Failed to modify post:\nInvalid parameters\n"  
+        elif method == 'DELETE':
+            cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
+            conn.commit()
+            resp = "Successfully deleted post: %d\n" %post_id
+        else:
+            conn.close()
+            return HttpResponseBadRequest("Error: invalid method used\n")
+    conn.close()
+    return HttpResponse(resp)
+
+@api_view(['GET','POST'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([EditPermission])
+def allposts(request,user_id):
+    resp = ""
+    method = request.META["REQUEST_METHOD"]
+    token = str(request.auth)
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
+    data = cursor.fetchall()
+    if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     if method == "POST":
+        # Check to see if supplied token matches the user in question!
+        cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+        user_token = cursor.fetchall()[0][0]
+        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
         p = request.POST
         while True:
             post_id = rand(2**63)
@@ -90,16 +164,18 @@ def allposts(request):
             data = cursor.fetchall()
             if len(data) == 0 : break
         try:
-            cursor.execute(POST_QUERY % (post_id,12345,p["title"],p["description"],p["contenttype"],str(datetime.now())),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+            cursor.execute(ADD_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now())),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
             conn.commit()
             resp = "Succesfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             resp = "Failed to create post:\nInvalid parameters\n"   
     elif method == "GET":
-        cursor.execute("SELECT * FROM posts;")
+        cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
         pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%a,\n\t"timestamp":%s,\n}\n'
         for d in data: resp += pretty_template % d
-    else: resp = "Error: invalid method used"
+    else:
+        conn.close()
+        return HttpResponseBadRequest("Error: invalid method used\n")
     conn.close()
     return HttpResponse(resp)
