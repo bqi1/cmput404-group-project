@@ -1,0 +1,24 @@
+/* https://www.w3schools.com/howto/howto_js_topnav.asp */
+.navibar  {
+    background-color: #565656;
+    overflow: hidden;
+}
+
+.navibar a {
+    float: left;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+  }
+
+.navibar a:hover {
+    background-color: #d7cec7;
+    color: black;
+  }
+  
+.navibar a.active {
+    background-color: #c09f80;
+    color: white;
+  }
