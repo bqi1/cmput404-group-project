@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% csrf_token %}
+    </head>
+
+    <body>
+        {{resp}}
+    </br>
+
+
+
+        {% if true_auth %}
+        <label for="title">Post Title:</label>
+        <input id="title"></br>
+        <label for="desc">Post Desciption:</label>
+        <input id = "desc"></br>
+        <label for="md">Use Markdown?</label>
+        <input id="md" type="checkbox"></br>
+        <label for ="content">Content:</label></br>
+        <textarea id="content" cols="50" rows="10"></textarea></br>
+        <label for="image">Image (optional):</label>
+        <input id="image" type="file"></br></br>
+        <input id="makepost" type="button" value="Make Post" onclick="makePost()">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>{{postscript|safe}}</script>
+        {% endif %}
+
+        </body>
+
+
+
+
+
+
+</html>

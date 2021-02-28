@@ -17,13 +17,13 @@ from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
 from .permissions import EditPermission
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
-ADD_QUERY = "INSERT INTO posts VALUES (%d, %d, '%s', '%s', '%s', ?, '%s');"
-EDIT_QUERY = "UPDATE posts SET post_id=%d, user_id=%d, title='%s', description='%s', contenttype='%s', content=?, tstamp='%s' WHERE post_id=%d AND user_id =%d;"
+ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
+EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, contenttype=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
 
 # Create your views here.
 def index(request):
@@ -89,7 +89,7 @@ def login(request):
 
 
 @api_view(['GET','POST','PUT','DELETE'])
-@authentication_classes([SessionAuthentication, TokenAuthentication])
+@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def post(request,user_id,post_id):
     resp = ""
@@ -102,12 +102,11 @@ def post(request,user_id,post_id):
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
     data = cursor.fetchall()
-    print(method)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n")
     elif len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
 
     if method == 'GET':
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%a,\n\t"timestamp":%s,\n}\n'
+        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s,\n}\n'
         resp = pretty_template % data[0]
     else:
         cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
@@ -116,16 +115,20 @@ def post(request,user_id,post_id):
 
         if method == 'POST':
             p = request.POST
+            try: image = p["image"] # image is an optional param!
+            except MultiValueDictKeyError: image = '0'
             try:
-                cursor.execute(EDIT_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now()),post_id,user_id),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+                cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
                 conn.commit()
                 resp = "Succesfully modified post: %d\n" % post_id
             except MultiValueDictKeyError:
                 resp = "Failed to modify post:\nInvalid parameters\n"  
         elif method == 'PUT':
             p = request.POST
+            try: image = p["image"] # image is an optional param!
+            except MultiValueDictKeyError: image = '0'
             try:
-                cursor.execute(ADD_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now())),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+                cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
                 conn.commit()
                 resp = "Succesfully added post: %d\n" % post_id
             except MultiValueDictKeyError:
@@ -141,21 +144,23 @@ def post(request,user_id,post_id):
     return HttpResponse(resp)
 
 @api_view(['GET','POST'])
-@authentication_classes([SessionAuthentication, TokenAuthentication])
+@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def allposts(request,user_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    token = str(request.auth)
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
     data = cursor.fetchall()
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
+    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+    user_token = cursor.fetchall()[0][0]
     if method == "POST":
+        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         # Check to see if supplied token matches the user in question!
-        cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
-        user_token = cursor.fetchall()[0][0]
+        print(token)
+        print(user_token)
         if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
         p = request.POST
         while True:
@@ -163,8 +168,12 @@ def allposts(request,user_id):
             cursor.execute("SELECT post_id FROM posts WHERE post_id=%d;" % post_id)
             data = cursor.fetchall()
             if len(data) == 0 : break
+        
+        try: image = p["image"] # image is an optional param!
+        except MultiValueDictKeyError: image = '0'
+
         try:
-            cursor.execute(ADD_QUERY % (post_id,user_id,p["title"],p["description"],p["contenttype"],str(datetime.now())),(sqlite3.Binary(bytes(p["content"],encoding="utf-8")),))
+            cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
             conn.commit()
             resp = "Succesfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
@@ -172,10 +181,14 @@ def allposts(request,user_id):
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%a,\n\t"timestamp":%s,\n}\n'
+        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s\n}\n'
         for d in data: resp += pretty_template % d
     else:
         conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
     conn.close()
-    return HttpResponse(resp)
+    agent = request.META["HTTP_USER_AGENT"]
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
+        return render(request,'allposts.html',{'resp':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+    else: return HttpResponse(resp)
