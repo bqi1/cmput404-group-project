@@ -13,6 +13,8 @@ import sqlite3
 import os
 from random import randrange as rand
 from datetime import datetime
+import json
+from markdown import Markdown as Md
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
@@ -23,7 +25,7 @@ from rest_framework.authtoken.models import Token
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, contenttype=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
+EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
 
 # Create your views here.
 def index(request):
@@ -88,6 +90,28 @@ def login(request):
 
 
 
+def validate_int(p,optional=[]):
+    try:
+        int(p["markdown"])
+        for i in optional: int(i)
+        return 1
+    except ValueError: return 0
+
+def make_post_list(data):
+    resp = ""
+    start, end = '<div class="post" style="border:solid;"><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>', '<img src="%s"/></div>'
+    for d in data:
+        image = str(d[-2],encoding="utf-8")
+        content = d[5]
+        if d[4]: # use markdown!
+            md = Md()
+            content = md.convert(content)
+        if image == '0': resp += start % (d[2],d[3],content) + '</div>'
+        else: resp += start % (d[2],d[3],content) + end % (image,)
+        resp += "</br>"
+    return resp
+
+
 @api_view(['GET','POST','PUT','DELETE'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
@@ -106,7 +130,7 @@ def post(request,user_id,post_id):
     elif len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
 
     if method == 'GET':
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s,\n}\n'
+        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"markdown?":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s,\n}\n'
         resp = pretty_template % data[0]
     else:
         cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
@@ -118,7 +142,8 @@ def post(request,user_id,post_id):
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try:
-                cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
+                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
+                cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
                 conn.commit()
                 resp = "Succesfully modified post: %d\n" % post_id
             except MultiValueDictKeyError:
@@ -128,7 +153,8 @@ def post(request,user_id,post_id):
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try:
-                cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
+                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
+                cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
                 conn.commit()
                 resp = "Succesfully added post: %d\n" % post_id
             except MultiValueDictKeyError:
@@ -141,7 +167,11 @@ def post(request,user_id,post_id):
             conn.close()
             return HttpResponseBadRequest("Error: invalid method used\n")
     conn.close()
-    return HttpResponse(resp)
+    agent = request.META["HTTP_USER_AGENT"]
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+        if method == "GET": resp = make_post_list(data)
+        return render(request,'allposts.html',{'post_list':resp,'true_auth':False,'postscript':""})
+    else: return HttpResponse(resp)
 
 @api_view(['GET','POST'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
@@ -159,8 +189,6 @@ def allposts(request,user_id):
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         # Check to see if supplied token matches the user in question!
-        print(token)
-        print(user_token)
         if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
         p = request.POST
         while True:
@@ -173,15 +201,16 @@ def allposts(request,user_id):
         except MultiValueDictKeyError: image = '0'
 
         try:
-            cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["contenttype"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
+            if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
+            cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
             conn.commit()
             resp = "Succesfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
-            resp = "Failed to create post:\nInvalid parameters\n"   
+            resp = "Failed to create post:\nInvalid parameters\n"
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"content-type":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s\n}\n'
+        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"markdown?":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s\n}\n'
         for d in data: resp += pretty_template % d
     else:
         conn.close()
@@ -190,5 +219,6 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
-        return render(request,'allposts.html',{'resp':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+        if method == "GET": resp = make_post_list(data)
+        return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)

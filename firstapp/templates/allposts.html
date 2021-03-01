@@ -5,8 +5,10 @@
     </head>
 
     <body>
-        {{resp}}
-    </br>
+        {%autoescape off%}
+        {{post_list}}
+        {%endautoescape%}
+        </br>
 
 
 
@@ -19,8 +21,9 @@
         <input id="md" type="checkbox"></br>
         <label for ="content">Content:</label></br>
         <textarea id="content" cols="50" rows="10"></textarea></br>
-        <label for="image">Image (optional):</label>
-        <input id="image" type="file"></br></br>
+        <label for="image_link">Image (optional):</label><input id="image_link" placeholder="URL" onchange="resetFile()">
+        <label for="image_file">Or Upload a File</label>
+        <input id="image_file" type="file" onchange="resetLink()"></br></br>
         <input id="makepost" type="button" value="Make Post" onclick="makePost()">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script>{{postscript|safe}}</script>
