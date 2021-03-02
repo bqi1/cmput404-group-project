@@ -1,0 +1,18 @@
+{% extends "index.html" %}
+{% block content %}
+<body style="margin:0;padding:0;background:linear-gradient(to top right, #87CEFA, white)">
+    <div class="header" style="margin-top:0px;background-color:#00BFFF;height:100px;text-align:center;padding:0;margin-right:-10px;margin-left:-10px;height:-10px;">
+    <h1 style="color:white;margin-top:0px;font-family:comic sans ms">Welcome to Our First Web Social App!</h1></div>
+
+<h1 style="font-family:comic sans ms;text-align:center;color:#1E90FF;margin-left:400px;margin-right:400px;background-color:#FFFFF0;border:5px solid;border-image:linear-gradient(45deg,red,orange,yellow,green,blue,indigo,violet) 1;">User Login</h1>
+<form method="post">
+    {% csrf_token %}
+    <div id="user_content" style="border-color:#00008B;text-align:center;font-family:comic sans ms;border-radius:5px;margin-left:350px;margin-right:350px;background-color:#F0F8FF;border:3px solid #0000CD">
+    {{ form.as_p }}</div>
+    <button type="submit" class="btn btn-success" style="color:white;font-size:40px;background-color:#00BFFF;margin-top:80px;margin-left:45%;margin-right:42%;font-family:comic sans ms;border:3px;border-radius:5px;">Login</button>
+</form>
+<br /><br />
+<p style="font-family:comic sans ms;text-align:center;background:linear-gradient(to left,indigo,blue,green,yellow);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">New user? Click<a href="/signup"> here </a> to register </p>
+<br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br />
+</body>
+{% endblock %}
