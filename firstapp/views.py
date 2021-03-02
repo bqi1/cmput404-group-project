@@ -97,17 +97,20 @@ def validate_int(p,optional=[]):
         return 1
     except ValueError: return 0
 
-def make_post_list(data):
+def make_post_list(data,allposts=False):
     resp = ""
-    start, end = '<div class="post" style="border:solid;"><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>', '<img src="%s"/></div>'
+    start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></div>'
+    endnoimage = '<span class="md" style="display:none" value="%s"></div>'
     for d in data:
         image = str(d[-2],encoding="utf-8")
         content = d[5]
         if d[4]: # use markdown!
             md = Md()
             content = md.convert(content)
-        if image == '0': resp += start % (d[2],d[3],content) + '</div>'
-        else: resp += start % (d[2],d[3],content) + end % (image,)
+        starttag = start % (d[0],d[2],d[3],content) if allposts else start % (d[2],d[3],content)
+        if image == '0': resp += starttag + endnoimage % (d[4],)
+        else: resp += starttag + endimage % (image,d[4])
         resp += "</br>"
     return resp
 
@@ -118,7 +121,6 @@ def make_post_list(data):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    token = str(request.auth)
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
@@ -128,13 +130,14 @@ def post(request,user_id,post_id):
     data = cursor.fetchall()
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n")
     elif len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
+    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+    user_token = cursor.fetchall()[0][0]
 
     if method == 'GET':
         pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"markdown?":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s,\n}\n'
         resp = pretty_template % data[0]
     else:
-        cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
-        user_token = cursor.fetchall()[0][0]
+        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
 
         if method == 'POST':
@@ -170,7 +173,8 @@ def post(request,user_id,post_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         if method == "GET": resp = make_post_list(data)
-        return render(request,'allposts.html',{'post_list':resp,'true_auth':False,'postscript':""})
+        with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
+        return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
 
 @api_view(['GET','POST'])
@@ -219,6 +223,6 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
-        if method == "GET": resp = make_post_list(data)
+        if method == "GET": resp = make_post_list(data,allposts=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
