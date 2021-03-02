@@ -97,7 +97,7 @@ def validate_int(p,optional=[]):
         return 1
     except ValueError: return 0
 
-def make_post_list(data,allposts=False):
+def make_post_html(data,allposts=False):
     resp = ""
     start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></div>'
@@ -113,6 +113,23 @@ def make_post_list(data,allposts=False):
         else: resp += starttag + endimage % (image,d[4])
         resp += "</br>"
     return resp
+
+def make_post_list(data):
+    post_list = []
+    for d in data:
+        post_dict = {
+            "post_id":d[0],
+            "user_id":d[1],
+            "title":d[2],
+            "description":d[3],
+            "markdown?":d[4],
+            "content":d[5],
+            "image":str(d[6],encoding="utf-8"),
+            "timestamp":d[7]
+        }
+        post_list.append(post_dict)
+    return json.dumps(post_list,indent=4)
+
 
 
 @api_view(['GET','POST','PUT','DELETE'])
@@ -134,8 +151,7 @@ def post(request,user_id,post_id):
     user_token = cursor.fetchall()[0][0]
 
     if method == 'GET':
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"markdown?":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s,\n}\n'
-        resp = pretty_template % data[0]
+        resp = make_post_list(data)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
@@ -172,7 +188,7 @@ def post(request,user_id,post_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        if method == "GET": resp = make_post_list(data)
+        if method == "GET": resp = make_post_html(data)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
@@ -214,8 +230,7 @@ def allposts(request,user_id):
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
-        pretty_template = '{\n\t"post_id":%d,\n\t"user_id":%d,\n\t"title":%s,\n\t"description":%s,\n\t"markdown?":%s,\n\t"content":%s,\n\t"image":%a,\n\t"timestamp":%s\n}\n'
-        for d in data: resp += pretty_template % d
+        resp = make_post_list(data)
     else:
         conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
@@ -223,6 +238,6 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
-        if method == "GET": resp = make_post_list(data,allposts=True)
+        if method == "GET": resp = make_post_html(data,allposts=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
