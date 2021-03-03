@@ -1,0 +1,11 @@
+{% extends "index.html" %}
+
+{% block content %}
+{% if user.is_authenticated %}
+This is {{ user.username }} HomePage
+Your unique userid is {{user_id}}
+Your API token is {{token}}
+{% endif %}
+
+{% endblock %}
+    

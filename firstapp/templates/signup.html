@@ -1,0 +1,15 @@
+{% extends 'index.html' %}
+{% block content %}
+
+<h1>User SignUp</h1>
+<form method="post">
+    {% csrf_token %}
+    <fieldset class="form-group">
+        {{ form.as_p }}
+    </fieldset>
+    <button type="submit">Submit</button>
+</form>
+
+If an account exists, click<a href="/login">here</a>to login.
+
+{% endblock %}

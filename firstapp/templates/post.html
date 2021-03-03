@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% csrf_token %}
+
+    </head>
+
+    <body {% if true_auth %}onload="setDefaults()"{% endif %}>
+        {%autoescape off%}
+        {{post_list}}
+        {%endautoescape%}
+        </br>
+
+
+
+        {% if true_auth %}
+        <h2>Edit Post:</h2>
+        <label for="title">Post Title:</label>
+        <input id="title"></br>
+        <label for="desc">Post Desciption:</label>
+        <input id = "desc"></br>
+        <label for="md">Use Markdown?</label>
+        <input id="md" type="checkbox"></br>
+        <label for ="content">Content:</label></br>
+        <textarea id="content" cols="50" rows="10"></textarea></br>
+        <label for="image_link">Image (optional):</label><input id="image_link" placeholder="URL" onchange="resetFile()">
+        <label for="image_file">Or Upload a File</label>
+        <input id="image_file" type="file" onchange="resetLink()"></br></br>
+        </br></br></br>
+        <input id="editpost" type="button" value="Edit Post" onclick="editPost()">
+        <input id="deletepost" type="button" value="DELETE Post" onclick="deletePost()">
+        </br></br></br>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>{{postscript|safe}}</script>
+        {% endif %}
+
+        <a id = "back" href="">Back To All Posts</a>
+        </body>
+
+
+
+
+
+
+</html>
