@@ -1,5 +1,5 @@
 from django.shortcuts import render, HttpResponse, HttpResponseRedirect
-from django.http import HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import HttpResponseNotFound, HttpResponseBadRequest
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
@@ -122,7 +122,7 @@ def make_post_list(data):
             "user_id":d[1],
             "title":d[2],
             "description":d[3],
-            "markdown?":d[4],
+            "markdown":d[4],
             "content":d[5],
             "image":str(d[6],encoding="utf-8"),
             "timestamp":d[7]
@@ -154,7 +154,7 @@ def post(request,user_id,post_id):
         resp = make_post_list(data)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401)
 
         if method == 'POST':
             p = request.POST
@@ -166,7 +166,7 @@ def post(request,user_id,post_id):
                 conn.commit()
                 resp = "Successfully modified post: %d\n" % post_id
             except MultiValueDictKeyError:
-                resp = "Failed to modify post:\nInvalid parameters\n"  
+                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")  
         elif method == 'PUT':
             p = request.POST
             try: image = p["image"] # image is an optional param!
@@ -177,7 +177,7 @@ def post(request,user_id,post_id):
                 conn.commit()
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
-                resp = "Failed to modify post:\nInvalid parameters\n"  
+                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")  
         elif method == 'DELETE':
             cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
             conn.commit()
@@ -209,7 +209,7 @@ def allposts(request,user_id):
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         # Check to see if supplied token matches the user in question!
-        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401)
         p = request.POST
         while True:
             post_id = rand(2**63)
@@ -226,7 +226,7 @@ def allposts(request,user_id):
             conn.commit()
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
-            resp = "Failed to create post:\nInvalid parameters\n"
+            return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
