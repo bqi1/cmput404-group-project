@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+    <head>
+        <link rel="stylesheet" type="text/css"/>
+    </head>
+    
+{% block content %}
+<body style="margin:0;padding:0;background:linear-gradient(to top right, #87CEFA, white);">
+
+<div class="header" style="margin-top:0;background-color:#00BFFF;height:100px;text-align:center;padding:0">
+<h1 style="color:white;margin-top:0px;font-family:comic sans ms">Welcome to Our First Web Social App!</h1></div>
+<div class="container" style="text-align:center;display:block;margin:0;border:3px solid #0000CD;background:radial-gradient(#F0F8FF,#87CEEB);border-radius:5px;margin-left:350px;margin-right:350px;margin-top:40px;">
+    <h2 style="text-align:center;font-size:30px;font-family:comic sans ms;background-image:linear-gradient(to right, red,orange,yellow);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">Please SignUp or Login</h2>
+    <h3 style="text-align:center;font-size:30px;font-family:comic sans ms;background-image:linear-gradient(to left, red,orange,yellow,green,blue,indigo,violet);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">Welcome!!!</h3>
+    <button onclick="location.href='/signup';" style="color:white;font-size:40px;background:linear-gradient(to right top,#00BFFF,#B0E0E6);margin-top:100px;margin-left:37%;margin-right:42%;font-family:comic sans ms;border:3px;border-radius:5px;border-color:#FFFFFF;">SignUp</button>
+    <button onclick="location.href='/login';" style="color:white;font-size:40px;background:linear-gradient(to right top,#00BFFF,#B0E0E6);margin-top:40px;margin-left:40%;margin-right:42%;margin-bottom:35px;font-family:comic sans ms;border:3px;border-radius:5px;border-color:#FFFFFF;">Login</button>
+</div>
+<br /><br /><br /><br /><br />
+{% endblock %}
+
+
+</body>
+</html>
