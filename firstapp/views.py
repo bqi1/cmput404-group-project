@@ -1,9 +1,5 @@
 from django.shortcuts import render, HttpResponse, HttpResponseRedirect
-<<<<<<< HEAD
 from django.http import HttpResponseNotFound, HttpResponseBadRequest
-=======
-from django.http import HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
->>>>>>> c8f656acc9c181539a267bdd678ab283c2420683
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
