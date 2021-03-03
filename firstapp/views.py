@@ -164,7 +164,7 @@ def post(request,user_id,post_id):
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
                 cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
                 conn.commit()
-                resp = "Succesfully modified post: %d\n" % post_id
+                resp = "Successfully modified post: %d\n" % post_id
             except MultiValueDictKeyError:
                 resp = "Failed to modify post:\nInvalid parameters\n"  
         elif method == 'PUT':
@@ -175,7 +175,7 @@ def post(request,user_id,post_id):
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
                 cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
                 conn.commit()
-                resp = "Succesfully added post: %d\n" % post_id
+                resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 resp = "Failed to modify post:\nInvalid parameters\n"  
         elif method == 'DELETE':
@@ -224,7 +224,7 @@ def allposts(request,user_id):
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
             cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
             conn.commit()
-            resp = "Succesfully created post: %d\n" % post_id
+            resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             resp = "Failed to create post:\nInvalid parameters\n"
     elif method == "GET":
