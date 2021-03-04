@@ -16,6 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from firstapp import views as a_view
+from firstapp.views import(
+    search_user,
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +28,6 @@ urlpatterns = [
     path('firstapp/signup/', a_view.signup, name='signup'),
     path('firstapp/index/', a_view.index, name='index'),
     path('firstapp/homepage/', a_view.homepage, name='home'),
+    path('firstapp/search/', search_user, name = "search"),
+    path('firstapp/',include('firstapp.urls',namespace = 'account')),
 ]
