@@ -5,8 +5,8 @@ from django.contrib.auth.models import User
 
 
 # Create your models here.
-class UserCreation(models.Model):
-    user = models.CharField(max_length=20)
+class Author(models.Model):
+    username = models.CharField(max_length=20)
     #password = models.CharField(max_length=20)
     github = models.URLField(blank=True) # Github link
     host = models.TextField(max_length=500, blank=True)
@@ -22,3 +22,6 @@ class Setting(models.Model):
   UsersNeedAuthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
+class PublicImages(models.Model):
+  name = models.CharField(max_length=50)
+  img = models.ImageField(upload_to='image/')

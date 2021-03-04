@@ -21,7 +21,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
-from .models import UserCreation
+from .models import Author
 
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
