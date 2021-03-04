@@ -54,10 +54,8 @@ def signup(request):
             auth_login(request, user)
             Token(user=user).save()
             user.save()
-
             success = True
-            messages.success(request, "congrat!successful signup!")
-           # return render(request, 'index.html')
+            messages.success(request, "congrat! successful signup!")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
