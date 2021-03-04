@@ -240,15 +240,15 @@ def allposts(request,user_id):
     else: return HttpResponse(resp)
 
 #get a list of likes from other authors on the post id
-@api_view(['GET'])
-def likes(request):
-    method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('SELECT post_id FROM likes WHERE id=%d'%post_id)
-    data = cursor.fetchall()
+# @api_view(['GET'])
+def likes(request,user_id, post_id):
 
-    return HttpResponse(resp)
+    # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    # cursor = conn.cursor()
+    # cursor.execute('SELECT post_id FROM likes WHERE id=%d'%post_id)
+    # data = cursor.fetchall()
+
+    return HttpResponse("Help me")
 
 #get a list of likes from other authors on the post id's comment id
 @api_view(['GET'])
@@ -261,30 +261,30 @@ def commlikes(request):
 
     return HttpResponse(resp)
 
-@api_view(['GET','POST','DELETE'])
-def inbox(request):
-    ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
+# @api_view(['GET','POST','DELETE'])
+# def inbox(request):
+#     ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
 
-    method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
+#     method = request.META["REQUEST_METHOD"]
+#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+#     cursor = conn.cursor()
 
-    if method  == "GET":
-        #Get a list of posts sent to author id
-    elif method == "POST":
-        if type == "post":
-            #TODO add post to author's inbox
-        elif type == "follow":
-            #TODO add follow to author's inbox
-        elif type == "like":
-            #TODO add like to author's inbox
-            cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
-            data = cursor.fetchall()
-            if len(data) == 0:
-                return HttpResponseNotFound("The user you requested does not exist\n")
-            cursor.execute(ADD_LIKE_QUERY, (from_user, user_id, post_id, comment_id)
+#     if method  == "GET":
+#         #Get a list of posts sent to author id
+#     elif method == "POST":
+#         if type == "post":
+#             #TODO add post to author's inbox
+#         elif type == "follow":
+#             #TODO add follow to author's inbox
+#         elif type == "like":
+#             #TODO add like to author's inbox
+#             cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
+#             data = cursor.fetchall()
+#             if len(data) == 0:
+#                 return HttpResponseNotFound("The user you requested does not exist\n")
+#             cursor.execute(ADD_LIKE_QUERY, (from_user, user_id, post_id, comment_id)
             
-        else:
-            return HttpResponseNotFound("This type of object does not exist\n")
-    else:
-        #TODO clear the inbox
+#         else:
+#             return HttpResponseNotFound("This type of object does not exist\n")
+#     else:
+#         #TODO clear the inbox
