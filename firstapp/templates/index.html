@@ -3,11 +3,21 @@
 <html lang="en">
 
 <h1>Welcome to Our First Web Social App!</h1>
+    <!--If we have any messages, display them here.-->
+    {% if messages %}
+        <ul class="messages">
+            <p>Attention:</p>
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+        </ul>
+    {% endif %}
+</ul>
 
 {% block content %}
-<a class="btn btn=primary" href='/signup'>SignUp</a>
-<p>Or</p>
-<a class="btn btn=primary" href='/login'>Login</a>
+    <a class="btn btn=primary" href='/signup'>SignUp</a>
+    <p>Or</p>
+    <a class="btn btn=primary" href='/login'>Login</a>
 {% endblock %}
 
 

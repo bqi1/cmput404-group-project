@@ -21,6 +21,8 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
+from .models import UserCreation
+
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -55,12 +57,32 @@ def signup(request):
             user = form.save()
             new_username = form.cleaned_data.get('username')
             new_password = form.cleaned_data.get('password1')
-            user = authenticate(username = new_username, password=new_password)
-            auth_login(request, user)
+            user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
+            auth_login(request, user) # Save user ID
             Token(user=user).save()
             user.save()
             success = True
-            messages.success(request, "congrat! successful signup!")
+            # messages.success(request, "congrat! successful signup!")
+
+            # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
+            # Else, let the use in the homepage, set Authorized to True
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
+            try:
+                needs_authentication = cursor.fetchall()[0][0]
+            except:
+                pass
+            finally:
+                conn.close()
+
+            if needs_authentication:
+                user = UserCreation.objects.create(user=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+                # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
+                # messages.success(request, "Please wait to be authenticated by a server admin!")
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            user = UserCreation.objects.create(user=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -71,15 +93,29 @@ def signup(request):
         return render(request, 'signup.html', context)
 
 def login(request):
-    
+    # Check if Authorized. If so, proceed. Else, display an error message.
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
-            auth_login(request, user)
-          #  return HttpResponseRedirect(reverse('index'))
-            return HttpResponseRedirect(reverse('home'))
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT Authorized FROM firstapp_usercreation WHERE Userid = ? and User = ?;',(request.user.id,new_username))
+            try:
+                authenticated = cursor.fetchall()[0][0]
+                conn.close()
+            except:
+                conn.close()
+                messages.add_message(request,messages.INFO, 'This user does not exist.')
+                return HttpResponseRedirect(reverse('login'))
+            if not authenticated:
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            else:
+                auth_login(request, user)
+            #  return HttpResponseRedirect(reverse('index'))
+                return HttpResponseRedirect(reverse('home'))
         else:
          #   form = AuthenticationForm()
             #context = {'form':form}
