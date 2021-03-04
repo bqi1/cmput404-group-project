@@ -76,12 +76,12 @@ def signup(request):
                 conn.close()
 
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = UserCreation.objects.create(user=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+                user = Author.objects.create(username=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = UserCreation.objects.create(user=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+            user = Author.objects.create(username=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}

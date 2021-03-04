@@ -45,12 +45,6 @@ function makePost() {
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
-    // Cannot accept empty values
-
-    if (title == "" || desc == "" || content == "") {
-        alert("Please fill out all of the fields.");
-        return 1;
-    }
 
     // Cannot accept a non-numeric post id
     if(post_id.match(/[^0-9]/g)!=null) {
