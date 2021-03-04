@@ -52,18 +52,16 @@ def homepage(request):
 def signup(request):
     success = False
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        form = UserForm(request.POST) # A form consisting of username, password, email, and name
         if form.is_valid():
             user = form.save()
             new_username = form.cleaned_data.get('username')
             new_password = form.cleaned_data.get('password1')
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
-            auth_login(request, user) # Save user ID
+            auth_login(request, user) # Save user ID for further sessions
             Token(user=user).save()
             user.save()
             success = True
-            # messages.success(request, "congrat! successful signup!")
-
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
             conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
@@ -72,16 +70,17 @@ def signup(request):
             try:
                 needs_authentication = cursor.fetchall()[0][0]
             except:
-                pass
+                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
+                return HttpResponseRedirect(reverse('register'))
             finally:
                 conn.close()
 
-            if needs_authentication:
+            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
                 user = UserCreation.objects.create(user=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
-                # messages.success(request, "Please wait to be authenticated by a server admin!")
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
+            # Else, let them in homepage.
             user = UserCreation.objects.create(user=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
             return HttpResponseRedirect(reverse('home'))
         else:
@@ -98,7 +97,7 @@ def login(request):
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
-            # Check if Authorized. If so, proceed. Else, display an error message.
+            # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
             conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
             cursor = conn.cursor()
             cursor.execute('SELECT Authorized FROM firstapp_usercreation WHERE Userid = ? and User = ?;',(request.user.id,new_username))
@@ -114,12 +113,8 @@ def login(request):
                 return HttpResponseRedirect(reverse('login'))
             else:
                 auth_login(request, user)
-            #  return HttpResponseRedirect(reverse('index'))
                 return HttpResponseRedirect(reverse('home'))
         else:
-         #   form = AuthenticationForm()
-            #context = {'form':form}
-         #   return render(request, 'signup.html', context)
             print("Invalid account!")
             return HttpResponseRedirect(reverse('login'))
     else:
