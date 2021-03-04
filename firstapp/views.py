@@ -93,12 +93,12 @@ def signup(request):
         return render(request, 'signup.html', context)
 
 def login(request):
-    # Check if Authorized. If so, proceed. Else, display an error message.
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
+            # Check if Authorized. If so, proceed. Else, display an error message.
             conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
             cursor = conn.cursor()
             cursor.execute('SELECT Authorized FROM firstapp_usercreation WHERE Userid = ? and User = ?;',(request.user.id,new_username))
