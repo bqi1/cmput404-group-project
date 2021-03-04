@@ -13,5 +13,14 @@ class UserCreation(models.Model):
     
     def __str__(self):
         return self.user.username
-    
 
+# class PostLikes(models.Model):
+#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+#   from_user = models.IntegerField()
+
+# class Comment(models.Model):
+#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+# class CommentLikes(models.Model):
+#   comment = models.ForeignKey(comment, on_delete=models.CASCADE)
+#   from_user = models.IntegerField()
