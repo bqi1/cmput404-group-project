@@ -1,3 +1,5 @@
+// Get base64 encoded bytes from image field (async)
+// This code came from https://stackoverflow.com/questions/22680695/how-to-get-byte-array-from-input-type-file-using-javascript
 function getFileData() {
     return new Promise((resolve, reject) => {
         imageFile = document.getElementById("image_file").files;
@@ -19,19 +21,24 @@ function getFileData() {
     });
 
 }
+// If file field is filled out, set value of image link field to nothing
 function resetLink() {
     imageUrl = document.getElementById("image_link");
     imageUrl.value = ""; 
 }
 
+// If image link field is filled out, set value of file field to nothing
 function resetFile() {
     imageFile = document.getElementById("image_file");
     imageFile.value = "";
 }
 
+// When clicking the edit button, redirect the user to the specific post page
 function viewPost(post_id) {
     window.location.replace(window.location.href + post_id);
 }
+
+// Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {
     title = document.getElementById("title").value;
@@ -54,7 +61,6 @@ function makePost() {
         return;
     }
 
-    // This code came from https://stackoverflow.com/questions/22680695/how-to-get-byte-array-from-input-type-file-using-javascript
     promise = getFileData();
     promise.then(function (image) {
         var method = 'POST'
@@ -86,7 +92,7 @@ function makePost() {
 
 }
 
-
+// Add a new private author field when the + button is clicked
 function addPrivateAuthor() {
     pa_list = document.getElementById("pa_list");
     private_author = document.createElement("li");
@@ -104,6 +110,7 @@ function addPrivateAuthor() {
     pa_list.appendChild(private_author);
 }
 
+// Remove a new private author field when the - button is clicked
 function removePrivateAuthor() {
     element_list = document.getElementById("pa_list");
     num_children = element_list.childNodes.length

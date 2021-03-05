@@ -13,6 +13,10 @@ import unittest
 import requests
 import json
 import sqlite3
+import os
+
+FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
+
 
 # Check if posts are equal
 def validate_post(expected, actual, user_id, post_id,image='0'):
@@ -26,7 +30,7 @@ def validate_post(expected, actual, user_id, post_id,image='0'):
 
 # Clean the database of any leftover posts
 def clean_db():
-    conn = sqlite3.connect("../db.sqlite3")
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM posts WHERE user_id = 8;")
     conn.commit()
