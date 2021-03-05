@@ -23,6 +23,8 @@ Brian Qi (bqi1)
 
 Contribution:
 
+Miscellaneous User Stories
+
 Server admin can now optionally require their OK for users to register
 
 Can now link GitHub activity
@@ -41,19 +43,19 @@ Wenwen Li (wenwen)
 
 Contribution:
 
-Worked on majority of friend requests stories
+Worked on majority of friend requests user stories
 
 Kyle Androschuk (kandrosc)
 
 Contribution:
 
-Worked on majority of posts
+Worked on majority of posts user stories
 
 Jacky Huang(jzhuang)
 
 Contribution:
 
-Worked on majority of liking posts
+Worked on majority of liking posts user stories
 
 
 
