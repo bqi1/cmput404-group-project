@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
 
 
 
@@ -15,7 +16,7 @@ class Author(models.Model):
     userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
-    id = models.TextField(max_length=500, blank=True,primary_key=True) # Host/author/unique id
+    # UUid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     def __str__(self):
         return self.username
 class Setting(models.Model):
