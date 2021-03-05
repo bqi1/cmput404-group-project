@@ -2,6 +2,7 @@
 App is not deployed yet on Heroku yet. Only local requirements are met. All work is on the main branch.
 
 To run the tests, navigate to the tests folder, then run the .py file for each test normally. For example, "py post_tests.py" for Windows.
+
 ==============================================================
 Dependencies:
 
@@ -14,6 +15,7 @@ django-jquery
 Pillow
 
 djangorestframework
+
 ==============================================================
 Brian Qi (bqi1)
 
@@ -51,8 +53,9 @@ Contribution:
 
 Worked on majority of liking posts
 
-
+==============================================================
 External Sources used:
+==============================================================
 https://stackoverflow.com/questions/13202845/removing-help-text-from-django-usercreateform
 
 From Andreas Bergstrom at https://stackoverflow.com/questions/14999134/how-to-pass-a-message-from-httpresponseredirect-in-django at 2021-03-04 
