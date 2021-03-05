@@ -98,7 +98,7 @@ def validate_int(p,optional=[]):
 
 def make_post_html(data,allposts=False):
     resp = ""
-    start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
+    start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><button onclick="likePost()">Like!</button>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></div>'
     endnoimage = '<span class="md" style="display:none" value="%s"></div>'
     for d in data:
@@ -234,32 +234,57 @@ def allposts(request,user_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token, user_token)
         if method == "GET": resp = make_post_html(data,allposts=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
 
 #get a list of likes from other authors on the post id
-# @api_view(['GET'])
+@api_view(['GET'])
 def likes(request,user_id, post_id):
 
-    # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    # cursor = conn.cursor()
-    # cursor.execute('SELECT post_id FROM likes WHERE id=%d'%post_id)
-    # data = cursor.fetchall()
-
-    return HttpResponse("Help me")
-
-#get a list of likes from other authors on the post id's comment id
-@api_view(['GET'])
-def commlikes(request):
-    method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT c_id FROM likes WHERE id=%d'%post_id)
+    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
     data = cursor.fetchall()
 
-    return HttpResponse(resp)
+    return HttpResponse()
+
+#like a post
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
+def likepost(request,user_id, post_id):
+    resp = ""
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    like_id = rand(2**31)
+    cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+    conn.commit()
+    return render(request, "likes.html")
+
+# #get a list of likes from other authors on the post id's comment id
+# @api_view(['GET'])
+# def commlikes(request):
+#     method = request.META["REQUEST_METHOD"]
+#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+#     cursor = conn.cursor()
+#     cursor.execute('SELECT from_id FROM likes WHERE id=%d AND comm;'%post_id)
+#     data = cursor.fetchall()
+
+#     return HttpResponse("why")
+
+#get a list of posts and comments that the author has liked
+@api_view(['GET'])
+def liked(request,user_id, post_id):
+
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM postlikes WHERE from_id=%d;'%user_id)
+    data = cursor.fetchall()
+    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
+    # data = cursor.fetchall()
+
+    return HttpResponse()
 
 # @api_view(['GET','POST','DELETE'])
 # def inbox(request):
@@ -272,11 +297,11 @@ def commlikes(request):
 #     if method  == "GET":
 #         #Get a list of posts sent to author id
 #     elif method == "POST":
-#         if type == "post":
+#         if request.type == "post":
 #             #TODO add post to author's inbox
-#         elif type == "follow":
+#         elif request.type == "follow":
 #             #TODO add follow to author's inbox
-#         elif type == "like":
+#         elif request.type == "like":
 #             #TODO add like to author's inbox
 #             cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
 #             data = cursor.fetchall()
