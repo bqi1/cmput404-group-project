@@ -1,9 +1,12 @@
 {% load static %}
 <dir  class="header_view">
 	<div class="">
+		{% if request.user.is_authenticated %}
 		<h5 >
+
 			<a class="home_link" href="{% url 'home' %}">Home</a>
 		</h5>
+		{% endif %}
 		<form class="search_user" onsubmit="return executeQuery();">
 			<input type="text" class="form-control" name="q" id="id_q_large" placeholder="Search...">
 		</form>
@@ -14,7 +17,7 @@
 					<div>
 						<div >
 							<a href="{% url 'account:view' user_id=request.user.id %}">Account</a>
-							<a  href="{% url 'index' %}">Swith Account</a>
+							<a  href="{% url 'index' %}">Switch Account</a>
 						</div>
 					</div>
 				</div>
