@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% include "sub_basic/header.html" %}
+
     {% csrf_token %}
 </head>
 
 <body>
+    <p>{{num_likes}} likes on this post </p>
     {% for author in author_list %}
         <li>{{author}}</li>
     {% endfor %}
