@@ -38,7 +38,8 @@ class Setting(models.Model):
   UsersNeedAuthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
-class PublicImage(models.Model):
+class PublicImage(models.Model): # Host images to a folder in server. Accessible in server admin
+  # Followed tutorial by Will Vincent at 2021-03-05 at https://learndjango.com/tutorials/django-file-and-image-uploads-tutorial
   title = models.TextField()
   image = models.ImageField(upload_to='images/')
   def __str__(self):
