@@ -77,7 +77,7 @@ def signup(request):
                 needs_authentication = cursor.fetchall()[0][0]
             except:
                 messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
-                return HttpResponseRedirect(reverse('register'))
+                return HttpResponseRedirect(reverse('login'))
             finally:
                 conn.close()
 
