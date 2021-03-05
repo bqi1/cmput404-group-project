@@ -125,9 +125,6 @@ def login(request):
         context = {'form':form}
         return render(request, 'login.html', context)
 
-
-
-
 def validate_int(p,optional=[]):
     try:
         int(p["markdown"])
@@ -137,9 +134,13 @@ def validate_int(p,optional=[]):
 
 def make_post_html(data,user_id,canedit=False):
     resp = ""
+    with open(FILEPATH+"static/like.js","r") as f: script = f.read()
+
+    #add javascript likePost function and the jquery library for ajax
+    jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
 
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
@@ -151,10 +152,16 @@ def make_post_html(data,user_id,canedit=False):
         if d[4]: # use markdown!
             md = Md()
             content = md.convert(content)
-        starttag = start % (d[2],d[3],content)
-        if len(priv) == 0 or user_id == d[1] :
-            if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
-            else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+        starttag = jscript
+        starttag += start % (d[2],d[3],content)
+        if len(priv) == 0:
+            if image == '0':
+                resp += starttag
+                resp += endnoimage.format(d[0]) % (d[4],)
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
+            else: 
+                resp += starttag + endimage.format(d[0]) % (image,d[4])
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
             resp += "</br>"
         else:
             show_post = False
@@ -163,8 +170,8 @@ def make_post_html(data,user_id,canedit=False):
                     show_post = True
                     break
             if show_post and user_id != None:
-                if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
-                else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+                if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
+                else: resp += starttag + endimage.format(d[0],d[0]) % (image,d[4])
                 resp += "</br>"
     conn.close()
     return resp
@@ -201,8 +208,6 @@ def make_post_list(data,user_id):
             if show_post and user_id != None: post_list.append(post_dict)
     conn.close()
     return json.dumps(post_list,indent=4)
-
-
 
 @api_view(['GET','POST','PUT','DELETE'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
@@ -355,11 +360,98 @@ def allposts(request,user_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
-        if method == "GET": resp = make_post_html(data,request.user.id,canedit=(request.user.is_authenticated and request.user.id == user_id))
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
+        if method == "GET": resp = make_post_html(data,user_id,canedit=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
 
+#like a post
+@api_view(['POST'])
+def likepost(request, user_id, post_id):
+    resp = ""
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    data = cursor.fetchall()
+    # if post has already been liked
+    if len(data) > 0:
+        return HttpResponse("Post already liked")
+    else:
+        like_id = rand(2**31)
+        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+        conn.commit()
+        return HttpResponse("Post liked successfully")
+
+#get a list of likes from other authors on the post id
+@api_view(['GET'])
+def likes(request, user_id, post_id):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+    data = cursor.fetchall()
+    author_list = []
+    for d in data:
+        author = d[0]
+        author_list.append(author)
+    return render(request, "likes.html", {"author_list":author_list})
+
+#get a list of posts and comments that the author has liked
+@api_view(['GET'])
+def liked(request,user_id):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT post_id FROM postlikes WHERE from_user=%d;'%(user_id))
+    data = cursor.fetchall()
+    liked_posts_list = []
+    for id in data:
+        post_id = id[0]
+        liked_posts_list.append(post_id)
+    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
+    # data = cursor.fetchall()
+
+    return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
+
+# def comment(request, user_id, post_id):
+#     if request.method == "POST":
+
+# #get a list of likes from other authors on the post id's comment id
+# @api_view(['GET'])
+# def commlikes(request):
+#     method = request.META["REQUEST_METHOD"]
+#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+#     cursor = conn.cursor()
+#     cursor.execute('SELECT from_id FROM likes WHERE id=%d AND comm;'%post_id)
+#     data = cursor.fetchall()
+
+#     return HttpResponse("why")
+
+# @api_view(['GET','POST','DELETE'])
+# def inbox(request):
+#     ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
+
+#     method = request.META["REQUEST_METHOD"]
+#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+#     cursor = conn.cursor()
+
+#     if method  == "GET":
+#         #Get a list of posts sent to author id
+#     elif method == "POST":
+#         if request.type == "post":
+#             #TODO add post to author's inbox
+#         elif request.type == "follow":
+#             #TODO add follow to author's inbox
+#         elif request.type == "like":
+#             #TODO add like to author's inbox
+#             cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
+#             data = cursor.fetchall()
+#             if len(data) == 0:
+#                 return HttpResponseNotFound("The user you requested does not exist\n")
+#             cursor.execute(ADD_LIKE_QUERY, (from_user, user_id, post_id, comment_id)
+            
+#         else:
+#             return HttpResponseNotFound("This type of object does not exist\n")
+#     else:
+#         #TODO clear the inbox
 
 def search_user(request, *args, **kwargs):
     context = {}

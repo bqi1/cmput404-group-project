@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% csrf_token %}
+</head>
+
+<body>
+    {% for author in author_list %}
+        <li>{{author}}</li>
+    {% endfor %}
+</body>
+
+</html>

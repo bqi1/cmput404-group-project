@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'firstapp',
     'rest_framework.authtoken',
+    'rest_framework',
+    'jquery',
     'friend',
 ]
 REST_FRAMEWORK = {

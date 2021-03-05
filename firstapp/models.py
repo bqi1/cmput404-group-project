@@ -20,7 +20,19 @@ class Author(models.Model):
     # UUid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def __str__(self):
-        return self.username
+        return self.user.username
+
+# class PostLikes(models.Model):
+#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+#   from_user = models.IntegerField()
+
+# class Comment(models.Model):
+#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+# class CommentLikes(models.Model):
+#   comment = models.ForeignKey(comment, on_delete=models.CASCADE)
+#   from_user = models.IntegerField()
+
 class Setting(models.Model):
   # Contains variables for global settings
   # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
