@@ -20,13 +20,15 @@ from django.conf import settings
 from django.conf.urls.static import static
 from firstapp.views import(
     search_user,
+    login,
+    signup,
     )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('firstapp/', a_view.index, name='index'),
-    path('firstapp/login/', a_view.login, name='login'),
-    path('firstapp/signup/', a_view.signup, name='signup'),
+    path('firstapp/login/', login, name='login'),
+    path('firstapp/signup/', signup, name='signup'),
     path('firstapp/index/', a_view.index, name='index'),
     path('firstapp/homepage/', a_view.homepage, name='home'),
     path('firstapp/search/', search_user, name = "search"),

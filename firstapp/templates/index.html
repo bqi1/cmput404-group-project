@@ -16,9 +16,9 @@
 
 {% include "sub_basic/header.html" %}
 {% block content %}
-    <a class="btn btn=primary" href='/signup'>SignUp</a>
-    <p>Or</p>
-    <a class="btn btn=primary" href='/login'>Login</a>
+<a class="btn btn=primary" href="{% url 'signup' %}">SignUp</a>
+<p>Or</p>
+<a class="btn btn=primary" href="{% url 'login' %}">Login</a>
 {% endblock %}
 
 
