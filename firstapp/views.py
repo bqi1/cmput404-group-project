@@ -309,6 +309,7 @@ def search_user(request, *args, **kwargs):
     return render(request,"search_user.html",context)
 
 def account_view(request, *args, **kwargs):
+    print("LET ME IN")
     context = {}
     user_id = kwargs.get("user_id")
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
@@ -318,7 +319,7 @@ def account_view(request, *args, **kwargs):
     try:
         data = cursor.fetchall()[0]
     except IndexError: # No token exists, must create a new one!
-        return HttpResponse("user doesn't exist") 
+        return HttpResponse("!!user doesn't exist") 
 
     if data:
 
