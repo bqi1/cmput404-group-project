@@ -33,6 +33,7 @@ function resetFile() {
 function viewPost(post_id) {
     window.location.replace(window.location.href + post_id);
 }
+
 function likePost() {
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
