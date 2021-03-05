@@ -14,6 +14,7 @@ import requests
 import json
 import sqlite3
 
+# Check if posts are equal
 def validate_post(expected, actual, user_id, post_id,image='0'):
     actual["user_id"] = user_id
     actual["post_id"] = post_id
@@ -22,6 +23,14 @@ def validate_post(expected, actual, user_id, post_id,image='0'):
         if col != "timestamp" and actual[col] != expected[col]:
             return False
     return True
+
+# Clean the database of any leftover posts
+def clean_db():
+    conn = sqlite3.connect("../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM posts WHERE user_id = 8;")
+    conn.commit()
+    conn.close()
 
 class PostTests(unittest.TestCase):
     # Initialize some variables
@@ -162,12 +171,11 @@ class PostTests(unittest.TestCase):
         r = requests.delete(self.post_url % (8,self.post_id2),headers=self.auth_header)
 
 if __name__ == "__main__":
+    # Clean any posts that may fail the tests
+    clean_db()
+
     # Run tests
     unittest.main()
 
     # Clean up any leftover posts that may still linger if tests fail!
-    conn = sqlite3.connect()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM posts WHERE user_id = 8;")
-    conn.commit()
-    conn.close()
+    clean_db()
