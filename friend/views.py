@@ -18,7 +18,7 @@ def request_view(request, *args, **kwargs):
 			context['friend_requests'] = friend_request
 		else:
 			return HttpResponse("You can't view Other useres friend request")
-		return render(request, "friend/friend_requests.html", context)
+		return render(request, "friend_requests.html", context)
 
 
 
