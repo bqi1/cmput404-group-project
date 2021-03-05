@@ -18,3 +18,7 @@ function likePost(post_id) {
         }
     )
 }
+
+function viewLikes(post_id) {
+    location.replace(window.location.href + post_id + "/likes/")
+}
