@@ -286,6 +286,10 @@ def liked(request,user_id, post_id):
 
     return HttpResponse()
 
+def comment(request, user_id, post_id):
+    if request.method == "POST":
+        
+
 # @api_view(['GET','POST','DELETE'])
 # def inbox(request):
 #     ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
