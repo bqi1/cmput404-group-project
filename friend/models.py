@@ -25,10 +25,13 @@ class FriendList(models.Model):
 		remover_friends_list.FriendDelete(removee)
 		friends_list = FriendList.objects.get(user = removee)
 		friends_list.FriendDelete(self.user)
-	def FriendCheck(self,friend):
+	def is_mutual_friend(self, friend):
+		"""
+		Is this a friend?
+		"""
 		if friend in self.friends.all():
 			return True
-
+		return False
 class FriendRequest(models.Model):
 	sender = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete = models.CASCADE, related_name = "sender")
 	receiver = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete = models.CASCADE, related_name = "receiver")
