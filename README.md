@@ -1,4 +1,6 @@
 # cmput404-group-project
+App is not deployed yet on Heroku yet. Only local requirements are met.
+
 Brian Qi (bqi1)
 Contribution:
 Server admin can now optionally require their OK for users to register
