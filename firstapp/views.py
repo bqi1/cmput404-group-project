@@ -104,6 +104,8 @@ def validate_int(p,optional=[]):
 def make_post_html(data,user_id,canedit=False):
     resp = ""
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
+
+    #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
