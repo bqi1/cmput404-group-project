@@ -174,7 +174,7 @@ def make_post_html(data,user_id,canedit=False):
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
             else: 
                 resp += starttag + endimage.format(d[0]) % (image,d[4])
-                resp += '<form action="/{}/likes"method = get>view likes</form>'.format(d[0])
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
 
             resp += "</br>"
