@@ -9,7 +9,6 @@ import uuid
 class Author(models.Model):
     type = "author"
     username = models.CharField(max_length=20)
-    #password = models.CharField(max_length=20)
     github = models.URLField(blank=True) # Github link
     github_username = models.TextField(max_length=20,blank=True)
     host = models.TextField(max_length=500, blank=True)
@@ -17,16 +16,16 @@ class Author(models.Model):
     userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
-    # UUid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    consistent_id = models.TextField(primary_key=True,max_length=20,blank=True) # add , editable=False
 
     def __str__(self):
-        return self.user.username
+        return self.username
 
 # class PostLikes(models.Model):
 #   post = models.ForeignKey(Post, on_delete=models.CASCADE)
 #   from_user = models.IntegerField()
 
-# class Comment(models.Model):
+# class Comments(models.Model):
 #   post = models.ForeignKey(Post, on_delete=models.CASCADE)
 
 # class CommentLikes(models.Model):

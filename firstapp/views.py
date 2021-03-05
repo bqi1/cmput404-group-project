@@ -27,6 +27,7 @@ from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
 from firstapp.models import Author
 from django.contrib.auth import get_user_model
+import uuid
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -53,8 +54,9 @@ def homepage(request):
         return render(request, 'homepage.html', {'user_id':user_id,'token':token})
     
 def signup(request):
+    # Called when user accesses the signup page
     success = False
-    if request.method == 'POST':
+    if request.method == 'POST': # When a user wants to sign up, first validate:
         form = UserForm(request.POST) # A form consisting of username, password, email, and name
         if form.is_valid():
             user = form.save()
@@ -79,12 +81,18 @@ def signup(request):
                 conn.close()
 
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
+                    authorized=False,email=form.cleaned_data['email'],\
+                        name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                            consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+                userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
+                    name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                        consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
