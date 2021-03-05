@@ -12,6 +12,7 @@ emails: kandrosc98@gmail.com, kandrosc98@gmail.com
 import unittest
 import requests
 import json
+import sqlite3
 
 def validate_post(expected, actual, user_id, post_id,image='0'):
 
@@ -27,7 +28,7 @@ class PostTests(unittest.TestCase):
     # Initialize some variables
 
     def setUp(self):
-        self.allposts_url = "http://localhost:8000/author/%s/posts"
+        self.allposts_url = "http://localhost:8000/author/%s/posts/"
         self.post_url = "http://localhost:8000/author/%s/posts/%d"
         self.post_id2 = 12345
         self.data1 = {"title":"title_one","description":"desc_one","markdown":0,"content":"content_one"}
@@ -37,7 +38,6 @@ class PostTests(unittest.TestCase):
         self.image_url = "https://miro.medium.com/max/1200/1*mk1-6aYaf_Bes1E3Imhc0A.jpeg"
 
     # Tasks that should work
-
 
     def test_create_POST(self):
         r = requests.post(self.allposts_url % 8, headers = self.auth_header, data = self.data1)
@@ -58,7 +58,6 @@ class PostTests(unittest.TestCase):
         self.assertTrue(len(post_list) == 2, "Expected 2 posts to be returned, got %d" % len(post_list))
         self.assertTrue(validate_post(post_list[0],self.data1,8,self.post_id1), "Expected the first post to be %s, got %s" % (str(self.data1),str(post_list[0])) )
         self.assertTrue(validate_post(post_list[1],self.data2,8,self.post_id2), "Expected the second post to be %s, got %s" % (str(self.data1),str(post_list[1])) )
-
 
     def test_modify_POST(self):
         self.data2["content"] = "content_two"
@@ -163,6 +162,13 @@ class PostTests(unittest.TestCase):
         # Delete remaining post to clean up the database!
         r = requests.delete(self.post_url % (8,self.post_id2),headers=self.auth_header)
 
-
 if __name__ == "__main__":
+    # Run tests
     unittest.main()
+
+    # Clean up any leftover posts that may still linger if tests fail!
+    conn = sqlite3.connect()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM posts WHERE user_id = 8;")
+    conn.commit()
+    conn.close()
