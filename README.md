@@ -8,7 +8,7 @@ Contribution:
 
 Wenwen Li (wenwen)
 Contribution:
-build up the profile page for all user 
+li build up the profile page for all user 
 build up header with link for convenience 
 build up the search function, so we can search user throught our server
 build up friend system, can send a friend request to some one is not your friend,
