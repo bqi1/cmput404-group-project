@@ -106,18 +106,12 @@ def validate_int(p,optional=[]):
 
 def make_post_html(data,user_id,canedit=False):
     resp = ""
-<<<<<<< HEAD
-    start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><button onclick="likePost()">Like!</button>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></div>'
-=======
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost()">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost()">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
 
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
->>>>>>> 2433c3a564d729addddad263757c842d0f97aaa7
     for d in data:
         cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0])
         priv = cursor.fetchall()
@@ -153,7 +147,7 @@ def make_post_list(data,user_id):
         # Do appear if post is private and author is not author of user
     
         cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0])
-        priv = cursor.fetchall()
+        priv = cursor.fetchall()9
         post_dict = {
             "post_id":d[0],
             "user_id":d[1],
@@ -291,21 +285,10 @@ def allposts(request,user_id):
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
 
-#get a list of likes from other authors on the post id
-@api_view(['GET'])
-def likes(request,user_id, post_id):
-
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
-    data = cursor.fetchall()
-
-    return HttpResponse()
-
 #like a post
 @api_view(['POST'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
-def likepost(request,user_id, post_id):
+def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
@@ -313,6 +296,31 @@ def likepost(request,user_id, post_id):
     cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
     conn.commit()
     return render(request, "likes.html")
+
+#get a list of likes from other authors on the post id
+@api_view(['GET'])
+def likes(request, user_id, post_id):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+    data = cursor.fetchall()
+
+    return HttpResponse()
+
+#get a list of posts and comments that the author has liked
+@api_view(['GET'])
+def liked(request,user_id, post_id):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM postlikes WHERE from_id=%d;'%user_id)
+    data = cursor.fetchall()
+    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
+    # data = cursor.fetchall()
+
+    return HttpResponse()
+
+# def comment(request, user_id, post_id):
+#     if request.method == "POST":
 
 # #get a list of likes from other authors on the post id's comment id
 # @api_view(['GET'])
@@ -324,23 +332,6 @@ def likepost(request,user_id, post_id):
 #     data = cursor.fetchall()
 
 #     return HttpResponse("why")
-
-#get a list of posts and comments that the author has liked
-@api_view(['GET'])
-def liked(request,user_id, post_id):
-
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postlikes WHERE from_id=%d;'%user_id)
-    data = cursor.fetchall()
-    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
-    # data = cursor.fetchall()
-
-    return HttpResponse()
-
-def comment(request, user_id, post_id):
-    if request.method == "POST":
-
 
 # @api_view(['GET','POST','DELETE'])
 # def inbox(request):

@@ -12,6 +12,6 @@ urlpatterns = [
     path('author/<int:user_id>/posts/', views.allposts, name='allposts'),
     # path('author/<int:user_id>/inbox', views.inbox, name='inbox'),
     path('author/<int:user_id>/posts/<int:post_id>/likes/', views.likes, name='likes'),
-    path('author/<int:user_id>/posts/<int:post_id>/likepost/', views.likes, name='likepost'),
+    path('author/<int:user_id>/posts/<int:post_id>/likepost/', views.likepost, name='likepost'),
     # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
 ]
