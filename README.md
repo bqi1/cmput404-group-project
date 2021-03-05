@@ -30,4 +30,4 @@ https://djangocentral.com/django-ajax-with-jquery/ at 2021-03-05
 https://stackoverflow.com/questions/37642175/how-to-add-django-rest-framework-permissions-on-specific-method-only
 Followed tutorial by Will Vincent at 2021-03-05 at https://learndjango.com/tutorials/django-file-and-image-uploads-tutorial
 https://stackoverflow.com/questions/22680695/how-to-get-byte-array-from-input-type-file-using-javascript
-
+https://codingwithmitch.com/courses/real-time-chat-messenger/querying-friends/
