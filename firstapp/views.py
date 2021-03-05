@@ -170,10 +170,12 @@ def make_post_html(data,user_id,canedit=False):
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d[0]) % (d[4],)
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
+                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
             else: 
                 resp += starttag + endimage.format(d[0]) % (image,d[4])
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
+                resp += '<form action="/{}/likes"method = get>view likes</form>'.format(d[0])
+                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
             resp += "</br>"
         else: # post is private
             show_post = False
@@ -417,7 +419,8 @@ def likes(request, user_id, post_id):
     for d in data:
         author = d[0]
         author_list.append(author)
-    return render(request, "likes.html", {"author_list":author_list})
+    num_likes = len(author_list)
+    return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
 
 #get a list of posts and comments that the author has liked
 @api_view(['GET'])
