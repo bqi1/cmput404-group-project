@@ -106,7 +106,7 @@ def login(request):
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
             conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
             cursor = conn.cursor()
-            cursor.execute('SELECT Authorized FROM firstapp_usercreation WHERE Userid = ? and User = ?;',(request.user.id,new_username))
+            cursor.execute('SELECT Authorized FROM firstapp_author WHERE userid = ? and username = ?;',(request.user.id,new_username))
             try:
                 authenticated = cursor.fetchall()[0][0]
                 conn.close()
@@ -319,10 +319,7 @@ def account_view(request, *args, **kwargs):
         data = cursor.fetchall()[0]
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
-    # print("here is data")
-    # print(data)
-    
-    # print(len(data))
+
     if data:
 
         context['id'] = data[3]
