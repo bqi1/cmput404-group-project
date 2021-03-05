@@ -63,14 +63,6 @@ function editPost() {
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
 
-
-    // Cannot accept empty values
-
-    if (title == "" || desc == "" || content == "") {
-        alert("Please fill out all of the fields.");
-        return 1;
-    }
-
     // This code came from https://stackoverflow.com/questions/22680695/how-to-get-byte-array-from-input-type-file-using-javascript
     promise = getFileData();
     promise.then(function (image) {
