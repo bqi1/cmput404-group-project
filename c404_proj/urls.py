@@ -24,7 +24,6 @@ from firstapp.views import(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('firstapp.urls')),
     path('firstapp/', a_view.index, name='index'),
     path('firstapp/login/', a_view.login, name='login'),
     path('firstapp/signup/', a_view.signup, name='signup'),
