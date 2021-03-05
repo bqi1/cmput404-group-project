@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from .models import *
 #from .models import User
 
 class UserForm(UserCreationForm):
@@ -19,5 +20,9 @@ class UserForm(UserCreationForm):
         model = User
         fields = ['email','username','first_name','last_name','password1', 'password2']
             
+class ImageForm(forms.ModelForm):
+    class Meta:
+        model = PublicImages
+        fields = ['name','img']
 #https://stackoverflow.com/questions/13202845/removing-help-text-from-django-usercreateform
 #for removing extra help texts

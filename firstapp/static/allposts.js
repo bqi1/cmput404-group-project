@@ -19,7 +19,6 @@ function getFileData() {
     });
 
 }
-
 function resetLink() {
     imageUrl = document.getElementById("image_link");
     imageUrl.value = ""; 
@@ -31,7 +30,7 @@ function resetFile() {
 }
 
 function viewPost(post_id) {
-    window.location.replace(window.location.href+ "/" + post_id);
+    window.location.replace(window.location.href + post_id);
 }
 
 function makePost() {
@@ -42,15 +41,12 @@ function makePost() {
     var image = 0;
     post_id = document.getElementById("post_id").value;
 
+    pa_list = document.getElementsByClassName("pa_id");
+    priv_author = [];
+    for(i=0;i<pa_list.length;i++) {priv_author.push(pa_list[i].value);}
+
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-
-    // Cannot accept empty values
-
-    if (title == "" || desc == "" || content == "") {
-        alert("Please fill out all of the fields.");
-        return 1;
-    }
 
     // Cannot accept a non-numeric post id
     if(post_id.match(/[^0-9]/g)!=null) {
@@ -65,7 +61,7 @@ function makePost() {
         var URL = window.location.href;
         if(post_id != "") {
             method = 'PUT';
-            URL = URL + "/" + post_id;
+            URL = URL + post_id;
 
         }
         $.ajax(
@@ -73,18 +69,44 @@ function makePost() {
                 url: URL,
                 method: method,
                 headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image },
+                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "priv_author":priv_author },
                 success: function () {
                     alert("Successfully created post!");
                     location.reload();
                 },
                 error: function (response) {
                     if(response.status == 409) {alert("The post ID you entered has already been taken. Please enter another one.");}
+                    else if(response.status == 404) {alert("One or more user ids entered into the author privacy field are not valid user ids.");}
                     else {console.log(response);}
                 }
 
             }
         );
     })
+
+}
+
+
+function addPrivateAuthor() {
+    pa_list = document.getElementById("pa_list");
+    private_author = document.createElement("li");
+    br = document.createElement("br");
+
+    private_author_id = document.createElement("input");
+    private_author_id.setAttribute("class","pa_id")
+    label = document.createElement("span");
+    label.innerHTML = "Private Author Id";
+
+    private_author.appendChild(label);
+    private_author.appendChild(private_author_id);
+    private_author.appendChild(br);
+
+    pa_list.appendChild(private_author);
+}
+
+function removePrivateAuthor() {
+    element_list = document.getElementById("pa_list");
+    num_children = element_list.childNodes.length
+    if (num_children>0){element_list.removeChild(element_list.childNodes[num_children-1]);}
 
 }
