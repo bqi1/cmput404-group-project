@@ -1,5 +1,6 @@
 {% extends 'index.html' %}
 {% load static %}
+{% csrf_token %}
 
 {% block content %}
 
@@ -64,8 +65,9 @@
 	.message-btn-text{
 		font-weight: 500;
 	}
+	
 </style>
-
+{% csrf_token %}
 <div class="container-fluid">
 	<div class="d-flex flex-row justify-content-center flex-wrap align-items-start">
 
@@ -75,16 +77,72 @@
 		  		<div class="image-container mx-auto mb-4">
 		  		
 		  		</div>
-		  		<p class="mt-4 mb-1 field-heading">Email</p>
-		  		<h5>{{email}}</h5>
-		  		<p class="mt-4 mb-1 field-heading">Username</p>
-		  		<h5>{{username}}</h5>
+				<h3>Email</h3>
+		  		<p class="mt-4 mb-1 field-heading">{{email}}</p>
+		  		<h3>Username</h3>
+		  		<p class="mt-4 mb-1 field-heading">{{username}}</p>
+		  		
+
+				<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+				<!--Have an option to pull Github to profile-->
+				<h3>Github:</h3>
+				{% if is_self %}
+				  	{% if Author.github == "" %}
+						<p>You do not have your GitHub connected.</p>
+						<input id="github_url" placeholder="GitHub Username">
+						<input id="github_submit" type="button" value="Connect to GitHub" onclick="ConnectToGitHub()">
+				  	{% else %}
+					  	<p>{{ Author.github }}</p>
+						  <!-- Maybe add button to take away github later -->
+						<script>
+								function ReconnectToGitHub(){
+									var github_input = "{{Author.github_username}}";
+									var url = 'https://api.github.com/users/'+github_input+'/events'
+									console.log(url);
+									var X = new XMLHttpRequest();
+									X.onreadystatechange = function() {
+										if (X.readyState == 4 && X.status == 200)
+											displayActivity(JSON.parse(X.responseText),github_input.value);
+									}
+									X.open("GET",url,true);
+									X.send(null);
+								}
+
+								ReconnectToGitHub();
+
+						</script>
+					{% endif %}
+					<div id="github_activity"></div>
+				{% else %}
+					{% if Author.github == "" %}
+						<p>This user does not have their GitHub linked.</p>
+					{% else %}
+						<p>{{ Author.github }}</p>
+						<script>
+								function ReconnectToGitHub(){
+									var github_input = "{{Author.github_username}}";
+									var url = 'https://api.github.com/users/'+github_input+'/events'
+									console.log(url);
+									var X = new XMLHttpRequest();
+									X.onreadystatechange = function() {
+										if (X.readyState == 4 && X.status == 200)
+											displayActivity(JSON.parse(X.responseText),github_input.value);
+									}
+									X.open("GET",url,true);
+									X.send(null);
+								}
+								ReconnectToGitHub();
+						</script>
+						<div id="github_activity"></div>
+					{% endif %}
+				{% endif %}
+				<br><br>
 
 		  		<!-- If Auth user is viewing their own profile -->
 		  		{% if is_self %}
 		  		<a  class="mt-4 btn btn-primary" href="#">Update</a>
 				<div class="d-flex flex-column mt-4">
-					<a class="m-auto" href="{% url 'password_change' %}">Change password</a>
+					<a class="m-auto" href="#">Change password</a>
 				</div>
 		  		{% endif %}
 		  	</div>
@@ -228,6 +286,52 @@
 		//declineFriendRequest(friend_request_id, onFriendRequestDeclined)
 	}
 	
+	function ConnectToGitHub(){
+		var github_input = document.getElementById("github_url")
+		var url = 'https://api.github.com/users/'+github_url.value+'/events'
+		console.log(url);
+		var X = new XMLHttpRequest();
+		X.onreadystatechange = function() {
+			if (X.readyState == 4 && X.status == 200)
+			// Send github username and url back to views.py
+			csrftoken = document.querySelector('*[name=csrfmiddlewaretoken]').value;
+			$.ajax(
+				{
+					type: "POST",
+					url: window.location.href,
+					headers:  { 'X-CSRFToken': csrftoken },
+					data: { "git_url": "http://github.com/"+github_url.value, "git_username": github_url.value},
+					success: function () {
+						location.reload();
+					},
+					error: function (response) { console.log(response); }
+
+				}
+			)
+		}
+		X.open("GET",url,true);
+		X.send(null);
+	}
+
+	function displayActivity(parsedXML,username){
+		var i;
+		var output = "<ul>";
+		for (i = 0; i < parsedXML.length; i++){
+			if (i > 4){
+				break
+			}
+			output += '<li>'+parsedXML[i].repo.name+' at '+parsedXML[i].created_at+'</li>'
+		}
+		if (i === 0){
+			document.getElementById("github_activity").innerHTML = "<p>No activity here...</p>"
+			return
+		}
+		// Author.github = "http://github.com/"+username
+		
+		output += "</ul><br>";
+		document.getElementById("github_activity").innerHTML = output;
+		
+	}
 </script>
 
 {% include 'send_request.html' %}

@@ -2,9 +2,12 @@
 ## Brian Qi (bqi1)
 Contribution:
 Server admin can now optionally require their OK for users to register
+Can now link GitHub activity
 
 ## Hongfang Xu (hongfang)
 Contribution:
+Made Login/Register
+Worked on commenting on posts
 
 ## Wenwen Li (wenwen)
 Contribution:
@@ -20,9 +23,11 @@ Contribution:
 
 ## Kyle Androschuk (kandrosc)
 Contribution:
+Worked on majority of posts
 
 ## Jacky Huang(jzhuang)
 Contribution:
+Worked on Liking posts
 
 
 External Sources used:

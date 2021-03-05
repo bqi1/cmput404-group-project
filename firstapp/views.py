@@ -55,19 +55,36 @@ def homepage(request):
 def signup(request):
     success = False
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        form = UserForm(request.POST) # A form consisting of username, password, email, and name
         if form.is_valid():
             user = form.save()
             new_username = form.cleaned_data.get('username')
             new_password = form.cleaned_data.get('password1')
-            user = authenticate(username = new_username, password=new_password)
-            auth_login(request, user)
+            user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
+            auth_login(request, user) # Save user ID for further sessions
             Token(user=user).save()
             user.save()
-
             success = True
-            messages.success(request, "congrat!successful signup!")
-           # return render(request, 'index.html')
+            # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
+            # Else, let the use in the homepage, set Authorized to True
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
+            try:
+                needs_authentication = cursor.fetchall()[0][0]
+            except:
+                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
+                return HttpResponseRedirect(reverse('login'))
+            finally:
+                conn.close()
+
+            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+                # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            # Else, let them in homepage.
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -78,25 +95,36 @@ def signup(request):
         return render(request, 'signup.html', context)
 
 def login(request):
-    
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
-            auth_login(request, user)
-          #  return HttpResponseRedirect(reverse('index'))
-            return HttpResponseRedirect(reverse('home'))
+            # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT Authorized FROM firstapp_author WHERE userid = ? and username = ?;',(request.user.id,new_username))
+            try:
+                authenticated = cursor.fetchall()[0][0]
+                conn.close()
+            except:
+                conn.close()
+                messages.add_message(request,messages.INFO, 'This user does not exist.')
+                return HttpResponseRedirect(reverse('login'))
+            if not authenticated:
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            else:
+                auth_login(request, user)
+                return HttpResponseRedirect(reverse('home'))
         else:
-         #   form = AuthenticationForm()
-            #context = {'form':form}
-         #   return render(request, 'signup.html', context)
             print("Invalid account!")
             return HttpResponseRedirect(reverse('login'))
     else:
         form = AuthenticationForm()
         context = {'form':form}
         return render(request, 'login.html', context)
+
 
 
 
@@ -376,12 +404,29 @@ def search_user(request, *args, **kwargs):
             
     conn.close()
     return render(request,"search_user.html",context)
-
+@api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
+
+
     context = {}
     user_id = kwargs.get("user_id")
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+
+    # Receive request method from profile page. One possibility is having to change git username and user
+    method = request.META["REQUEST_METHOD"]
+    if method == "POST":
+        data = request.POST
+        # print(data["git_url"])
+        from firstapp.models import Author
+        author = Author.objects.get(userid = user_id)
+        author.github = data["git_url"]
+        author.github_username = data["git_username"]
+        author.save()
+
+
     cursor = conn.cursor()
+    print("*****************")
+    print(user_id)
     cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
 
     try:
@@ -444,19 +489,19 @@ def account_view(request, *args, **kwargs):
                 pass
 
         user = request.user
-        if user.is_authenticated and user != data[7]:
+        if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
             is_self = False 
-        elif not user.is_authenticated:
-            is_self = False
 
         context['is_self'] =is_self
         context['is_friend'] = is_friend
         context['request_sent'] = request_sent
         context['friend_requests'] = friend_requests
         context['BASE_URL'] = settings.BASE_DIR
-
+        context['Author'] = getAuthor(user_id)
         return render(request,"profile.html",context)
 
-
-
+def getAuthor(userid):
+    # This function gets the Author object associated with the userid. Returns None
+    my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
+    return my_user
 
