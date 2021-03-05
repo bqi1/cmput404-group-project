@@ -27,7 +27,7 @@ class PostTests(unittest.TestCase):
     # Initialize some variables
 
     def setUp(self):
-        self.allposts_url = "http://localhost:8000/author/%s/posts"
+        self.allposts_url = "http://localhost:8000/author/%s/posts/"
         self.post_url = "http://localhost:8000/author/%s/posts/%d"
         self.post_id2 = 12345
         self.data1 = {"title":"title_one","description":"desc_one","markdown":0,"content":"content_one"}

@@ -27,6 +27,9 @@ FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
 
+PRIV_ADD_QUERY = "INSERT INTO author_privacy VALUES (?,?);"
+PRIV_EDIT_QUERY = "UPDATE author_privacy SET post_id=?, user_id=? WHERE post_id=? AND user_id=?;"
+
 # Create your views here.
 def index(request):
     #if request.user.is_authenticated:
@@ -102,26 +105,50 @@ def validate_int(p,optional=[]):
         return 1
     except ValueError: return 0
 
-def make_post_html(data,allposts=False):
+def make_post_html(data,user_id,canedit=False):
     resp = ""
-    start = '<div class="post" style="border:solid;" '+('onclick="viewPost(\'%d\')"' if allposts else '')+'><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></div>'
+    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')">' if canedit else '')+'</div>'
+
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
     for d in data:
+        cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0])
+        priv = cursor.fetchall()
         image = str(d[-2],encoding="utf-8")
         content = d[5]
         if d[4]: # use markdown!
             md = Md()
             content = md.convert(content)
-        starttag = start % (d[0],d[2],d[3],content) if allposts else start % (d[2],d[3],content)
-        if image == '0': resp += starttag + endnoimage % (d[4],)
-        else: resp += starttag + endimage % (image,d[4])
-        resp += "</br>"
+        starttag = start % (d[2],d[3],content)
+        if len(priv) == 0:
+            if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
+            else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+            resp += "</br>"
+        else:
+            show_post = True
+            for p in priv:
+                if p[1] == user_id:
+                    show_post = False
+                    break
+            if show_post and user_id != None:
+                if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
+                else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+                resp += "</br>"
+    conn.close()
     return resp
 
-def make_post_list(data):
+def make_post_list(data,user_id):
     post_list = []
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
     for d in data:
+        # do not append if post is private
+        # Do appear if post is private and author is not author of user
+    
+        cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0])
+        priv = cursor.fetchall()
         post_dict = {
             "post_id":d[0],
             "user_id":d[1],
@@ -132,7 +159,17 @@ def make_post_list(data):
             "image":str(d[6],encoding="utf-8"),
             "timestamp":d[7]
         }
-        post_list.append(post_dict)
+        # post is public
+        if len(priv) == 0: post_list.append(post_dict)
+        else:
+            show_post = True
+            # Determine if requesting author is among privacy list
+            for p in priv:
+                if p[1] == user_id:
+                    show_post = False
+                    break
+            if show_post and user_id != None: post_list.append(post_dict)
+    conn.close()
     return json.dumps(post_list,indent=4)
 
 
@@ -156,7 +193,7 @@ def post(request,user_id,post_id):
     user_token = cursor.fetchall()[0][0]
 
     if method == 'GET':
-        resp = make_post_list(data)
+        resp = make_post_list(data,request.user.id)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401)
@@ -193,7 +230,7 @@ def post(request,user_id,post_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        if method == "GET": resp = make_post_html(data)
+        if method == "GET": resp = make_post_html(data,request.user.id)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
@@ -232,10 +269,14 @@ def allposts(request,user_id):
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
+
+        try:
+            print(p.getlist("priv_author"))
+        except MultiValueDictKeyError: pass
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
-        resp = make_post_list(data)
+        resp = make_post_list(data,request.user.id)
     else:
         conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
@@ -243,6 +284,6 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % user_token
-        if method == "GET": resp = make_post_html(data,allposts=True)
+        if method == "GET": resp = make_post_html(data,request.user.id,canedit=(request.user.is_authenticated and request.user.id == user_id))
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
