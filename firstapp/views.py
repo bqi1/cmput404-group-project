@@ -104,9 +104,11 @@ def validate_int(p,optional=[]):
 
 def make_post_html(data,user_id,canedit=False):
     resp = ""
+    with open(FILEPATH+"static/like.js","r") as f: script = f.read()
+
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost()">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost(\'{}\')">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
 
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
@@ -120,8 +122,13 @@ def make_post_html(data,user_id,canedit=False):
             content = md.convert(content)
         starttag = start % (d[2],d[3],content)
         if len(priv) == 0:
-            if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
-            else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+            if image == '0':
+                resp += starttag
+                resp += endnoimage.format(d[0]) % (d[4],)
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '<script>' + script + '</script></div>'
+            else: 
+                resp += starttag + endimage.format(d[0]) % (image,d[4])
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '<script>' + script + '</script></div>'
             resp += "</br>"
         else:
             show_post = True
@@ -130,8 +137,8 @@ def make_post_html(data,user_id,canedit=False):
                     show_post = False
                     break
             if show_post and user_id != None:
-                if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
-                else: resp += starttag + endimage.format(d[0]) % (image,d[4])
+                if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
+                else: resp += starttag + endimage.format(d[0],d[0]) % (image,d[4])
                 resp += "</br>"
     conn.close()
     return resp
@@ -278,7 +285,7 @@ def allposts(request,user_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token, user_token)
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
         if method == "GET": resp = make_post_html(data,user_id,canedit=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
