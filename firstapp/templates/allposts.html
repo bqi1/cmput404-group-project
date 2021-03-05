@@ -34,6 +34,15 @@
         <label for="post_id" style="font-family:comic sans ms;color:#0000CD;">Unique Post Id (optional)</label>
         <input id="post_id" style="border-color:#0000CD;background:#F0F8FF;"></br></br>
             <br/>
+
+        <label for="add_pa" style="font-family:comic sans ms;color:#0000CD;">Add / Remove Private Authors</label>
+        <input id="add_pa" type="button" value="+" onclick="addPrivateAuthor()">
+        <input id="rem_pa" type="button" value="-" onclick="removePrivateAuthor()">
+        <br/>
+        <ul id="pa_list"></ul>
+
+
+            <br/>
         <input id="makepost" type="button" value="Make Post" onclick="makePost()" style="font-size:30px;background:white;font-family:comic sans ms;color:#00BFFF;border:3px;border-radius:5px;">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script>{{postscript|safe}}</script>

@@ -28,7 +28,6 @@ ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
 
 PRIV_ADD_QUERY = "INSERT INTO author_privacy VALUES (?,?);"
-PRIV_EDIT_QUERY = "UPDATE author_privacy SET post_id=?, user_id=? WHERE post_id=? AND user_id=?;"
 
 # Create your views here.
 def index(request):
@@ -105,7 +104,7 @@ def validate_int(p,optional=[]):
 def make_post_html(data,user_id,canedit=False):
     resp = ""
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
-
+    jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
     endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
@@ -120,21 +119,22 @@ def make_post_html(data,user_id,canedit=False):
         if d[4]: # use markdown!
             md = Md()
             content = md.convert(content)
-        starttag = start % (d[2],d[3],content)
+        starttag = jscript
+        starttag += start % (d[2],d[3],content)
         if len(priv) == 0:
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d[0]) % (d[4],)
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '<script>' + script + '</script></div>'
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
             else: 
                 resp += starttag + endimage.format(d[0]) % (image,d[4])
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '<script>' + script + '</script></div>'
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0]) + '</div>'
             resp += "</br>"
         else:
-            show_post = True
+            show_post = False
             for p in priv:
                 if p[1] == user_id:
-                    show_post = False
+                    show_post = True
                     break
             if show_post and user_id != None:
                 if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
@@ -163,14 +163,14 @@ def make_post_list(data,user_id):
             "image":str(d[6],encoding="utf-8"),
             "timestamp":d[7]
         }
-        # post is public
-        if len(priv) == 0: post_list.append(post_dict)
+        # post is public or post belongs to user
+        if len(priv) == 0 or user_id == d[1]: post_list.append(post_dict)
         else:
-            show_post = True
+            show_post = False
             # Determine if requesting author is among privacy list
             for p in priv:
                 if p[1] == user_id:
-                    show_post = False
+                    show_post = True
                     break
             if show_post and user_id != None: post_list.append(post_dict)
     conn.close()
@@ -190,7 +190,9 @@ def post(request,user_id,post_id):
     cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
     data = cursor.fetchall()
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n")
-    elif len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
+    cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d'%(post_id,))
+    data = cursor.fetchall()
+    if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409)
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
     user_token = cursor.fetchall()[0][0]
 
@@ -210,7 +212,25 @@ def post(request,user_id,post_id):
                 conn.commit()
                 resp = "Successfully modified post: %d\n" % post_id
             except MultiValueDictKeyError:
-                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")  
+                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
+
+            if "priv_author" in p.keys() or "priv_author[]" in p.keys():
+                if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
+                else: private_authors = p.getlist("priv_author[]")
+                for pa in private_authors:
+                    cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
+                    data = cursor.fetchall()
+                    if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
+                cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,))
+                conn.commit()
+                for pa in private_authors:
+                    cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
+                    conn.commit()
+            else:
+                cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,))
+                conn.commit()
+
+ 
         elif method == 'PUT':
             p = request.POST
             try: image = p["image"] # image is an optional param!
@@ -221,8 +241,22 @@ def post(request,user_id,post_id):
                 conn.commit()
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
-                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")  
+                return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
+
+            if "priv_author" in p.keys() or "priv_author[]" in p.keys():
+                if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
+                else: private_authors = p.getlist("priv_author[]")
+                for pa in private_authors:
+                    cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
+                    data = cursor.fetchall()
+                    if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
+                for pa in private_authors:
+                    cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
+                    conn.commit()
+
         elif method == 'DELETE':
+            cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,))
+            conn.commit()
             cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
             conn.commit()
             resp = "Successfully deleted post: %d\n" %post_id
@@ -272,9 +306,17 @@ def allposts(request,user_id):
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
 
-        try:
-            print(p.getlist("priv_author"))
-        except MultiValueDictKeyError: pass
+        if "priv_author" in p.keys() or "priv_author[]" in p.keys():
+            if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
+            else: private_authors = p.getlist("priv_author[]")
+            for pa in private_authors:
+                cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
+                data = cursor.fetchall()
+                if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
+            for pa in private_authors:
+                cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
+                conn.commit()
+        
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
         data = cursor.fetchall()
