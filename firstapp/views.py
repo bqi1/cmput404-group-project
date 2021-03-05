@@ -115,7 +115,7 @@ def login(request):
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
             conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
             cursor = conn.cursor()
-            cursor.execute('SELECT Authorized FROM firstapp_author WHERE userid = ? and username = ?;',(request.user.id,new_username))
+            cursor.execute('SELECT Authorized FROM firstapp_author WHERE username = ?;',(new_username,))
             try:
                 authenticated = cursor.fetchall()[0][0]
                 conn.close()
