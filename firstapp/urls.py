@@ -1,10 +1,11 @@
 from django.urls import path
 from . import views
-
+from firstapp.views import(
+	account_view)
 app_name = 'firstapp'
-
 urlpatterns = [
-    path('', views.index, name='index'),
+	path('<user_id>/',account_view,name = "view"),
+	path('', views.index, name='index'),
     path('signup/', views.signup, name='signup'),
     path('login/', views.login, name='login'),
     path('homepage/', views.homepage, name='home'),

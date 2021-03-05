@@ -1,5 +1,5 @@
 from django.shortcuts import render, HttpResponse, HttpResponseRedirect
-from django.http import HttpResponseNotFound, HttpResponseBadRequest
+from django.http import HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
@@ -14,6 +14,7 @@ import os
 from random import randrange as rand
 from datetime import datetime
 import json
+from django.conf import settings
 from markdown import Markdown as Md
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -21,6 +22,11 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
+from friend.request_status import RequestStatus
+from friend.models import FriendList, FriendRequest
+from friend.is_friend import get_friend_request_or_false
+from firstapp.models import Author
+from django.contrib.auth import get_user_model
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -35,36 +41,50 @@ def index(request):
     return render(request, 'index.html')
 
 def homepage(request):
+    print("&&&&7&&&")
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
         cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
-        try:
-            data = cursor.fetchall()[0]
-        except IndexError: # No token exists, must create a new one!
-            token = Token.objects.create(user=request.user)
-            cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
-            data = cursor.fetchall()[0]
+        data = cursor.fetchall()[0]
         user_id,token = data[0], data[1]
         conn.close()
+        print(request.user.id)
         return render(request, 'homepage.html', {'user_id':user_id,'token':token})
     
 def signup(request):
     success = False
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        form = UserForm(request.POST) # A form consisting of username, password, email, and name
         if form.is_valid():
             user = form.save()
             new_username = form.cleaned_data.get('username')
             new_password = form.cleaned_data.get('password1')
-            user = authenticate(username = new_username, password=new_password)
-            auth_login(request, user)
+            user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
+            auth_login(request, user) # Save user ID for further sessions
             Token(user=user).save()
             user.save()
-
             success = True
-            messages.success(request, "congrat!successful signup!")
-           # return render(request, 'index.html')
+            # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
+            # Else, let the use in the homepage, set Authorized to True
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
+            try:
+                needs_authentication = cursor.fetchall()[0][0]
+            except:
+                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
+                return HttpResponseRedirect(reverse('login'))
+            finally:
+                conn.close()
+
+            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,authorized=False,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
+                # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            # Else, let them in homepage.
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id, authorized=True,email=form.cleaned_data['email'],name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -80,13 +100,24 @@ def login(request):
         new_password = request.POST.get('password')
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
-            auth_login(request, user)
-          #  return HttpResponseRedirect(reverse('index'))
-            return HttpResponseRedirect(reverse('home'))
+            # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT Authorized FROM firstapp_author WHERE userid = ? and username = ?;',(request.user.id,new_username))
+            try:
+                authenticated = cursor.fetchall()[0][0]
+                conn.close()
+            except:
+                conn.close()
+                messages.add_message(request,messages.INFO, 'This user does not exist.')
+                return HttpResponseRedirect(reverse('login'))
+            if not authenticated:
+                messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+                return HttpResponseRedirect(reverse('login'))
+            else:
+                auth_login(request, user)
+                return HttpResponseRedirect(reverse('home'))
         else:
-         #   form = AuthenticationForm()
-            #context = {'form':form}
-         #   return render(request, 'signup.html', context)
             print("Invalid account!")
             return HttpResponseRedirect(reverse('login'))
     else:
@@ -421,3 +452,148 @@ def liked(request,user_id):
 #             return HttpResponseNotFound("This type of object does not exist\n")
 #     else:
 #         #TODO clear the inbox
+
+def search_user(request, *args, **kwargs):
+    context = {}
+    noresult = False
+    if request.method == "GET":
+        search_query = request.GET.get("q")
+        if len(search_query) > 0:
+            accounts = []
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE ?', ('{}%'.format(search_query),))
+            duplicate = []
+            try:
+                data = cursor.fetchall()
+                Author = get_user_model()
+                account = Author.objects.filter(username = search_query)
+                
+            except IndexError: # No token exists, must create a new one!
+                noresult = True 
+            user = request.user
+
+            # if not noresult:
+            #     if user.is_authenticated:
+            #         auth_user_friend_list = FriendList.objects.get( user = user )
+            #         for user in data:
+            #             if(user[3] not in duplicate):
+            #                 accounts.append((user,auth_user_friend_list.is_mutual_friend(account)))
+            #                 duplicate.append(user[3])
+            #     else:
+            #         for user in data:
+            #             if(user[3] not in duplicate):
+            #                 accounts.append((user,False))
+            #                 duplicate.append(user[3])
+            if not noresult:
+                for user in data:
+                    if(user[3] not in duplicate):
+                        accounts.append((user,False))
+                        duplicate.append(user[3])
+
+
+            context['searchResult'] = accounts
+            
+    conn.close()
+    return render(request,"search_user.html",context)
+@api_view(['GET','POST'])
+def account_view(request, *args, **kwargs):
+
+
+    context = {}
+    user_id = kwargs.get("user_id")
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+
+    # Receive request method from profile page. One possibility is having to change git username and user
+    method = request.META["REQUEST_METHOD"]
+    if method == "POST":
+        data = request.POST
+        # print(data["git_url"])
+        from firstapp.models import Author
+        author = Author.objects.get(userid = user_id)
+        author.github = data["git_url"]
+        author.github_username = data["git_username"]
+        author.save()
+
+
+    cursor = conn.cursor()
+    print("*****************")
+    print(user_id)
+    cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
+
+    try:
+
+        data = cursor.fetchall()[0]
+        Author = get_user_model()
+        account = Author.objects.get(id = user_id)
+    except IndexError: # No token exists, must create a new one!
+        return HttpResponse("user doesn't exist") 
+    # print("here is data")
+    # print(data)
+    
+    # print(len(data))
+    if data:
+
+        context['id'] = data[3]
+        context['username'] = data[7]
+        context['email'] = data[9]
+
+        try:
+            friend_list = FriendList.objects.get(user=account)
+        except FriendList.DoesNotExist:
+            friend_list = FriendList(user=account)
+            friend_list.save()
+
+
+        friends = friend_list.friends.all()
+        context['friends'] = friends
+        is_self = True 
+        is_friend = False
+
+        request_sent = RequestStatus.NO_REQUEST_SENT.value # range: ENUM -> friend/friend_request_status.FriendRequestStatus
+        friend_requests = None
+        user = request.user
+         # define the variable
+        if user.is_authenticated and user != account:
+            is_self = False
+            if friends.filter(pk=user.id):
+                is_friend = True
+            else:
+                is_friend = False
+                # CASE1: Request has been sent from THEM to YOU: FriendRequestStatus.THEM_SENT_TO_YOU
+                if get_friend_request_or_false(sender=account, receiver=user) != False:
+                    request_sent = RequestStatus.THEM_SENT_TO_YOU.value
+                    context['pending_friend_request_id'] = get_friend_request_or_false(sender=account, receiver=user).id
+                # CASE2: Request has been sent from YOU to THEM: FriendRequestStatus.YOU_SENT_TO_THEM
+                elif get_friend_request_or_false(sender=user, receiver=account) != False:
+                    request_sent = RequestStatus.YOU_SENT_TO_THEM.value
+                # CASE3: No request sent from YOU or THEM: FriendRequestStatus.NO_REQUEST_SENT
+                else:
+                    request_sent = RequestStatus.NO_REQUEST_SENT.value
+        
+        elif not user.is_authenticated:
+            is_self = False
+        else:
+            try:
+                print("friend request")
+                friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
+            except:
+                pass
+
+        user = request.user
+        if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
+            is_self = False 
+
+        context['is_self'] =is_self
+        context['is_friend'] = is_friend
+        context['request_sent'] = request_sent
+        context['friend_requests'] = friend_requests
+        context['BASE_URL'] = settings.BASE_DIR
+        context['Author'] = getAuthor(user_id)
+        return render(request,"profile.html",context)
+
+def getAuthor(userid):
+    # This function gets the Author object associated with the userid. Returns None
+    my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
+    return my_user
+

@@ -1,6 +1,7 @@
 {% extends 'index.html' %}
 {% block content %}
 
+
 <h1>User SignUp</h1>
 <form method="post">
     {% csrf_token %}
@@ -10,6 +11,6 @@
     <button type="submit">Submit</button>
 </form>
 
-If an account exists, click<a href="/login">here</a>to login.
+If an account exists, click<a href="/firstapp/login">here</a>to login.
 
 {% endblock %}

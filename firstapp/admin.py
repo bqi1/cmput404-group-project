@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from .models import UserCreation
+from .models import Author, Setting
 
 # Register your models here.
-admin.site.register(UserCreation)
+admin.site.register(Author)
+admin.site.register(Setting)

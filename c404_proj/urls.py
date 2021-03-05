@@ -16,13 +16,26 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from firstapp import views as a_view
+from django.conf import settings
+from django.conf.urls.static import static
+from firstapp.views import(
+    search_user,
+    login,
+    signup,
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('firstapp.urls')),
     path('firstapp/', a_view.index, name='index'),
-    path('firstapp/login/', a_view.login, name='login'),
-    path('firstapp/signup/', a_view.signup, name='signup'),
+    path('firstapp/login/', login, name='login'),
+    path('firstapp/signup/', signup, name='signup'),
     path('firstapp/index/', a_view.index, name='index'),
     path('firstapp/homepage/', a_view.homepage, name='home'),
+    path('firstapp/search/', search_user, name = "search"),
+    path('firstapp/',include('firstapp.urls',namespace = 'account')),
+    path('friend/', include('friend.urls', namespace='friend')),
 ]
+
+if settings.DEBUG:
+    urlpatterns +=  static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

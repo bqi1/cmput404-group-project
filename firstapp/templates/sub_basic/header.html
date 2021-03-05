@@ -1,0 +1,40 @@
+{% load static %}
+<dir  class="header_view">
+	<div class="">
+		<h5 >
+			<a class="home_link" href="{% url 'home' %}">Home</a>
+		</h5>
+		<form class="search_user" onsubmit="return executeQuery();">
+			<input type="text" class="form-control" name="q" id="id_q_large" placeholder="Search...">
+		</form>
+		<div>
+			<nav> 
+				{% if request.user.is_authenticated %}
+				<div>
+					<div>
+						<div >
+							<a href="{% url 'account:view' user_id=request.user.id %}">Account</a>
+							<a  href="{% url 'login' %}">Logout</a>
+						</div>
+					</div>
+				</div>
+				{% endif %}
+			</nav>
+		</div>
+		
+	</div>
+</dir>
+
+
+<script type="text/javascript">
+	
+
+	function executeQuery() {
+		var query = ""
+		query = document.getElementById('id_q_large').value;
+	    window.location.replace("{% url 'search' %}?q=" + query)
+	    return false
+	}
+
+
+</script>
