@@ -25,7 +25,8 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
-# from firstapp.models import Author
+from firstapp.models import Author
+from django.contrib.auth import get_user_model
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -270,7 +271,6 @@ def search_user(request, *args, **kwargs):
             if not noresult:
                 for user in data:
                     if(user[3] not in duplicate):
-                        print(user)
                         accounts.append((user,False))
                         duplicate.append(user[3])
 
@@ -284,14 +284,13 @@ def account_view(request, *args, **kwargs):
     user_id = kwargs.get("user_id")
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    print("*****************")
     cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
 
     try:
 
         data = cursor.fetchall()[0]
-        print(data)
-        # account = Author.objects.get(pk=d)
+        Author = get_user_model()
+        account = Author.objects.get(id = user_id)
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
     # print("here is data")
@@ -304,48 +303,47 @@ def account_view(request, *args, **kwargs):
         context['username'] = data[7]
         context['email'] = data[9]
 
-        # try:
-        #     friend_list = FriendList.objects.get(user=data[3])
-        # except FriendList.DoesNotExist:
-        #     friend_list = FriendList(user=data[3])
-        #     friend_list.save()
+        try:
+            friend_list = FriendList.objects.get(user=account)
+        except FriendList.DoesNotExist:
+            friend_list = FriendList(user=account)
+            friend_list.save()
 
 
-        # friends = friend_list.friends.all()
-        # context['friends'] = friends
+        friends = friend_list.friends.all()
+        context['friends'] = friends
         is_self = True 
         is_friend = False
 
-        # request_sent = RequestStatus.NO_REQUEST_SENT.value # range: ENUM -> friend/friend_request_status.FriendRequestStatus
-        # friend_requests = None
-        # user = request.user
-        #  # define the variables
-        # print(user)
-
-        # if user.is_authenticated and user != data[3]:
-        #     is_self = False
-        #     if friends.filter(pk=user.id):
-        #         is_friend = True
-        #     else:
-        #         is_friend = False
-        #         # CASE1: Request has been sent from THEM to YOU: FriendRequestStatus.THEM_SENT_TO_YOU
-        #         if get_friend_request_or_false(sender=account, receiver=user) != False:
-        #             request_sent = RequestStatus.THEM_SENT_TO_YOU.value
-        #             context['pending_friend_request_id'] = get_friend_request_or_false(sender=account, receiver=user).id
-        #         # CASE2: Request has been sent from YOU to THEM: FriendRequestStatus.YOU_SENT_TO_THEM
-        #         elif get_friend_request_or_false(sender=user, receiver=account) != False:
-        #             request_sent = RequestStatus.YOU_SENT_TO_THEM.value
-        #         # CASE3: No request sent from YOU or THEM: FriendRequestStatus.NO_REQUEST_SENT
-        #         else:
-        #             request_sent = RequestStatus.NO_REQUEST_SENT.value
+        request_sent = RequestStatus.NO_REQUEST_SENT.value # range: ENUM -> friend/friend_request_status.FriendRequestStatus
+        friend_requests = None
+        user = request.user
+         # define the variable
+        if user.is_authenticated and user != account:
+            is_self = False
+            if friends.filter(pk=user.id):
+                is_friend = True
+            else:
+                is_friend = False
+                # CASE1: Request has been sent from THEM to YOU: FriendRequestStatus.THEM_SENT_TO_YOU
+                if get_friend_request_or_false(sender=account, receiver=user) != False:
+                    request_sent = RequestStatus.THEM_SENT_TO_YOU.value
+                    context['pending_friend_request_id'] = get_friend_request_or_false(sender=account, receiver=user).id
+                # CASE2: Request has been sent from YOU to THEM: FriendRequestStatus.YOU_SENT_TO_THEM
+                elif get_friend_request_or_false(sender=user, receiver=account) != False:
+                    request_sent = RequestStatus.YOU_SENT_TO_THEM.value
+                # CASE3: No request sent from YOU or THEM: FriendRequestStatus.NO_REQUEST_SENT
+                else:
+                    request_sent = RequestStatus.NO_REQUEST_SENT.value
         
-        # elif not user.is_authenticated:
-        #     is_self = False
-        # else:
-        #     try:
-        #         friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
-        #     except:
-        #         pass
+        elif not user.is_authenticated:
+            is_self = False
+        else:
+            try:
+                print("friend request")
+                friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
+            except:
+                pass
 
         user = request.user
         if user.is_authenticated and user != data[7]:
@@ -355,6 +353,8 @@ def account_view(request, *args, **kwargs):
 
         context['is_self'] =is_self
         context['is_friend'] = is_friend
+        context['request_sent'] = request_sent
+        context['friend_requests'] = friend_requests
         context['BASE_URL'] = settings.BASE_DIR
 
         return render(request,"profile.html",context)

@@ -17,6 +17,7 @@ class Author(models.Model):
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
     # UUid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     def __str__(self):
         return self.username
 class Setting(models.Model):
@@ -28,3 +29,4 @@ class Setting(models.Model):
 class PublicImages(models.Model):
   name = models.CharField(max_length=50)
   img = models.ImageField(upload_to='image/')
+
