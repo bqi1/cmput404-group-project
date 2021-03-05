@@ -346,16 +346,24 @@ def search_user(request, *args, **kwargs):
             duplicate = []
             try:
                 data = cursor.fetchall()
+                Author = get_user_model()
+                account = Author.objects.filter(username = search_query)
                 
             except IndexError: # No token exists, must create a new one!
                 noresult = True 
 
             if not noresult:
-                for user in data:
-                    if(user[3] not in duplicate):
-                        accounts.append((user,False))
-                        duplicate.append(user[3])
-
+                if user.is_authenticated:
+                    auth_user_friend_list = FriendList.objects.get(user = user )
+                    for user in data:
+                        if(user[3] not in duplicate):
+                            accounts.append((user,auth_user_friend_list.is_mutual_friend(account)))
+                            duplicate.append(user[3])
+                else:
+                    for user in data:
+                        if(user[3] not in duplicate):
+                            accounts.append((user,False))
+                            duplicate.append(user[3])
             context['searchResult'] = accounts
             
     conn.close()
