@@ -32,6 +32,7 @@ class LikeTests(unittest.TestCase):
     def test_create_POST(self):
         r = requests.post(self.allposts_url % 8, headers = self.auth_header, data = self.data1)
         self.assertTrue(r.status_code == 200,"Status code expected to be 200, got %d" % r.status_code)
+        print(r.text)
         self.assertTrue("Successfully created post:" in r.text, "Expected a successful post creation, got %s" % r.text)
 
     def test_like_POST(self):
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     # Run tests
     unittest.main()
 
-    # Clean up any leftover posts that may still linger if tests fail!
+    # Clean up any leftover posts and likes that may still linger if tests fail!
     conn = sqlite3.connect()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM postlikes WHERE user_id = 12;")
