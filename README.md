@@ -22,3 +22,5 @@ Contribution: Worked on majority of posts
 
 Jacky Huang(jzhuang)
 Contribution: Worked on Liking posts
+
+Note: App is not deployed yet on Heroku yet. Only local requirements are met. All work is on the main branch. To run the tests, navigate to the tests folder, then run the .py file for each test normally. For example, "py post_tests.py" for Windows.
