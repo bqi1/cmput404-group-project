@@ -28,3 +28,4 @@ https://stackoverflow.com/questions/13202845/removing-help-text-from-django-user
 From Andreas Bergstrom at https://stackoverflow.com/questions/14999134/how-to-pass-a-message-from-httpresponseredirect-in-django at 2021-03-04 
 https://djangocentral.com/django-ajax-with-jquery/ at 2021-03-05
 https://stackoverflow.com/questions/37642175/how-to-add-django-rest-framework-permissions-on-specific-method-only
+https://learndjango.com/tutorials/django-file-and-image-uploads-tutorial
