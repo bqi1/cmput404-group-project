@@ -156,7 +156,7 @@ def make_post_list(data,user_id):
             "user_id":d[1],
             "title":d[2],
             "description":d[3],
-            "markdown?":d[4],
+            "markdown":d[4],
             "content":d[5],
             "image":str(d[6],encoding="utf-8"),
             "timestamp":d[7]
@@ -200,7 +200,7 @@ def post(request,user_id,post_id):
         resp = make_post_list(data,request.user.id)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401)
 
         if method == 'POST':
             p = request.POST
@@ -287,7 +287,7 @@ def allposts(request,user_id):
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         # Check to see if supplied token matches the user in question!
-        if token != user_token: return HttpResponseForbidden("Invalid token for the requested user!\n")
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401)
         p = request.POST
         while True:
             post_id = rand(2**63)

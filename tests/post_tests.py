@@ -15,7 +15,6 @@ import json
 import sqlite3
 
 def validate_post(expected, actual, user_id, post_id,image='0'):
-
     actual["user_id"] = user_id
     actual["post_id"] = post_id
     actual["image"] = image
