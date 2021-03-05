@@ -40,12 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'firstapp',
     'rest_framework.authtoken',
-<<<<<<< HEAD
     'rest_framework',
-    'jquery'
-=======
+    'jquery',
     'friend',
->>>>>>> main
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
