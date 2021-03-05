@@ -20,9 +20,5 @@ class UserForm(UserCreationForm):
         model = User
         fields = ['email','username','first_name','last_name','password1', 'password2']
             
-class ImageForm(forms.ModelForm):
-    class Meta:
-        model = PublicImages
-        fields = ['name','img']
 #https://stackoverflow.com/questions/13202845/removing-help-text-from-django-usercreateform
 #for removing extra help texts

@@ -3,6 +3,7 @@ Brian Qi (bqi1)
 Contribution:
 Server admin can now optionally require their OK for users to register
 Can now link GitHub activity
+Server admin can now host images
 
 Hongfang Xu (hongfang)
 Contribution:
@@ -19,7 +20,7 @@ Worked on majority of posts
 
 Jacky Huang(jzhuang)
 Contribution:
-Worked on Liking posts
+Worked on majority of liking posts
 
 
 External Sources used:

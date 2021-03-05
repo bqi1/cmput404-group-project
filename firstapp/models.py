@@ -38,7 +38,8 @@ class Setting(models.Model):
   UsersNeedAuthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
-class PublicImages(models.Model):
-  name = models.CharField(max_length=50)
-  img = models.ImageField(upload_to='image/')
-
+class PublicImage(models.Model):
+  title = models.TextField()
+  image = models.ImageField(upload_to='images/')
+  def __str__(self):
+    return self.title
