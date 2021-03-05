@@ -326,14 +326,7 @@ def account_view(request, *args, **kwargs):
         context['username'] = data[7]
         context['email'] = data[9]
 
-        try:
-            friend_list = FriendList.objects.get(user=account)
-        except FriendList.DoesNotExist:
-            friend_list = FriendList(user=account)
-            friend_list.save()
-        friends = friend_list.friends.all()
-        context['friends'] = friends
-
+       
 
 
 
