@@ -34,13 +34,13 @@ function viewPost(post_id) {
     window.location.replace(window.location.href + post_id);
 }
 
-function likePost() {
+function likePost(post_id) {
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
     $.ajax(
         {
             type: "POST",
-            url: window.location.href + "/" + post_id + "/likepost/",
+            url: window.location.href + post_id + "/likepost/",
             headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
             success: function () {
                 alert("Successfully liked post!");

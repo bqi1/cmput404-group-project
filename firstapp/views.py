@@ -95,8 +95,6 @@ def login(request):
         context = {'form':form}
         return render(request, 'login.html', context)
 
-
-
 def validate_int(p,optional=[]):
     try:
         int(p["markdown"])
@@ -108,7 +106,7 @@ def make_post_html(data,user_id,canedit=False):
     resp = ""
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost()">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost()">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{}\')"><button onclick="likePost(\'{}\')">Like</button><button onclick="makeComment()">Comment</button>' if canedit else '')+'</div>'
 
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
@@ -122,7 +120,7 @@ def make_post_html(data,user_id,canedit=False):
             content = md.convert(content)
         starttag = start % (d[2],d[3],content)
         if len(priv) == 0:
-            if image == '0': resp += starttag + endnoimage.format(d[0]) % (d[4],)
+            if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
             else: resp += starttag + endimage.format(d[0]) % (image,d[4])
             resp += "</br>"
         else:
@@ -147,7 +145,7 @@ def make_post_list(data,user_id):
         # Do appear if post is private and author is not author of user
     
         cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0])
-        priv = cursor.fetchall()9
+        priv = cursor.fetchall()
         post_dict = {
             "post_id":d[0],
             "user_id":d[1],
@@ -281,20 +279,25 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token, user_token)
-        if method == "GET": resp = make_post_html(data,allposts=True)
+        if method == "GET": resp = make_post_html(data,user_id,canedit=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
 
 #like a post
 @api_view(['POST'])
-@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    like_id = rand(2**31)
-    cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-    conn.commit()
+    cursor.execute('SELECT * FROM postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    data = cursor.fetchall()
+    # if post has already been liked
+    if len(data) > 0:
+        return
+    else:
+        like_id = rand(2**31)
+        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+        conn.commit()
     return render(request, "likes.html")
 
 #get a list of likes from other authors on the post id
