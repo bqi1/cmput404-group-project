@@ -39,6 +39,7 @@ function likePost(post_id) {
 
     $.ajax(
         {
+            // TODO later when we have the inbox we need to send to post's author's inbox
             type: "POST",
             url: window.location.href + post_id + "/likepost/",
             headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },

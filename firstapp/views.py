@@ -293,12 +293,12 @@ def likepost(request, user_id, post_id):
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        return
+        return HttpResponse("Post already liked")
     else:
         like_id = rand(2**31)
         cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
         conn.commit()
-    return render(request, "likes.html")
+        return HttpResponse("Post liked successfully")
 
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
@@ -307,20 +307,27 @@ def likes(request, user_id, post_id):
     cursor = conn.cursor()
     cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
     data = cursor.fetchall()
-
-    return HttpResponse()
+    author_list = []
+    for d in data:
+        author = d[0]
+        author_list.append(author)
+    return render(request, "likes.html", {"author_list":author_list})
 
 #get a list of posts and comments that the author has liked
 @api_view(['GET'])
-def liked(request,user_id, post_id):
+def liked(request,user_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postlikes WHERE from_id=%d;'%user_id)
+    cursor.execute('SELECT post_id FROM postlikes WHERE from_user=%d;'%(user_id))
     data = cursor.fetchall()
+    liked_posts_list = []
+    for id in data:
+        post_id = id[0]
+        liked_posts_list.append(post_id)
     # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
     # data = cursor.fetchall()
 
-    return HttpResponse()
+    return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
 # def comment(request, user_id, post_id):
 #     if request.method == "POST":

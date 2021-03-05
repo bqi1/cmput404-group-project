@@ -5,8 +5,9 @@
 </head>
 
 <body>
-    <h1>likes</h1>
-    <p>help me </p>
+    {% for author in author_list %}
+        <li>{{author}}</li>
+    {% endfor %}
 </body>
 
 </html>
