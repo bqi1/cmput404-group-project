@@ -308,7 +308,7 @@
 					type: "POST",
 					url: window.location.href,
 					headers:  { 'X-CSRFToken': csrftoken },
-					data: { "git_url": "http://github.com/"+username, "git_username": username},
+					data: { "git_url": "http://github.com/"+github_url.value, "git_username": github_url.value},
 					success: function () {
 						location.reload();
 					},
