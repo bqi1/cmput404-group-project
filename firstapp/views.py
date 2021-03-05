@@ -14,6 +14,7 @@ import os
 from random import randrange as rand
 from datetime import datetime
 import json
+from django.conf import settings
 from markdown import Markdown as Md
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -23,6 +24,9 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.authtoken.models import Token
 from .models import Author
 
+from friend.request_status import RequestStatus
+from friend.models import FriendList, FriendRequest
+from friend.is_friend import get_friend_request_or_false
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -35,6 +39,7 @@ def index(request):
     return render(request, 'index.html')
 
 def homepage(request):
+    print("&&&&7&&&")
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
@@ -47,6 +52,7 @@ def homepage(request):
             data = cursor.fetchall()[0]
         user_id,token = data[0], data[1]
         conn.close()
+        print(request.user.id)
         return render(request, 'homepage.html', {'user_id':user_id,'token':token})
     
 def signup(request):
@@ -275,3 +281,81 @@ def allposts(request,user_id):
         if method == "GET": resp = make_post_html(data,allposts=True)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
     else: return HttpResponse(resp)
+
+
+def search_user(request, *args, **kwargs):
+    context = {}
+    noresult = False
+    if request.method == "GET":
+        search_query = request.GET.get("q")
+        if len(search_query) > 0:
+            accounts = []
+            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE ?', ('{}%'.format(search_query),))
+            try:
+                data = cursor.fetchall()
+            except IndexError: # No token exists, must create a new one!
+                noresult = True 
+
+            if not noresult:
+                for user in data:
+                    print(user)
+                    accounts.append((user,False))
+
+            context['searchResult'] = accounts
+            
+    conn.close()
+    return render(request,"search_user.html",context)
+
+def account_view(request, *args, **kwargs):
+    context = {}
+    user_id = kwargs.get("user_id")
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    print("*****************")
+    cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
+    try:
+        data = cursor.fetchall()[0]
+    except IndexError: # No token exists, must create a new one!
+        return HttpResponse("user doesn't exist") 
+    # print("here is data")
+    # print(data)
+    
+    # print(len(data))
+    if data:
+
+        context['id'] = data[3]
+        context['username'] = data[7]
+        context['email'] = data[9]
+
+        try:
+            friend_list = FriendList.objects.get(user=account)
+        except FriendList.DoesNotExist:
+            friend_list = FriendList(user=account)
+            friend_list.save()
+        friends = friend_list.friends.all()
+        context['friends'] = friends
+
+
+
+
+        # define the variables
+        is_self = True 
+        is_friend = False
+
+        user = request.user
+        if user.is_authenticated and user != data[7]:
+            is_self = False 
+        elif not user.is_authenticated:
+            is_self = False
+
+        context['is_self'] =is_self
+        context['is_friend'] = is_friend
+        context['BASE_URL'] = settings.BASE_DIR
+
+        return render(request,"profile.html",context)
+
+
+
+
