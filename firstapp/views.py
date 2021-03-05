@@ -47,7 +47,11 @@ def homepage(request):
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
         cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
-        data = cursor.fetchall()[0]
+        try:
+            data = cursor.fetchall()[0]
+        except IndexError:
+            messages.add_message(request,messages.INFO, 'Incorrect login.')
+            return HttpResponseRedirect(reverse('login'))
         user_id,token = data[0], data[1]
         conn.close()
         print(request.user.id)
