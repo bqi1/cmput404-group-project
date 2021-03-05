@@ -2,12 +2,13 @@
 Brian Qi (bqi1)
 Contribution:
 Server admin can now optionally require their OK for users to register
-
+###
 Hongfang Xu (hongfang)
 Contribution:
 
 Wenwen Li (wenwen)
 Contribution:
+
 
 Kyle Androschuk (kandrosc)
 Contribution:
