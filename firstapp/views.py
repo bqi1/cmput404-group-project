@@ -307,14 +307,28 @@ def search_user(request, *args, **kwargs):
             
     conn.close()
     return render(request,"search_user.html",context)
-
+@api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
-    print("LET ME IN")
+
+
     context = {}
     user_id = kwargs.get("user_id")
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+
+    # Receive request method from profile page. One possibility is having to change git username and user
+    method = request.META["REQUEST_METHOD"]
+    if method == "POST":
+        data = request.POST
+        # print(data["git_url"])
+        author = Author.objects.get(userid = user_id)
+        author.github = data["git_url"]
+        author.github_username = data["git_username"]
+        author.save()
+
+
     cursor = conn.cursor()
     print("*****************")
+    print(user_id)
     cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
     try:
         data = cursor.fetchall()[0]
@@ -327,7 +341,7 @@ def account_view(request, *args, **kwargs):
         context['username'] = data[7]
         context['email'] = data[9]
 
-       
+
 
 
 
@@ -336,17 +350,17 @@ def account_view(request, *args, **kwargs):
         is_friend = False
 
         user = request.user
-        if user.is_authenticated and user != data[7]:
+        if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
             is_self = False 
-        elif not user.is_authenticated:
-            is_self = False
 
         context['is_self'] =is_self
         context['is_friend'] = is_friend
         context['BASE_URL'] = settings.BASE_DIR
-
+        context['Author'] = getAuthor(user_id)
         return render(request,"profile.html",context)
 
-
-
+def getAuthor(userid):
+    # This function gets the Author object associated with the userid. Returns None
+    my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
+    return my_user
 

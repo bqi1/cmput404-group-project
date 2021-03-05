@@ -11,6 +11,7 @@ class Author(models.Model):
     username = models.CharField(max_length=20)
     #password = models.CharField(max_length=20)
     github = models.URLField(blank=True) # Github link
+    github_username = models.TextField(max_length=20,blank=True)
     host = models.TextField(max_length=500, blank=True)
     authorized = models.BooleanField(default=True) # Whether they are allowed to log in
     userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts

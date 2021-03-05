@@ -19,7 +19,6 @@ function getFileData() {
     });
 
 }
-
 function resetLink() {
     imageUrl = document.getElementById("image_link");
     imageUrl.value = ""; 
