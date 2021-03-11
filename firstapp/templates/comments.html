@@ -1,0 +1,13 @@
+
+<html>
+    <head>
+        {% csrf_token %}
+        {% include "sub_basic/header.html" %}
+    </head>
+<body>
+    
+    <h1>Make Comment:</h1>
+    <label for="content">Content:</label></br>
+    <textarea id="content" cols="40" rows="10"></textarea></br>
+    <input id="submit" type="button" value="Submit" onclick="comment()">
+</body>

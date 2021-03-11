@@ -6,3 +6,4 @@ from .models import Author, Setting, PublicImage
 admin.site.register(Author)
 admin.site.register(Setting)
 admin.site.register(PublicImage)
+#admin.site.register(Comment)

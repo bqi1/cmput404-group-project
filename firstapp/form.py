@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from .models import *
 #from .models import User
+#from .models import Comment
 
 class UserForm(UserCreationForm):
 
@@ -22,3 +23,13 @@ class UserForm(UserCreationForm):
             
 #https://stackoverflow.com/questions/13202845/removing-help-text-from-django-usercreateform
 #for removing extra help texts
+
+#class CommentForm(forms.ModelForm):
+ #   class Meta:
+  #      model = Comment
+   #     fields = ['comment_text']
+class ShareEmail(forms.ModelForm):
+    email = forms.EmailField()
+    to = forms.EmailField()
+    content = forms.CharField(required=False, widget=forms.Textarea)
+

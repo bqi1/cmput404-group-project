@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-from .form import UserForm
+from .form import UserForm, ShareEmail
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -16,6 +16,7 @@ from datetime import datetime
 import json
 from django.conf import settings
 from markdown import Markdown as Md
+from django.core.mail import send_mail
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
@@ -146,10 +147,12 @@ def validate_int(p,optional=[]):
 # canaedit - true if the current user is allowed to edit the post
 def make_post_html(data,user_id,canedit=False):
     resp = ""
+  #  resp1 = ""
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
-
+  #  with open(FILEPATH+"static/comment.js","r") as f1: script1 = f1.read()
     #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
+  #  jscript1 = '<script>' + script1 + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
     endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
@@ -166,16 +169,24 @@ def make_post_html(data,user_id,canedit=False):
             content = md.convert(content)
         starttag = jscript
         starttag += start % (d[2],d[3],content)
+     #   starttag1 = jscript1
+     #   starttag1 += start % (d[2],d[3],content)
         if len(priv) == 0: # post is not private
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d[0]) % (d[4],)
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
+            #    resp1 += starttag1
+            #    resp1 += endnoimage.format(d[0]) % (d[4],)
+                resp += '<button onclick="comment(\'{0}\')">Comment</button>'.format(d[0])
             else: 
                 resp += starttag + endimage.format(d[0]) % (image,d[4])
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
+           #     resp1 += starttag1
+             #   resp1 += starttag1 + endimage.format(d[0]) % (image,d[4])
+                resp += '<button onclick="comment(\'{0}\')">Comment</button>'.format(d[0])
 
             resp += "</br>"
         else: # post is private
@@ -439,48 +450,23 @@ def liked(request,user_id):
 
     return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
-# def comment(request, user_id, post_id):
-#     if request.method == "POST":
-
-# #get a list of likes from other authors on the post id's comment id
-# @api_view(['GET'])
-# def commlikes(request):
-#     method = request.META["REQUEST_METHOD"]
-#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-#     cursor = conn.cursor()
-#     cursor.execute('SELECT from_id FROM likes WHERE id=%d AND comm;'%post_id)
-#     data = cursor.fetchall()
-
-#     return HttpResponse("why")
-
-# @api_view(['GET','POST','DELETE'])
-# def inbox(request):
-#     ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
-
-#     method = request.META["REQUEST_METHOD"]
-#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-#     cursor = conn.cursor()
-
-#     if method  == "GET":
-#         #Get a list of posts sent to author id
-#     elif method == "POST":
-#         if request.type == "post":
-#             #TODO add post to author's inbox
-#         elif request.type == "follow":
-#             #TODO add follow to author's inbox
-#         elif request.type == "like":
-#             #TODO add like to author's inbox
-#             cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
-#             data = cursor.fetchall()
-#             if len(data) == 0:
-#                 return HttpResponseNotFound("The user you requested does not exist\n")
-#             cursor.execute(ADD_LIKE_QUERY, (from_user, user_id, post_id, comment_id)
-            
-#         else:
-#             return HttpResponseNotFound("This type of object does not exist\n")
-#     else:
-#         #TODO clear the inbox
-
+@api_view(['GET','POST','PUT'])
+def commentpost(request, user_id, post_id):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM comments WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    data = cursor.fetchall()
+    if request.method == "PUT":
+       # p = request.POST
+        comment_id = rand(2**31)
+        #comment_text = request.POST.get('comment_text')
+        new_comment = input("")
+        cursor.execute('INSERT INTO comments VALUES(%d, %s, %d, %d, %d);'% (comment_id, new_comment, request.user.id, user_id, post_id))
+        conn.commit()
+        return HttpResponse("Comment created sucessfully!")
+    
+    return render(request, "comments.html")
+    
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
@@ -501,18 +487,6 @@ def search_user(request, *args, **kwargs):
                 noresult = True 
             user = request.user
 
-            # if not noresult:
-            #     if user.is_authenticated:
-            #         auth_user_friend_list = FriendList.objects.get( user = user )
-            #         for user in data:
-            #             if(user[3] not in duplicate):
-            #                 accounts.append((user,auth_user_friend_list.is_mutual_friend(account)))
-            #                 duplicate.append(user[3])
-            #     else:
-            #         for user in data:
-            #             if(user[3] not in duplicate):
-            #                 accounts.append((user,False))
-            #                 duplicate.append(user[3])
             if not noresult:
                 for user in data:
                     if(user[3] not in duplicate):
@@ -625,3 +599,7 @@ def getAuthor(userid):
     my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
 
+def post_share(request, post_id):
+    sent = False
+    if request.method == "POST":
+        

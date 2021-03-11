@@ -22,3 +22,19 @@ function likePost(post_id) {
 function viewLikes(post_id) {
     location.replace(window.location.href + post_id + "/likes/")
 }
+
+function comment(post_id){
+    csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    location.replace(window.location.href + post_id + "/commentpost/")
+    
+    $.ajax(
+        {
+            type:"POST",
+            headers: {'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
+            success: function () {
+                alert("Comment created successfully");
+                location.reload();
+            },
+        }
+    )
+}

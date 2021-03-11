@@ -1,19 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
-
-
+from django.utils import timezone
 
 
 # Create your models here.
 class Author(models.Model):
     type = "author"
-    username = models.CharField(max_length=20)
+    username = models.CharField(max_length=20, null=False)
     github = models.URLField(blank=True) # Github link
     github_username = models.TextField(max_length=20,blank=True)
     host = models.TextField(max_length=500, blank=True)
     authorized = models.BooleanField(default=True) # Whether they are allowed to log in
-    userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts
+    userid = models.PositiveIntegerField(default=0,null=True) # Good for finding their URL in posts
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
     consistent_id = models.TextField(primary_key=True,max_length=20,blank=True,editable=False)
@@ -44,3 +43,20 @@ class PublicImage(models.Model): # Host images to a folder in server. Accessible
   image = models.ImageField(upload_to='images/')
   def __str__(self):
     return self.title
+
+#class Post(models.Model):
+ #   author = models.ForeignKey(Author, on_delete=models.CASCADE)
+  #  posted_on = models.DateTimeField(auto_now=True)
+
+#class Comment(models.Model):
+    #post = models.ForeignKey(Post, on_delete=models.CASCADE)
+ #   comment_id = models.PositiveIntegerField(primary_key=True,null=False)
+  #  user = models.ForeignKey(Author, on_delete=models.CASCADE)
+   # comment_text = models.TextField(null=True)
+   # created_date = models.DateTimeField(default=timezone.now)
+    
+   # class Meta:
+    #    ordering = ['created_date']
+    
+   # def __str__(self):
+    #    return self.comment_text
