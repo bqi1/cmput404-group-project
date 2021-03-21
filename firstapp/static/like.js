@@ -23,18 +23,18 @@ function viewLikes(post_id) {
     location.replace(window.location.href + post_id + "/likes/")
 }
 
-function comment(post_id){
+function commentPost(post_id){
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     location.replace(window.location.href + post_id + "/commentpost/")
-    
-    $.ajax(
-        {
-            type:"POST",
-            headers: {'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-            success: function () {
-                alert("Comment created successfully");
-                location.reload();
-            },
-        }
-    )
+
 }
+
+function viewComment(post_id){
+    location.replace(window.location.href + post_id + "/viewComments/")
+}
+
+function postshare(post_id){
+    location.replace(window.location.href + post_id + "/share/")
+}
+
+

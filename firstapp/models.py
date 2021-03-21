@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
+from django.conf import settings
 
 
 # Create your models here.
@@ -20,17 +21,6 @@ class Author(models.Model):
     def __str__(self):
         return self.username
 
-# class PostLikes(models.Model):
-#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
-#   from_user = models.IntegerField()
-
-# class Comments(models.Model):
-#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
-
-# class CommentLikes(models.Model):
-#   comment = models.ForeignKey(comment, on_delete=models.CASCADE)
-#   from_user = models.IntegerField()
-
 class Setting(models.Model):
   # Contains variables for global settings
   # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
@@ -48,15 +38,23 @@ class PublicImage(models.Model): # Host images to a folder in server. Accessible
  #   author = models.ForeignKey(Author, on_delete=models.CASCADE)
   #  posted_on = models.DateTimeField(auto_now=True)
 
-#class Comment(models.Model):
+class Comment(models.Model):
     #post = models.ForeignKey(Post, on_delete=models.CASCADE)
- #   comment_id = models.PositiveIntegerField(primary_key=True,null=False)
-  #  user = models.ForeignKey(Author, on_delete=models.CASCADE)
-   # comment_text = models.TextField(null=True)
-   # created_date = models.DateTimeField(default=timezone.now)
+    comment_id = models.PositiveIntegerField(primary_key=True,null=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment_text = models.TextField()
+    created_date = models.DateTimeField(default=timezone.now)
     
-   # class Meta:
-    #    ordering = ['created_date']
+    class Meta:
+        ordering = ['created_date']
     
-   # def __str__(self):
-    #    return self.comment_text
+    def __str__(self):
+        return self.comment_text
+
+class Share(models.Model):
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="from+")
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="to+")
+    is_share = models.BooleanField()
+    
+    def __str__(self):
+        return self.from_user

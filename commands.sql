@@ -24,3 +24,12 @@ CREATE TABLE IF NOT EXISTS comments(
     post_id INTEGER,
     FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS postshare(
+    share_id INTEGER PRIMARY KEY,
+    post_id INTEGER,
+    from_user INTEGER,
+    to_user INTEGER,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+);
+

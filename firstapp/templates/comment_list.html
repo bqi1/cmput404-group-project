@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {% include "sub_basic/header.html" %}
+
+        {% csrf_token %}</head>
+<body>
+    <p>{{ num_comments}} Comments on the Post</p>
+    {% for comment_id in comment_list %}
+        <li>{{comment_id}}</li>
+    {% endfor %}
+</body>
+
+</html>
