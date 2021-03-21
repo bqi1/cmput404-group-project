@@ -17,9 +17,6 @@ import json
 from django.conf import settings
 from markdown import Markdown as Md
 from django.core.mail import send_mail
-from .share_status import ShareStatus
-from .is_shared import get_share
-from django.db.models import Q
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
@@ -181,7 +178,6 @@ def make_post_html(data,user_id,canedit=False):
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
                 resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d[0])
                 resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d[0])
-                resp += '<button onclick="postshare(\'{}\')">Share</button>'.format(d[0])
             else: 
                 resp += starttag + endimage.format(d[0]) % (image,d[4])
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
@@ -487,68 +483,6 @@ def viewComments(request, user_id, post_id):
         comment_list.append(comment_id)
     num_comments = len(comment_list)
     return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
-
-
-@api_view(['GET','POST','PUT'])
-def postshare(request, post_id, user_id):
-    
-  #  user = request.user
-    context = {}
-    if request.method == "POST" and user.is_authenticated:
-        user_id = request.POST.get("to_user_id")
-        cursor = conn.cursor
-        cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
-        try:
-            user_data = cursor.fetchall()[0]
-            Author = get_user_model()
-            self_account = Author.objects.get(id=user_id)
-        except IndexError:
-            return HttpResponse("user doesn't exist")
-        if user_id:
-            Author = get_user_model()
-            others = Author.objects.get(id=user_id)
-         #   from_user = Share.objects.get(id=user_id)
-         #   to_user = Share.objects.get(id=user_id)
-            try:
-                conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-                cursor = conn.cursor()
-                cursor.execute('SELECT * from postshare WHERE post_id=%d AND from_user=%d AND to_user=%d;' %(post_id, request.user.id, user_id))
-                data = cursor.fetchall()
-            except:
-                return HttpResponse("no such user")
-            if data:
-                return HttpResponse("the post is shared already")
-            elif request.user.is_authenticated and request.user != self_account:
-                shared = ShareStatus.NO_SHARE.value
-                share_id = None
-                user = request.user
-                if user.is_authenticated and user != from_user:
-               #     is_self = False
-                    if get_share(from_user=self_account, to_user=request.user) != False:
-                        shared = ShareStatus.SHARE_FROM_SELF_TO_OTHER.value
-                        cursor.execute('INSERT INTO postshare VALUES(%d, %d, %d, %d);' %(share_id, post_id, request.user.id, user_id))
-                    elif get_share(from_user=request.user, to_user=self_account) != False:
-                            shared = ShareStatus.SHARE_FROM_OTHER_TO_SELF.value
-                            cursor.execute('INSERT INTO postshare VALUES(%d, %d, %d, %d);' %(share_id, post_id, from_user, to_user))
-                    else:
-                        shared = ShareStatus.NO_SHARE.value
-
-    return render(request, 'share.html')
-
-@api_view(['GET'])
-def check_share(request, user_id):
-    
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postshare WHERE to_user=%d;'%user_id)
-    data = cursor.fetchall()
-    share_list = []
-    for d in share_list:
-        share_id = d[0]
-        share_list[share_id]
-    num_share = len(share_list)
-    return render(request, "share_list.html", {"share_list":share_list, "num_share":num_share})
-    
     
 def search_user(request, *args, **kwargs):
     context = {}
@@ -683,33 +617,7 @@ def getAuthor(userid):
     my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
         
-def friend_comments(request, user_id, post_id):
-    
-    context = {}
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
-    friend_comment_list = []
-    try:
-        data = cursor.fetchall()[0]
-        Author = get_user_model()
-        account = Author.objects.get(id = user_id)
-    except IndexError:
-        return HttpResponse("user doesn't exist")
-    if data:
-        comment_user = Comment.objects.get('user')
-        comment_id = Comment.objects.get('comment_id')
-        friend = friend_list.friends.all()
-        context['Author'] = getAuthor(user_id)
-        context['friend'] = friend
-        cursor.execute('SELECT * FROM comments WHERE from_user = %d AND post_id = %d;'% (user_id, post_id))
-        comment_data = cursor.fetchall()[0]
-    #    context['is_friend'] = is_friend
-        friend_comment = Comment.objects.filter(Q(comment_user=request.user)|Q(friend=request.user))
-        for comment in friend_comment:
-            friend_comment_list.append(friend_comment)
-    
-        return render(request, 'friend_comment.html',{'friend_comment_list':friend_comment_list})
+
         
 
     
