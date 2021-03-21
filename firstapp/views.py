@@ -25,7 +25,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author
+from firstapp.models import Author, Post, Author_Privacy
 from django.contrib.auth import get_user_model
 import uuid
 
@@ -239,12 +239,15 @@ def post(request,user_id,post_id):
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
     data = cursor.fetchall()
+    data = Post.objects.get(user_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
     data = cursor.fetchall()
+    data = Post.objects.get(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d'%(post_id,))
     data = cursor.fetchall()
+    data = Post.objects.get(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
     user_token = cursor.fetchall()[0][0]
@@ -263,7 +266,16 @@ def post(request,user_id,post_id):
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
                 conn.commit()
-                resp = "Successfully modified post: %d\n" % post_id
+                new_post = Post.objects.get(post_id=post_id,user_id=user_id)
+                new_post.title = p["title"]
+                new_post.description = p["description"]
+                new_post.markdown = p["markdown"]
+                new_post.content = p["content"]
+                new_post.image = sqlite3.Binary(bytes(image,encoding="utf-8"))
+                new_post.privfriends = p["privfriends"]
+                new_post.tstamp = str(datetime.now())
+                new_post.save()
+
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
 
@@ -293,6 +305,8 @@ def post(request,user_id,post_id):
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
                 conn.commit()
+                new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=["description"],markdown=p["markdown"],content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=p["privfriends"],tstamp=str(datetime.now()))
+                new_post.save()
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -314,6 +328,8 @@ def post(request,user_id,post_id):
             conn.commit()
             cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
             conn.commit()
+            new_post = Post.objects.get(post_id=post_id,user_id=user_id)
+            new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
         else:
             conn.close()
@@ -340,6 +356,8 @@ def allposts(request,user_id):
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
     data = cursor.fetchall()
+    data = Post.objects.get(user_id=user_id)
+
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
     user_token = cursor.fetchall()[0][0]
@@ -360,6 +378,8 @@ def allposts(request,user_id):
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
             cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
             conn.commit()
+            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=["description"],markdown=p["markdown"],content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=p["privfriends"],tstamp=str(datetime.now()))
+            new_post.save()
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
