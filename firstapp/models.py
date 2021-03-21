@@ -50,11 +50,3 @@ class Comment(models.Model):
     
     def __str__(self):
         return self.comment_text
-
-class Share(models.Model):
-    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="from+")
-    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="to+")
-    is_share = models.BooleanField()
-    
-    def __str__(self):
-        return self.from_user
