@@ -33,8 +33,3 @@ function viewComment(post_id){
     location.replace(window.location.href + post_id + "/viewComments/")
 }
 
-function postshare(post_id){
-    location.replace(window.location.href + post_id + "/share/")
-}
-
-
