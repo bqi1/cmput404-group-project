@@ -43,10 +43,17 @@ def index(request):
 
 def homepage(request):
     print("&&&&7&&&")
-    assert 1==2
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
+
+
+        cursor.execute('SELECT id FROM authtoken_token;')
+        data = cursor.fetchall()[0]
+        assert data == 2
+
+
+
         cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
         data = cursor.fetchall()[0]
         user_id,token = data[0], data[1]
