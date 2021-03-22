@@ -1,1 +1,1 @@
-web: gunicorn c404projbqi1.wsgi
+web: gunicorn c404_proj.wsgi
