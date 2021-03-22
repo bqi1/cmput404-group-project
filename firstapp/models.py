@@ -23,7 +23,7 @@ class Author(models.Model):
 
 class Post(models.Model):
   type = "post"
-  post_id = models.PositiveIntegerField(default=0)
+  post_id = models.PositiveIntegerField(primary_key=True, default=0)
   user_id = models.PositiveIntegerField(default=0)
   title = models.CharField(max_length=20,default="")
   description = models.CharField(max_length=30,default="")

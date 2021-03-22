@@ -48,6 +48,8 @@ function makePost() {
     var image = 0;
     post_id = document.getElementById("post_id").value;
 
+    privfriends = document.getElementById("privfriends").value;
+
     pa_list = document.getElementsByClassName("pa_id");
     priv_author = [];
     for(i=0;i<pa_list.length;i++) {priv_author.push(pa_list[i].value);}
@@ -75,7 +77,7 @@ function makePost() {
                 url: URL,
                 method: method,
                 headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "priv_author":priv_author },
+                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "privfriends":privfriends,"priv_author":priv_author },
                 success: function () {
                     alert("Successfully created post!");
                     location.reload();

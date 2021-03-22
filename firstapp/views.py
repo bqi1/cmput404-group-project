@@ -181,7 +181,7 @@ def make_post_html(data,user_id,canedit=False):
         else: # post is private
             show_post = False
             for p in priv:
-                if p[1] == user_id:
+                if p[1] == user_id or canedit:
                     show_post = True
                     break
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
@@ -356,7 +356,7 @@ def allposts(request,user_id):
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
     data = cursor.fetchall()
-    data = Post.objects.get(user_id=user_id)
+    data = Author.objects.filter(userid=user_id)
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
@@ -378,7 +378,7 @@ def allposts(request,user_id):
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
             cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
             conn.commit()
-            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=["description"],markdown=p["markdown"],content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=p["privfriends"],tstamp=str(datetime.now()))
+            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=bool(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=bool(p["privfriends"]),tstamp=str(datetime.now()))
             new_post.save()
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
@@ -391,10 +391,13 @@ def allposts(request,user_id):
             for pa in private_authors:
                 cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
                 data = cursor.fetchall()
+                data = Author.objects.filter(userid=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
                 cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
                 conn.commit()
+                new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                new_private_author.save()
         
     elif method == "GET":
         cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
