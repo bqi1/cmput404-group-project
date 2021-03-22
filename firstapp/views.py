@@ -45,7 +45,9 @@ def homepage(request):
     print("&&&&7&&&")
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+        assert not (conn is None)
         cursor = conn.cursor()
+        assert not (cursor is None)
         cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
         data = cursor.fetchall()[0]
         user_id,token = data[0], data[1]
