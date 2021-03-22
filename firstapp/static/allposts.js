@@ -48,7 +48,7 @@ function makePost() {
     var image = 0;
     post_id = document.getElementById("post_id").value;
 
-    privfriends = document.getElementById("privfriends").value;
+    privfriends = +document.getElementById("privfriends").checked;
 
     pa_list = document.getElementsByClassName("pa_id");
     priv_author = [];

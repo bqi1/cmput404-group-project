@@ -35,6 +35,7 @@ ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
 
 PRIV_ADD_QUERY = "INSERT INTO author_privacy VALUES (?,?);"
+STR2BOOL = lambda x: bool(int(x))
 
 # Create your views here.
 def index(request):
@@ -144,84 +145,79 @@ def validate_int(p,optional=[]):
 # data - the list of tuples returned from sql
 # user_id - used to check to see if the current user can view the post (is it private to specific authors, or public?)
 # canaedit - true if the current user is allowed to edit the post
-def make_post_html(data,user_id,canedit=False):
+def make_post_html(data,user_id,isowner=False):
     resp = ""
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
 
     #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if canedit else '')
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
 
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
     for d in data:
-        cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0]) # See if the current post is private to any authors
-        priv = cursor.fetchall()
-        image = str(d[-2],encoding="utf-8")
-        content = d[5]
-        if d[4]: # use markdown!
+        priv = Author_Privacy.objects.filter(post_id=d.post_id)
+        image = str(d.image,encoding="utf-8")
+        content = d.content
+        if d.markdown: # use markdown!
             md = Md()
             content = md.convert(content)
         starttag = jscript
-        starttag += start % (d[2],d[3],content)
+        starttag += start % (d.title,d.description,content)
         if len(priv) == 0: # post is not private
             if image == '0':
                 resp += starttag
-                resp += endnoimage.format(d[0]) % (d[4],)
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
-                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
+                resp += endnoimage.format(d.post_id) % (d.markdown,)
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
             else: 
-                resp += starttag + endimage.format(d[0]) % (image,d[4])
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d[0])
-                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d[0])
+                resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
+                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
 
             resp += "</br>"
         else: # post is private
             show_post = False
             for p in priv:
-                if p[1] == user_id or canedit:
+                if p.user_id == user_id or isowner:
                     show_post = True
                     break
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
-                if image == '0': resp += starttag + endnoimage.format(d[0],d[0]) % (d[4],)
-                else: resp += starttag + endimage.format(d[0],d[0]) % (image,d[4])
+                if image == '0': resp += starttag + endnoimage.format(d.post_id,d.post_id) % (d.markdown,)
+                else: resp += starttag + endimage.format(d.post_id,d.post_id) % (image,d.markdown)
                 resp += "</br>"
-    conn.close()
     return resp
 
 # This function will return all visible posts, and return them in a list to be displayed to non-browser user agents
 # data - the list of tuples returned from sql
 # user_id - used to check to see if the current user can view the post (is it private to specific authors, or public?)
-def make_post_list(data,user_id):
+def make_post_list(data,user_id,isowner=False):
     post_list = []
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-    cursor = conn.cursor()
     for d in data:
-        cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d[0]) # See if the current post is private to any authors
-        priv = cursor.fetchall()
+        #cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d.post_id) # See if the current post is private to any authors
+        #priv = cursor.fetchall()
+        priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
-            "post_id":d[0],
-            "user_id":d[1],
-            "title":d[2],
-            "description":d[3],
-            "markdown":d[4],
-            "content":d[5],
-            "image":str(d[6],encoding="utf-8"),
-            "timestamp":d[7]
+            "post_id":d.post_id,
+            "user_id":d.user_id,
+            "title":d.title,
+            "description":d.description,
+            "markdown":d.markdown,
+            "content":d.content,
+            "image":str(d.image,encoding="utf-8"),
+            "private_to_friends":d.privfriends,
+            "timestamp":d.tstamp
         }
         # post is public or post belongs to user
-        if len(priv) == 0 or user_id == d[1]: post_list.append(post_dict)
+        if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
         else:
             show_post = False
             # Determine if requesting author is among privacy list
             for p in priv:
-                if p[1] == user_id:
+                if p.user_id == user_id or isowner:
                     show_post = True
                     break
             if show_post and user_id != None: post_list.append(post_dict)
-    conn.close()
     return json.dumps(post_list,indent=4)
 
 # The api view for looking at a specific post for a user
@@ -237,35 +233,28 @@ def post(request,user_id,post_id):
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
-    data = cursor.fetchall()
-    data = Post.objects.get(user_id=user_id)
+    data = Author.objects.filter(userid=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-    cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
-    data = cursor.fetchall()
-    data = Post.objects.get(post_id=post_id,user_id=user_id)
+    data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
-    cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d'%(post_id,))
-    data = cursor.fetchall()
-    data = Post.objects.get(post_id=post_id)
+    data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
     user_token = cursor.fetchall()[0][0]
-
+    trueauth = (request.user.is_authenticated and request.user.id == user_id)
     if method == 'GET':
-        resp = make_post_list(data,request.user.id)
+        resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
 
         if method == 'POST':
+
             p = request.POST
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
-                conn.commit()
                 new_post = Post.objects.get(post_id=post_id,user_id=user_id)
                 new_post.title = p["title"]
                 new_post.description = p["description"]
@@ -274,7 +263,6 @@ def post(request,user_id,post_id):
                 new_post.image = sqlite3.Binary(bytes(image,encoding="utf-8"))
                 new_post.privfriends = p["privfriends"]
                 new_post.tstamp = str(datetime.now())
-                new_post.save()
 
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -284,29 +272,25 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
-                    data = cursor.fetchall()
+                    data = Author.objects.filter(userid=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.") # check if author ids are valid
-                cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,)) # delete all before updating with new values
-                conn.commit()
                 for pa in private_authors:
-                    cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
-                    conn.commit()
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    new_private_author.save()
             else:
-                cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,)) # if nothing is supplied, user wants to make post public
-                conn.commit()
+                author_privacies = Author_Privacy.objects.filter(post_id=post_id)
+                for ap in author_privacies: ap.delete()
+            new_post.save()
 
  
         elif method == 'PUT':
+
             p = request.POST
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
-                conn.commit()
-                new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=["description"],markdown=p["markdown"],content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=p["privfriends"],tstamp=str(datetime.now()))
-                new_post.save()
+                new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -316,18 +300,16 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
-                    data = cursor.fetchall()
+                    data = Author.objects.filter(userid=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
                 for pa in private_authors:
-                    cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
-                    conn.commit()
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    new_private_author.save()
+            new_post.save()
 
         elif method == 'DELETE':
-            cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,))
-            conn.commit()
-            cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
-            conn.commit()
+            author_privacies = Author_Privacy.objects.filter(post_id=post_id)
+            for ap in author_privacies: ap.delete()
             new_post = Post.objects.get(post_id=post_id,user_id=user_id)
             new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
@@ -337,10 +319,10 @@ def post(request,user_id,post_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        if method == "GET": resp = make_post_html(data,request.user.id)
+        if method == "GET": resp = make_post_html(data,request.user.id,isowner=trueauth)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
-        return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+        return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
 
 # Api view for looking at all posts for a specific user
@@ -354,21 +336,20 @@ def allposts(request,user_id):
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
-    data = cursor.fetchall()
     data = Author.objects.filter(userid=user_id)
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
     user_token = cursor.fetchall()[0][0]
+    trueauth = (request.user.is_authenticated and request.user.id == user_id)
+
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         p = request.POST
         while True:
             post_id = rand(2**63)
-            cursor.execute("SELECT post_id FROM posts WHERE post_id=%d;" % post_id)
-            data = cursor.fetchall()
+            data = Post.objects.filter(post_id=post_id)
             if len(data) == 0 : break
         
         try: image = p["image"] # image is an optional param!
@@ -376,10 +357,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
-            conn.commit()
-            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=bool(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=bool(p["privfriends"]),tstamp=str(datetime.now()))
-            new_post.save()
+            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -389,20 +367,15 @@ def allposts(request,user_id):
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
-                cursor.execute("SELECT id from auth_user WHERE id = ?",(pa,))
-                data = cursor.fetchall()
                 data = Author.objects.filter(userid=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
-                cursor.execute(PRIV_ADD_QUERY, (post_id, pa))
-                conn.commit()
                 new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
                 new_private_author.save()
-        
+        new_post.save()
     elif method == "GET":
-        cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
-        data = cursor.fetchall()
-        resp = make_post_list(data,request.user.id)
+        data = Post.objects.filter(user_id=user_id)
+        resp = make_post_list(data,request.user.id,trueauth)
     else:
         conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
@@ -410,9 +383,9 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
-        if method == "GET": resp = make_post_html(data,user_id,canedit=True)
+        if method == "GET": resp = make_post_html(data,user_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
-        return render(request,'allposts.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+        return render(request,'allposts.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
 
 #like a post

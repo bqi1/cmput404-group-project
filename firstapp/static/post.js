@@ -60,6 +60,7 @@ function editPost() {
     content = document.getElementById("content").value;
 
     var image = 0;
+    privfriends = +document.getElementById("privfriends").checked;
 
     pa_list = document.getElementsByClassName("pa_id");
     priv_author = [];
@@ -80,7 +81,7 @@ function editPost() {
                 url: window.location.href,
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "priv_author":priv_author },
+                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "privfriends":privfriends, "priv_author":priv_author },
                 success: function () {
                     alert("Successfully modified post!");
                     window.location.replace(window.location.href.match(/(.*)(?=\/)/g)[0]);
