@@ -205,7 +205,7 @@ def make_post_list(data,user_id,isowner=False):
             "markdown":d.markdown,
             "content":d.content,
             "image":str(d.image,encoding="utf-8"),
-            "private_to_friends":d.privfriends,
+            "privfriends":d.privfriends,
             "timestamp":d.tstamp
         }
         # post is public or post belongs to user
@@ -263,6 +263,7 @@ def post(request,user_id,post_id):
                 new_post.image = sqlite3.Binary(bytes(image,encoding="utf-8"))
                 new_post.privfriends = p["privfriends"]
                 new_post.tstamp = str(datetime.now())
+                resp = "Successfully modified post: %d\n" % post_id
 
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
