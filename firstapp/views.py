@@ -25,7 +25,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy
+from firstapp.models import Author, Post, Author_Privacy, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
 
@@ -401,9 +401,15 @@ def likepost(request, user_id, post_id):
     if len(data) > 0:
         return HttpResponse("Post already liked")
     else:
-        like_id = rand(2**31)
-        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-        conn.commit()
+        while True:
+            like_id = rand(2**31)
+            cursor.execute('SELECT * FROM postlikes WHERE like_id = %d'% (like_id))
+            if cursor.fetchall() == None:
+                like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
+                like.save()
+                break
+        # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+        # conn.commit()
         return HttpResponse("Post liked successfully")
 
 #get a list of likes from other authors on the post id
