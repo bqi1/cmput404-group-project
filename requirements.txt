@@ -5,6 +5,7 @@ Django==3.1.7
 django-jquery==3.1.0
 django-static-jquery==2.1.4
 djangorestframework==3.12.2
+django-on-heroku==1.1.2
 idna==2.10
 Markdown==3.3.4
 Pillow==8.1.1
