@@ -390,6 +390,7 @@ def allposts(request,user_id):
     else: return HttpResponse(resp)
 
 #like a post
+# TODO send the_like_object to author's inbox
 @api_view(['POST'])
 def likepost(request, user_id, post_id):
     resp = ""
@@ -412,6 +413,12 @@ def likepost(request, user_id, post_id):
         # conn.commit()
         return HttpResponse("Post liked successfully")
 
+def make_like_object(from_user, url):
+    like_dict = {}
+    like_dict["type"] = "Like"
+    like_dict["from_user"] = from_user
+    like_dict["object"] = url
+
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
 def likes(request, user_id, post_id):
@@ -424,7 +431,17 @@ def likes(request, user_id, post_id):
         author = d[0]
         author_list.append(author)
     num_likes = len(author_list)
-    return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+    agent = request.META["HTTP_USER_AGENT"]
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+        return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+    else:
+        # json_post_likes = post_likes_to_json()
+        # return json.dumps(json_post_likes)
+        return
+
+# def post_likes_to_json(from_user, to_user):
+    #Get list of likes from other authors on author_ids's post post_id
+
 
 #get a list of posts and comments that the author has liked
 @api_view(['GET'])

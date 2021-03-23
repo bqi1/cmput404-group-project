@@ -38,11 +38,13 @@ class Author_Privacy(models.Model):
   post_id = models.PositiveIntegerField(default=0)
   user_id = models.PositiveIntegerField(default=0)
 
-class PostLikes(models.Model):
+class Likes(models.Model):
   like_id = models.AutoField(primary_key=True, blank=True, null=False)
   from_user = models.IntegerField(blank=True, null=True)
   to_user = models.IntegerField(blank=True, null=True)
   post_id = models.ForeignKey('Post', on_delete=models.CASCADE, blank=True, null=True)
+  comment_id = models.ForeignKey('Comment', on_delete=models.CASCADE, blank=True, null=True)
+
 
 class Setting(models.Model):
   # Contains variables for global settings
