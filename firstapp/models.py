@@ -41,12 +41,9 @@ class PublicImage(models.Model): # Host images to a folder in server. Accessible
 class Comment(models.Model):
     #post = models.ForeignKey(Post, on_delete=models.CASCADE)
     comment_id = models.PositiveIntegerField(primary_key=True,null=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    from_user = models.PositiveIntegerField(blank=True, null=True)
+    to_user = models.PositiveIntegerField(blank=True, null=True)
     comment_text = models.TextField()
-    created_date = models.DateTimeField(default=timezone.now)
-    
-    class Meta:
-        ordering = ['created_date']
     
     def __str__(self):
         return self.comment_text
