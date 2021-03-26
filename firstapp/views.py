@@ -4,7 +4,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-from .form import UserForm, CommentForm
+# from .form import UserForm, CommentForm
+from .form import UserForm
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -465,7 +466,7 @@ def commentpost(request, user_id, post_id):
        conn.commit()
        return HttpResponse("Comment created sucessfully!")
     
-     return render(request, "comments.html")
+    return render(request, "comments.html")
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
