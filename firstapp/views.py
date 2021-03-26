@@ -455,21 +455,17 @@ def commentpost(request, user_id, post_id):
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM comments WHERE from_user = %d AND post_id = %d;'% (user_id, post_id))
     data = cursor.fetchall()
-    if len(data) == 0 and request.method == "PUT":
-       # p = request.POST
-       comment_form = CommentForm(request.POST)
-       if comment_form.is_valid():
-            comment_id = request.POST.get('comment_id')
-            comment = request.POST.get('comment_text')
-            new_comment = Comment.objects.create(new_comment=comment, comment_id=comment_id)
-            cursor.execute('INSERT INTO comments VALUES(%d, %s, %d, %d, %d);' %(comment_id, new_comment, user_id, request.user.id, post_id))
+    if len(data) == 0:
+       # p = request.POS
+       comment_id = rand(2**31)
+       comment = request.POST.get('comment_text')
+       new_comment = Comment.objects.create(new_comment=comment, comment_id=comment_id)
+       cursor.execute('INSERT INTO comments VALUES(%d, %s, %d, %d, %d);' %(comment_id, new_comment, user_id, request.user.id, post_id))
         #new_comment.save()
-            conn.commit()
-            return HttpResponse("Comment created sucessfully!")
-    else:
-        comment_form = CommentForm()
-        context = {"comment_form":comment_form}
-        return render(request, "comments.html", context)
+       conn.commit()
+       return HttpResponse("Comment created sucessfully!")
+    
+     return render(request, "comments.html")
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
