@@ -24,10 +24,7 @@ class UserForm(UserCreationForm):
 #https://stackoverflow.com/questions/13202845/removing-help-text-from-django-usercreateform
 #for removing extra help texts
 
-class CommentForm(forms.ModelForm):
-    class Meta:
-        model = Comment
-        fields = ['comment_id','comment_text']
+
 #class Share(forms.ModelForm):
  #   from_user= forms.EmailField()
   #  to_user = forms.EmailField()
