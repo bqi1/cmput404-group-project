@@ -390,13 +390,12 @@ def allposts(request,user_id):
     else: return HttpResponse(resp)
 
 #like a post
-# TODO send the_like_object to author's inbox
 @api_view(['POST'])
 def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
@@ -404,27 +403,33 @@ def likepost(request, user_id, post_id):
     else:
         while True:
             like_id = rand(2**31)
-            cursor.execute('SELECT * FROM postlikes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
             if cursor.fetchall() == None:
                 like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
                 like.save()
                 break
         # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
         # conn.commit()
-        return HttpResponse("Post liked successfully")
+        #TODO send like object to author's inbox
+        url = request.get_full_path()
+        # make_like_object(url, author)
+        return HttpResponse("Post liked successfully") # #TODO send to inbox here
 
-def make_like_object(from_user, url):
+def make_like_object(object, author):
     like_dict = {}
-    like_dict["type"] = "Like"
-    like_dict["from_user"] = from_user
-    like_dict["object"] = url
+    like_dict["type"] = "like"
+    #TODO get author object here
+    # like_dict["author"] = 
+    like_dict["object"] = object
+
+    return json.dump(like_dict)
 
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
-def likes(request, user_id, post_id):
+def postlikes(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+    cursor.execute('SELECT * FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
     data = cursor.fetchall()
     author_list = []
     for d in data:
@@ -432,15 +437,24 @@ def likes(request, user_id, post_id):
         author_list.append(author)
     num_likes = len(author_list)
     agent = request.META["HTTP_USER_AGENT"]
-    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
         return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
     else:
-        # json_post_likes = post_likes_to_json()
+        # json_post_likes = post_likes_to_json(data)
         # return json.dumps(json_post_likes)
         return
 
-# def post_likes_to_json(from_user, to_user):
+def make_post_likes_object(data):
     #Get list of likes from other authors on author_ids's post post_id
+    post_likes_dict = {}
+    json_like_object_list = []
+
+    post_likes_dict["type"] = "post likes"
+    for like in data:
+        like_object = make_like_object(author)
+        json_like_object_list.append(like_object)
+    post_likes_dict["likes"] = [json.dumps(json_like_object_list)]
+    return json.dump(post_likes_dict)
 
 
 #get a list of posts and comments that the author has liked
@@ -448,16 +462,27 @@ def likes(request, user_id, post_id):
 def liked(request,user_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT post_id FROM postlikes WHERE from_user=%d;'%(user_id))
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user=%d;'%(user_id))
     data = cursor.fetchall()
     liked_posts_list = []
     for id in data:
         post_id = id[0]
         liked_posts_list.append(post_id)
+
+    #TODO get comments that author has liked
     # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
     # data = cursor.fetchall()
+    agent = request.META["HTTP_USER_AGENT"]
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+        return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
+    else:
+        make_liked_object(data)
+        return 
 
-    return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
+def make_liked_object(like_list):
+    like_dict = {}
+    like_dict["type"] = "liked"
+    like_dict["items"] = [json.dumps(like_list)]
 
 # def comment(request, user_id, post_id):
 #     if request.method == "POST":
