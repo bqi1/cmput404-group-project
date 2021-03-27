@@ -28,6 +28,7 @@ from friend.is_friend import get_friend_request_or_false
 from firstapp.models import Author, Post, Author_Privacy, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
+import urllib.request
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -401,7 +402,6 @@ def likepost(request, user_id, post_id):
     cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d'% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
-    print(len(data))
     if len(data) > 0:
         return HttpResponse("Post already liked", status=409)
     else:
@@ -423,7 +423,7 @@ def make_like_object(object, author):
     like_dict = {}
     like_dict["type"] = "like"
     #TODO get author object here
-    # like_dict["author"] = 
+    # like_dict["author"] = author
     like_dict["object"] = object
 
     return json.dump(like_dict)
@@ -433,31 +433,37 @@ def make_like_object(object, author):
 def postlikes(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
-    data = cursor.fetchall()
-    author_list = []
-    for d in data:
-        author = d[0]
-        author_list.append(author)
-    num_likes = len(author_list)
     agent = request.META["HTTP_USER_AGENT"]
+
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+        cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+        data = cursor.fetchall()
+        author_list = []
+        for d in data:
+            author = d[0]
+            author_list.append(author)
+        num_likes = len(author_list)
+    
         return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
-    else:
-        # json_post_likes = post_likes_to_json(data)
-        # return json.dumps(json_post_likes)
+    else: 
+        #return a list of like objects
+        cursor.execute('SELECT like_id FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+        data = cursor.fetchall()
+        url = request.get_full_path()
+        json_post_likes = make_post_likes_object(data, url)
+        return json.dumps(json_post_likes)
         return
 
-def make_post_likes_object(data):
+def make_post_likes_object(data, url):
     #Get list of likes from other authors on author_ids's post post_id
     post_likes_dict = {}
     json_like_object_list = []
 
     post_likes_dict["type"] = "post likes"
     for like in data:
-        like_object = make_like_object(author)
+        like_object = make_like_object(url, author)
         json_like_object_list.append(like_object)
-    post_likes_dict["likes"] = [json.dumps(json_like_object_list)]
+    post_likes_dict["items"] = [json.dumps(json_like_object_list)]
     return json.dump(post_likes_dict)
 
 
