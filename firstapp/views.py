@@ -8,6 +8,7 @@ from .form import UserForm
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.http import QueryDict
 from django.utils.datastructures import MultiValueDictKeyError
 import sqlite3
 import os
@@ -269,6 +270,9 @@ def post(request,user_id,post_id):
         if method == 'POST':
 
             p = request.POST
+            if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+                p = QueryDict('',mutable=True)
+                p.update(request.data)
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
@@ -305,6 +309,9 @@ def post(request,user_id,post_id):
         elif method == 'PUT':
 
             p = request.POST
+            if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+                p = QueryDict('',mutable=True)
+                p.update(request.data)
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
@@ -371,6 +378,9 @@ def allposts(request,user_id):
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         p = request.POST
+        if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+            p = QueryDict('',mutable=True)
+            p.update(request.data)
         while True:
             post_id = rand(2**63)
             data = Post.objects.filter(post_id=post_id)
