@@ -57,7 +57,7 @@ pywin32-ctypes==0.2.0
 requests==2.25.1
 requests-toolbelt==0.9.1
 scikit-learn==0.24.1
-scipy==1.6.0
+scipy==1.5.4
 six==1.15.0
 sklearn==0.0
 sqlparse==0.4.1
