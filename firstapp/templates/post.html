@@ -2,10 +2,13 @@
 <html>
 <head>
     {% csrf_token %}
+    {% include "sub_basic/header.html" %}
 
     </head>
 
     <body {% if true_auth %}onload="setDefaults()"{% endif %}>
+        {% include "sub_basic/header.html" %}
+
         {%autoescape off%}
         {{post_list}}
         {%endautoescape%}
@@ -26,7 +29,19 @@
         <label for="image_link">Image (optional):</label><input id="image_link" placeholder="URL" onchange="resetFile()">
         <label for="image_file">Or Upload a File</label>
         <input id="image_file" type="file" onchange="resetLink()"></br></br>
-        </br></br></br>
+        <label for="privfriends" style="font-family:comic sans ms;color:#0000CD;">Make Post Private To Friends?</label>
+        <input id="privfriends" type="checkbox" style="border-color:#0000CD;background:#F0FFF0"></br>
+        </br>
+        <label for="add_pa" >Add / Remove Private Authors</label>
+        <input id="add_pa" type="button" value="+" onclick="addPrivateAuthor()">
+        <input id="rem_pa" type="button" value="-" onclick="removePrivateAuthor()">
+        <br/>
+        <ul id="pa_list"></ul>
+
+        <br/>
+        </br>
+        </br>
+
         <input id="editpost" type="button" value="Edit Post" onclick="editPost()">
         <input id="deletepost" type="button" value="DELETE Post" onclick="deletePost()">
         </br></br></br>

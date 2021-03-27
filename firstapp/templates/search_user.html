@@ -1,0 +1,114 @@
+{% extends 'homepage.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<style type="text/css">
+	.profile-image{
+		max-height: 100px;
+		max-width: 100px;
+	}
+	.profile-image{
+		border-radius: 12px;
+	}
+	.card{
+		border-radius: 12px;
+	}
+	.friends-text{
+		color: #000;
+		font-weight: 500;
+	}
+	.friends-text-container{
+		border: 1px solid #cccccc;
+		border-radius: 12px;
+	}
+	.friends-btn:hover {
+		background-color: #bfbfbf;
+		border-color: #bfbfbf;
+	}
+	.dropdown-toggle::after { 
+		content: none; 
+	}
+	.profile-link{
+		color: #000;
+	}
+	.checkmark-icon{
+		color: green;
+	}
+	.cancel-icon{
+		color: red;
+	}
+</style>
+
+<div class="container">
+	<div class="card p-2">
+
+		{% if searchResult %}
+		<div class="d-flex flex-row flex-wrap">
+		{% for account in searchResult %}
+		<div class="card flex-row flex-grow-1 p-2 mx-2 my-2 align-items-center">
+
+			<div class="d-flex flex-row card-right flex-grow-1 justify-content-end mx-2">
+				{% if account.1 %}
+					<div class="d-flex flex-row friends-text-container p-3">
+						<p class="friends-text m-auto">
+
+							<a href= "{% url 'account:view' user_id=account.0.3 %}">
+								<div class="card-center px-2">
+									<h4 class="card-title">{{account.0.7}}</h4>
+								</div>
+							</a>
+							Friends 
+						</p>
+						<span class="material-icons checkmark-icon m-auto pl-2">
+						check_circle_outline
+						</span>
+					</div>
+				{% else %}
+					{% if account.0 !=  request.user %}
+						<div class="d-flex flex-row friends-text-container p-3">
+							<p class="friends-text m-auto">
+							
+								<a href= "{% url 'account:view' user_id=account.0.3 %}">
+									<div class="card-center px-2">
+										<h4 class="card-title">{{account.0.7}}</h4>
+									</div>
+								</a>
+								Not Friends 
+							</p>
+							<span class="material-icons cancel-icon m-auto pl-2">cancel</span>
+						</div>
+					{% endif %}
+				{% endif %}
+				{% if account.0 == request.user %}
+					<div class="d-flex flex-row friends-text-container p-3">
+						<p class="friends-text m-auto">
+							{{account.0.7}}
+							This is you 
+						</p>
+						<span class="material-icons m-auto pl-2">
+						person_pin
+						</span>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+		{% if forloop.counter|divisibleby:2 %}
+		</div><div class="d-flex flex-row flex-wrap">
+		{% endif %}
+		
+		{% endfor %}
+		
+		{% else %} <!-- If no friends -->
+		<div class="d-flex flex-row flex-grow-1 justify-content-center align-items-center p-4">
+			<p>No results</p>
+		</div>
+		{% endif %}
+		</div>
+	</div>
+	
+</div>
+
+
+{% endblock content %}

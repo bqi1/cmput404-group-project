@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% include "sub_basic/header.html" %}
+
+    {% csrf_token %}
+</head>
+
+<body>
+    {% for post in liked_posts_list %}
+        <li>{{post}}</li>
+    {% endfor %}
+</body>
+
+</html>
