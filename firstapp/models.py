@@ -16,7 +16,7 @@ class Author(models.Model):
     userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
-    consistent_id = models.TextField(primary_key=True,max_length=20,blank=True,editable=False)
+    consistent_id = models.TextField(primary_key=True,max_length=20,blank=True)
 
     def __str__(self):
         return self.username

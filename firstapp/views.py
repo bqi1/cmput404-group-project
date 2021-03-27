@@ -47,13 +47,19 @@ def homepage(request):
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
 
-        cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s" AND u.id = a.userid;' % request.user)
         data = cursor.fetchall()[0]
-        user_id,token = data[0], data[1]
+        user_id,token,uuid = data[0], data[1], data[2]
         conn.close()
         print(request.user.id)
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token})
-    
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':uuid})
+
+def debugfunction(request):
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+    return render(request, 'debug.html', {'user_list': str(cursor.fetchall())})
+
 def signup(request):
     # Called when user accesses the signup page
     success = False
@@ -85,7 +91,7 @@ def signup(request):
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -93,7 +99,7 @@ def signup(request):
             user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                        consistent_id=f"{uuid.uuid4().hex}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -234,6 +240,7 @@ def make_post_list(data,user_id):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def post(request,user_id,post_id):
+    print(f"aGGGGGGGGGGGGGGGGGG {user_id}")
     resp = ""
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")

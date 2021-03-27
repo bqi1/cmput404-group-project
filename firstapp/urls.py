@@ -9,6 +9,7 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
     path('login/', views.login, name='login'),
     path('homepage/', views.homepage, name='home'),
+    path('debugfunction/', views.debugfunction, name='debugfunction'),
     path('author/<int:user_id>/posts/<int:post_id>',views.post,name='post'),
     path('author/<int:user_id>/posts/', views.allposts, name='allposts'),
     # path('author/<int:user_id>/inbox', views.inbox, name='inbox'),
