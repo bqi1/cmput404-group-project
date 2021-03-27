@@ -45,7 +45,6 @@ numpy==1.19.5
 pandas==1.2.3
 pefile==2019.4.18
 pelican==4.5.4
-Pillow==8.1.0
 psycopg2==2.8.6
 Pygments==2.6.1
 pyinstaller==4.2
