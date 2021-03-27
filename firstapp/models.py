@@ -21,6 +21,23 @@ class Author(models.Model):
     def __str__(self):
         return self.username
 
+class Post(models.Model):
+  type = "post"
+  post_id = models.PositiveIntegerField(primary_key=True, default=0)
+  user_id = models.PositiveIntegerField(default=0)
+  title = models.CharField(max_length=20,default="")
+  description = models.CharField(max_length=30,default="")
+  markdown = models.BooleanField(default=False)
+  content = models.TextField(max_length=500,blank=True)
+  image = models.BinaryField(default=b"")
+  privfriends = models.BooleanField(default = False)
+  tstamp = models.CharField(max_length=50,default="")
+
+class Author_Privacy(models.Model):
+  type = "author_privacy"
+  post_id = models.PositiveIntegerField(default=0)
+  user_id = models.PositiveIntegerField(default=0)
+
 # class PostLikes(models.Model):
 #   post = models.ForeignKey(Post, on_delete=models.CASCADE)
 #   from_user = models.IntegerField()
