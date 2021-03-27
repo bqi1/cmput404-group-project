@@ -27,7 +27,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post
+from firstapp.models import Author, Post, Author_Privacy, Comment
 from django.contrib.auth import get_user_model
 import uuid
 
@@ -176,10 +176,14 @@ def make_post_html(data,user_id,isowner=False):
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
+                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
             else: 
                 resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
+                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
 
             resp += "</br>"
         else: # post is private
@@ -446,14 +450,15 @@ def liked(request,user_id):
 def commentpost(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM comments WHERE from_user = %d AND post_id = %d;'% (user_id, post_id))
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %d AND post_id = %d;'% (user_id, post_id))
     data = cursor.fetchall()
     if len(data) == 0:
        # p = request.POS
        comment_id = rand(2**31)
        comment = request.POST.get('comment_text')
-       new_comment = Comment.objects.create(new_comment=comment, comment_id=comment_id)
-       cursor.execute('INSERT INTO comments VALUES(%d, %s, %d, %d, %d);' %(comment_id, new_comment, user_id, request.user.id, post_id))
+       post = Post.objects.only('id').get(id=data['user_id'])
+       new_comment = Comment(comment_id=comment_id, post = post_id, from_user=request.user.id, to_user = user_id)
+    #    cursor.execute('INSERT INTO firstapp_comment VALUES(%d, %s, %d, %d, %d);' %(comment_id, new_comment, user_id, request.user.id, post_id))
         #new_comment.save()
        conn.commit()
        return HttpResponse("Comment created sucessfully!")

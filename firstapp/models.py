@@ -34,12 +34,25 @@ class PublicImage(models.Model): # Host images to a folder in server. Accessible
   def __str__(self):
     return self.title
 
-#class Post(models.Model):
- #   author = models.ForeignKey(Author, on_delete=models.CASCADE)
-  #  posted_on = models.DateTimeField(auto_now=True)
+class Post(models.Model):
+  type = "post"
+  post_id = models.PositiveIntegerField(primary_key=True, default=0)
+  user_id = models.PositiveIntegerField(default=0)
+  title = models.CharField(max_length=20,default="")
+  description = models.CharField(max_length=30,default="")
+  markdown = models.BooleanField(default=False)
+  content = models.TextField(max_length=500,blank=True)
+  image = models.BinaryField(default=b"")
+  privfriends = models.BooleanField(default = False)
+  tstamp = models.CharField(max_length=50,default="")
+
+class Author_Privacy(models.Model):
+  type = "author_privacy"
+  post_id = models.PositiveIntegerField(default=0)
+  user_id = models.PositiveIntegerField(default=0)
 
 class Comment(models.Model):
-    #post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
     comment_id = models.PositiveIntegerField(primary_key=True,null=False)
     from_user = models.PositiveIntegerField(blank=True, null=True)
     to_user = models.PositiveIntegerField(blank=True, null=True)
