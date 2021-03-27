@@ -16,15 +16,16 @@ class Author(models.Model):
     userid = models.PositiveIntegerField(default=0) # Good for finding their URL in posts
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
-    consistent_id = models.TextField(primary_key=True,max_length=20,blank=True,editable=False)
+    consistent_id = models.TextField(primary_key=True,max_length=20,blank=True)
 
     def __str__(self):
         return self.username
 
 class Post(models.Model):
   type = "post"
+  id = models.TextField(blank=True)
   post_id = models.PositiveIntegerField(primary_key=True, default=0)
-  user_id = models.PositiveIntegerField(default=0)
+  user_id = models.TextField(blank=True)
   title = models.CharField(max_length=20,default="")
   description = models.CharField(max_length=30,default="")
   markdown = models.BooleanField(default=False)
@@ -36,12 +37,12 @@ class Post(models.Model):
 class Author_Privacy(models.Model):
   type = "author_privacy"
   post_id = models.PositiveIntegerField(default=0)
-  user_id = models.PositiveIntegerField(default=0)
+  models.TextField(max_length=20,blank=True)
 
 class PostLikes(models.Model):
   like_id = models.AutoField(primary_key=True, blank=True, null=False)
-  from_user = models.IntegerField(blank=True, null=True)
-  to_user = models.IntegerField(blank=True, null=True)
+  from_user = models.TextField(max_length=500,blank=True)
+  to_user = models.TextField(max_length=500,blank=True)
   post_id = models.IntegerField(blank=True, null=False)
 
 # class CommentLikes(models.Model):

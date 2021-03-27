@@ -1,6 +1,5 @@
 function likePost(post_id) {
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    console.log("wtf")
     $.ajax(
         {
             // TODO later when we have the inbox we need to send to post's author's inbox

@@ -7,7 +7,6 @@
     </head>
 
     <body {% if true_auth %}onload="setDefaults()"{% endif %}>
-        {% include "sub_basic/header.html" %}
 
         {%autoescape off%}
         {{post_list}}

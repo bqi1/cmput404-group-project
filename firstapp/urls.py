@@ -9,11 +9,12 @@ urlpatterns = [
     path('signup/', views.signup, name='signup'),
     path('login/', views.login, name='login'),
     path('homepage/', views.homepage, name='home'),
-    path('author/<int:user_id>/posts/<int:post_id>',views.post,name='post'),
-    path('author/<int:user_id>/posts/', views.allposts, name='allposts'),
+    path('author/<str:user_id>/posts/<int:post_id>',views.post,name='post'),
+    path('author/<str:user_id>/posts/', views.allposts, name='allposts'),
     # path('author/<int:user_id>/inbox', views.inbox, name='inbox'),
-    path('author/<int:user_id>/posts/<int:post_id>/likes/', views.postlikes, name='postlikes'),
-    path('author/<int:user_id>/posts/<int:post_id>/likepost/', views.likepost, name='likepost'),
-    path('author/<int:user_id>/liked/', views.liked, name='liked'),
+    path('author/<str:user_id>/posts/<int:post_id>/likes/', views.postlikes, name='postlikes'),
+    path('author/<str:user_id>/posts/<int:post_id>/likepost/', views.likepost, name='likepost'),
+    path('author/<str:user_id>/liked/', views.liked, name='liked'),
+    path('author/<str:user_id>', views.account, name='account'),
     # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
 ]
