@@ -42,7 +42,7 @@ MarkupSafe==1.1.1
 matplotlib==3.3.4
 mccabe==0.6.1
 numpy==1.19.5
-pandas==1.2.3
+pandas==1.1.5
 pefile==2019.4.18
 pelican==4.5.4
 psycopg2==2.8.6
