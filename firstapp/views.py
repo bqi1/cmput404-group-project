@@ -46,12 +46,12 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s" AND a.userid = u.id;' % request.user)
         data = cursor.fetchall()[0]
-        user_id,token = data[0], data[1]
+        user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
         print(request.user.id)
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -84,7 +84,7 @@ def signup(request):
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -92,7 +92,7 @@ def signup(request):
             user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                        consistent_id=f"{uuid.uuid4().hex}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -237,16 +237,18 @@ def post(request,user_id,post_id):
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
+    cursor.execute('SELECT consistent_id FROM firstapp_author WHERE consistent_id="%s"'%user_id) # Check to see if user in url exists
     data = cursor.fetchall()
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-    cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d AND p.user_id=%d'%(post_id,user_id))
+    # HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEERE
+    print("condition met!")
+    cursor.execute('SELECT * FROM posts p, firstapp_author a WHERE p.post_id=%d AND p.user_id=a.userid AND a.consistent_id="%s"'%(post_id,user_id))
     data = cursor.fetchall()
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     cursor.execute('SELECT * FROM posts p WHERE p.post_id=%d'%(post_id,))
     data = cursor.fetchall()
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
 
     if method == 'GET':
@@ -260,7 +262,7 @@ def post(request,user_id,post_id):
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
-                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
+                if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 cursor.execute(EDIT_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now()),post_id,user_id))
                 conn.commit()
                 resp = "Successfully modified post: %d\n" % post_id
@@ -290,7 +292,7 @@ def post(request,user_id,post_id):
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
-                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
+                if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 cursor.execute(ADD_QUERY, (post_id,user_id,p["title"],p["description"],p["markdown"],p["content"],sqlite3.Binary(bytes(image,encoding="utf-8")),str(datetime.now())))
                 conn.commit()
                 resp = "Successfully created post: %d\n" % post_id
@@ -312,7 +314,7 @@ def post(request,user_id,post_id):
         elif method == 'DELETE':
             cursor.execute("DELETE FROM author_privacy WHERE post_id=?",(post_id,))
             conn.commit()
-            cursor.execute("DELETE FROM posts WHERE post_id=%d AND user_id=%d"%(post_id,user_id))
+            cursor.execute("DELETE FROM posts WHERE EXISTS (SELECT * firstapp_author a WHERE a.userid = posts.user_id and posts.post_id=%d AND a.consistent_id = '%s')"%(post_id,user_id))
             conn.commit()
             resp = "Successfully deleted post: %d\n" %post_id
         else:
@@ -324,7 +326,9 @@ def post(request,user_id,post_id):
         if method == "GET": resp = make_post_html(data,request.user.id)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
-        return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+        # return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated and request.user.id == user_id),'postscript':script})
+        return render(request,'post.html',{'post_list':resp,'true_auth':(request.user.is_authenticated),'postscript':script})
+
     else: return HttpResponse(resp)
 
 # Api view for looking at all posts for a specific user
@@ -338,11 +342,13 @@ def allposts(request,user_id):
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id) # Check to see if user in url exists
+    cursor.execute('SELECT consistent_id FROM firstapp_author WHERE consistent_id="%s"'%user_id) # Check to see if user in url exists
     data = cursor.fetchall()
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+
+    cursor.execute('SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
+
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
@@ -377,7 +383,7 @@ def allposts(request,user_id):
                 conn.commit()
         
     elif method == "GET":
-        cursor.execute("SELECT * FROM posts WHERE user_id=%d;" % user_id)
+        cursor.execute("SELECT posts.* FROM posts, firstapp_author a WHERE a.consistent_id='%s' AND a.userid = posts.user_id;" % user_id)
         data = cursor.fetchall()
         resp = make_post_list(data,request.user.id)
     else:
