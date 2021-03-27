@@ -46,16 +46,16 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s" AND a.userid = u.id;' % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             token = Token.objects.create(user=request.user)
             cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
             data = cursor.fetchall()[0]
-        user_id,token = data[0], data[1]
+        user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -233,10 +233,11 @@ def make_post_list(data,user_id,isowner=False):
 @permission_classes([EditPermission])
 def post(request,user_id,post_id):
     resp = ""
+    print("entered post function")
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    data = Author.objects.filter(userid=user_id)
+    data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
@@ -257,7 +258,7 @@ def post(request,user_id,post_id):
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
-                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
+                if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 new_post = Post.objects.get(post_id=post_id,user_id=user_id)
                 new_post.title = p["title"]
                 new_post.description = p["description"]
@@ -336,17 +337,18 @@ def post(request,user_id,post_id):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def allposts(request,user_id):
+    print("allposts entered")
     resp = ""
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    data = Author.objects.filter(userid=user_id)
+    data = Author.objects.filter(consistent_id=user_id)
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
 
     cursor.execute('SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
-    trueauth = (request.user.is_authenticated and request.user.id == user_id)
+    trueauth = (request.user.is_authenticated)
 
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
@@ -372,6 +374,7 @@ def allposts(request,user_id):
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
+
                 data = Author.objects.filter(userid=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
@@ -623,6 +626,6 @@ def account_view(request, *args, **kwargs):
 
 def getAuthor(userid):
     # This function gets the Author object associated with the userid. Returns None
-    my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
+    my_user = Author.objects.get(consistent_id=userid) # Will change it to include the uuid rather than userid
     return my_user
 

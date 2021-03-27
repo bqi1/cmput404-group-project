@@ -12,11 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
-<<<<<<< HEAD
 import django_heroku
-=======
-import django_on_heroku
->>>>>>> posting
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 #BASE_DIR = Path(__file__).resolve().parent.parent
@@ -132,4 +128,4 @@ LOGIN_REDIRECT_URL = 'homepage/'
 # Set message
 # From Andreas Bergstrom at https://stackoverflow.com/questions/14999134/how-to-pass-a-message-from-httpresponseredirect-in-django at 2021-03-04 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
-django_on_heroku.settings(locals())
+django_heroku.settings(locals())
