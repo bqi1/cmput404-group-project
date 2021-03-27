@@ -43,15 +43,18 @@ def index(request):
     return render(request, 'index.html')
 
 def homepage(request):
-    print("&&&&7&&&")
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
         cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
-        data = cursor.fetchall()[0]
+        try:
+            data = cursor.fetchall()[0]
+        except IndexError: # No token exists, must create a new one!
+            token = Token.objects.create(user=request.user)
+            cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+            data = cursor.fetchall()[0]
         user_id,token = data[0], data[1]
         conn.close()
-        print(request.user.id)
         return render(request, 'homepage.html', {'user_id':user_id,'token':token})
     
 def signup(request):
