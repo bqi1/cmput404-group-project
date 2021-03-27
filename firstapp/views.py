@@ -198,8 +198,17 @@ def make_post_html(data,user_id,isowner=False):
 def make_post_list(data,user_id,isowner=False):
     post_list = []
     for d in data:
-        #cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d.post_id) # See if the current post is private to any authors
-        #priv = cursor.fetchall()
+
+        # This block assigns the author object to each post object.
+        author = Author.objects.get(consistent_id=d.user_id)
+        author_dict = {
+            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
             "post_id":d.post_id,
@@ -212,6 +221,7 @@ def make_post_list(data,user_id,isowner=False):
             "privfriends":d.privfriends,
             "timestamp":d.tstamp,
             "id":d.id,
+            "author":author_dict,
         }
         # post is public or post belongs to user
         if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
@@ -430,7 +440,7 @@ def likepost(request, user_id, post_id):
         # make_like_object(url, author)
         return HttpResponse("Post liked successfully") # #TODO send to inbox here
 
-def make_like_object(object, user_id):
+def make_like_object(object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
     try:
@@ -441,8 +451,10 @@ def make_like_object(object, user_id):
     except:
         return HttpResponseNotFound("The account you requested does not exist\n")
     like_dict["object"] = object
-    print(like_dict)
-    return json.dumps(like_dict)
+    if make_json:
+        return json.dumps(like_dict)
+    else:
+        return like_dict
 
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
@@ -476,9 +488,9 @@ def make_post_likes_object(data, url):
 
     post_likes_dict["type"] = "post likes"
     for like in data:
-        like_object = json.loads(make_like_object(url, like[0]))
+        like_object = make_like_object(url, like[0], make_json=False)
         json_like_object_list.append(like_object)
-    post_likes_dict["items"] = json.dumps(json_like_object_list)
+    post_likes_dict["items"] = json_like_object_list
     return post_likes_dict
 
 
