@@ -209,7 +209,8 @@ def make_post_list(data,user_id,isowner=False):
             "content":d.content,
             "image":str(d.image,encoding="utf-8"),
             "privfriends":d.privfriends,
-            "timestamp":d.tstamp
+            "timestamp":d.tstamp,
+            "id":d.id,
         }
         # post is public or post belongs to user
         if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
@@ -233,7 +234,6 @@ def make_post_list(data,user_id,isowner=False):
 @permission_classes([EditPermission])
 def post(request,user_id,post_id):
     resp = ""
-    print("entered post function")
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
@@ -245,7 +245,10 @@ def post(request,user_id,post_id):
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
     cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
-    trueauth = (request.user.is_authenticated)
+    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    author_id = cursor.fetchall()[0][0]
+    trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
+
     if method == 'GET':
         resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
@@ -295,7 +298,7 @@ def post(request,user_id,post_id):
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+                new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -348,7 +351,10 @@ def allposts(request,user_id):
 
     cursor.execute('SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
-    trueauth = (request.user.is_authenticated)
+
+    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    author_id = cursor.fetchall()[0][0]
+    trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
@@ -364,7 +370,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+            new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -402,14 +408,14 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    cursor.execute('SELECT * FROM postlikes WHERE from_user = "%s" AND post_id = %d'% (user_id,post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
         return HttpResponse("Post already liked")
     else:
         like_id = rand(2**31)
-        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, "%s", %d);'% (like_id, request.user.id, user_id, post_id))
         conn.commit()
         return HttpResponse("Post liked successfully")
 
@@ -432,7 +438,7 @@ def likes(request, user_id, post_id):
 def liked(request,user_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT post_id FROM postlikes WHERE from_user=%d;'%(user_id))
+    cursor.execute('SELECT post_id FROM postlikes WHERE from_user="%s";'%(user_id))
     data = cursor.fetchall()
     liked_posts_list = []
     for id in data:
@@ -529,6 +535,45 @@ def search_user(request, *args, **kwargs):
     conn.close()
     return render(request,"search_user.html",context)
 @api_view(['GET','POST'])
+@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
+@permission_classes([EditPermission])
+def account(request,user_id):
+    # GET retrieves the account's information. POST updates the account's information if authenticated
+    resp = ""
+    method = request.META["REQUEST_METHOD"]
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    try: 
+        author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
+    if method == "GET":
+        author_dict = {
+            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+        return HttpResponse(json.dumps(author_dict))
+    else: # It's a POST request
+        try: # First see if the user exists
+            cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
+            user_token = cursor.fetchall()[0][0]
+        except IndexError:
+            return HttpResponse("User does not exist.")
+        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1] # Retrieve the API token. If it does not match the user's token, cannot update
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+        p = request.POST
+        try: # You can only edit your github and display name.
+            author = Author.objects.get(consistent_id=user_id)
+            author.github = p["github"]
+            author.username = p["displayName"]
+            author.save()
+        except MultiValueDictKeyError:
+            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters\n")
+        return HttpResponse("Updated profile")
+@api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
 
 
@@ -552,9 +597,7 @@ def account_view(request, *args, **kwargs):
     print("*****************")
     print(user_id)
     cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
-
     try:
-
         data = cursor.fetchall()[0]
         Author = get_user_model()
         account = Author.objects.get(id = user_id)
@@ -626,6 +669,6 @@ def account_view(request, *args, **kwargs):
 
 def getAuthor(userid):
     # This function gets the Author object associated with the userid. Returns None
-    my_user = Author.objects.get(consistent_id=userid) # Will change it to include the uuid rather than userid
+    my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
 

@@ -23,8 +23,9 @@ class Author(models.Model):
 
 class Post(models.Model):
   type = "post"
+  id = models.TextField(blank=True)
   post_id = models.PositiveIntegerField(primary_key=True, default=0)
-  user_id = models.TextField(max_length=20,blank=True)
+  user_id = models.TextField(blank=True)
   title = models.CharField(max_length=20,default="")
   description = models.CharField(max_length=30,default="")
   markdown = models.BooleanField(default=False)
