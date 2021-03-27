@@ -398,16 +398,17 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d'% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
+    print(len(data))
     if len(data) > 0:
-        return HttpResponse("Post already liked")
+        return HttpResponse("Post already liked", status=409)
     else:
         while True:
             like_id = rand(2**31)
             cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
-            if cursor.fetchall() == None:
+            if len(cursor.fetchall()) == 0:
                 like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
                 like.save()
                 break
@@ -432,7 +433,7 @@ def make_like_object(object, author):
 def postlikes(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+    cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
     data = cursor.fetchall()
     author_list = []
     for d in data:

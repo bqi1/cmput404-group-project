@@ -42,7 +42,7 @@ class PostLikes(models.Model):
   like_id = models.AutoField(primary_key=True, blank=True, null=False)
   from_user = models.IntegerField(blank=True, null=True)
   to_user = models.IntegerField(blank=True, null=True)
-  post_id = models.ForeignKey('Post', on_delete=models.CASCADE, blank=True, null=True)
+  post_id = models.IntegerField(blank=True, null=False)
 
 # class CommentLikes(models.Model):
 #   like_id = models.AutoField(primary_key=True, blank=True, null=False)
