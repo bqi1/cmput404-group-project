@@ -197,8 +197,17 @@ def make_post_html(data,user_id,isowner=False):
 def make_post_list(data,user_id,isowner=False):
     post_list = []
     for d in data:
-        #cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d.post_id) # See if the current post is private to any authors
-        #priv = cursor.fetchall()
+
+        # This block assigns the author object to each post object.
+        author = Author.objects.get(consistent_id=d.user_id)
+        author_dict = {
+            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
             "post_id":d.post_id,
@@ -211,6 +220,7 @@ def make_post_list(data,user_id,isowner=False):
             "privfriends":d.privfriends,
             "timestamp":d.tstamp,
             "id":d.id,
+            "author":author_dict,
         }
         # post is public or post belongs to user
         if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
