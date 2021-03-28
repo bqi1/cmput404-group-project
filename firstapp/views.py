@@ -493,7 +493,7 @@ def postlikes(request, user_id, post_id):
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
         print(post_id)
-        cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+        cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
         data = cursor.fetchall()
         author_list = []
         for d in data:
@@ -504,7 +504,7 @@ def postlikes(request, user_id, post_id):
         return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
     else: 
         #return a list of like objects
-        cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
+        cursor.execute("SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;"%post_id)
         data = cursor.fetchall()
         url = request.get_full_path()
         json_post_likes = make_post_likes_object(data, url)
