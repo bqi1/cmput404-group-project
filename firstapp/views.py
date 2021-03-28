@@ -51,12 +51,12 @@ def homepage(request):
         cursor = conn.cursor()
 
 
-        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
+        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             token = Token.objects.create(user=request.user)
-            cursor.execute("SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
+            cursor.execute("SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
             data = cursor.fetchall()[0]
         user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
