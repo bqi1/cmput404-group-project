@@ -21,16 +21,37 @@ class Author(models.Model):
     def __str__(self):
         return self.username
 
-# class PostLikes(models.Model):
-#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
-#   from_user = models.IntegerField()
+class Post(models.Model):
+  type = "post"
+  id = models.TextField(blank=True)
+  post_id = models.PositiveIntegerField(primary_key=True, default=0)
+  user_id = models.TextField(blank=True)
+  title = models.CharField(max_length=20,default="")
+  description = models.CharField(max_length=30,default="")
+  markdown = models.BooleanField(default=False)
+  content = models.TextField(max_length=500,blank=True)
+  image = models.BinaryField(default=b"")
+  privfriends = models.BooleanField(default = False)
+  tstamp = models.CharField(max_length=50,default="")
 
-# class Comments(models.Model):
-#   post = models.ForeignKey(Post, on_delete=models.CASCADE)
+class Author_Privacy(models.Model):
+  type = "author_privacy"
+  post_id = models.PositiveIntegerField(default=0)
+  models.TextField(max_length=20,blank=True)
+
+class PostLikes(models.Model):
+  like_id = models.AutoField(primary_key=True, blank=True, null=False)
+  from_user = models.TextField(max_length=500,blank=True)
+  to_user = models.TextField(max_length=500,blank=True)
+  post_id = models.IntegerField(blank=True, null=False)
 
 # class CommentLikes(models.Model):
-#   comment = models.ForeignKey(comment, on_delete=models.CASCADE)
-#   from_user = models.IntegerField()
+#   like_id = models.AutoField(primary_key=True, blank=True, null=False)
+#   from_user = models.IntegerField(blank=True, null=True)
+#   to_user = models.IntegerField(blank=True, null=True)
+#   comment_id = models.ForeignKey('Comment', on_delete=models.CASCADE, blank=True, null=True)
+
+
 
 class Setting(models.Model):
   # Contains variables for global settings

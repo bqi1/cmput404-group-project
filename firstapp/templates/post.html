@@ -7,7 +7,6 @@
     </head>
 
     <body {% if true_auth %}onload="setDefaults()"{% endif %}>
-        {% include "sub_basic/header.html" %}
 
         {%autoescape off%}
         {{post_list}}
@@ -29,6 +28,8 @@
         <label for="image_link">Image (optional):</label><input id="image_link" placeholder="URL" onchange="resetFile()">
         <label for="image_file">Or Upload a File</label>
         <input id="image_file" type="file" onchange="resetLink()"></br></br>
+        <label for="privfriends" style="font-family:comic sans ms;color:#0000CD;">Make Post Private To Friends?</label>
+        <input id="privfriends" type="checkbox" style="border-color:#0000CD;background:#F0FFF0"></br>
         </br>
         <label for="add_pa" >Add / Remove Private Authors</label>
         <input id="add_pa" type="button" value="+" onclick="addPrivateAuthor()">

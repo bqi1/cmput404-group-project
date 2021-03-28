@@ -128,5 +128,4 @@ LOGIN_REDIRECT_URL = 'homepage/'
 # Set message
 # From Andreas Bergstrom at https://stackoverflow.com/questions/14999134/how-to-pass-a-message-from-httpresponseredirect-in-django at 2021-03-04 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
-
 django_heroku.settings(locals())
