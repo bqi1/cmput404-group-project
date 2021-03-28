@@ -362,9 +362,10 @@ def post(request,user_id,post_id):
 @permission_classes([EditPermission])
 def allposts(request,user_id):
     print("allposts entered")
-    print(f"method was {method}")
     resp = ""
     method = request.META["REQUEST_METHOD"]
+    print(f"method was {method}")
+
     conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
