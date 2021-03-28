@@ -263,7 +263,6 @@ def post(request,user_id,post_id):
     cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-    print(f"UAHSDUNDUANWUN BUNGERBUNGER{trueauth} {request.user.is_authenticated} {author_id}==?{request.user.id}")
     if method == 'GET':
         resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
@@ -361,10 +360,8 @@ def post(request,user_id,post_id):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def allposts(request,user_id):
-    print("allposts entered")
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    print(f"method was {method}")
 
     conn = connection
     cursor = conn.cursor()
@@ -551,6 +548,44 @@ def make_liked_object(data):
     
     return liked_dict
 
+@api_view(['GET'])
+# This function retrieves all public posts.
+def publicposts(request):
+    # This method can GET all public posts based on their privacy
+    resp = ""
+    post_list = []
+    posts = Post.objects.filter() # First get all posts, regardless of privacy
+    for post in posts:
+        if not post.privfriends: # If it's not privage to only friends, AKA public, display
+            # Each post has an author object
+            author = Author.objects.get(consistent_id = post.user_id)
+            author_dict = {
+                "id": f"http://{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "displayName": author.username,
+                "url": f"{author.host}/firstapp/{author.userid}",
+                "github": author.github,
+            }
+            
+            post_dict = {
+                "post_id":post.post_id,
+                "user_id":post.user_id,
+                "title":post.title,
+                "description":post.description,
+                "markdown":post.markdown,
+                "content":post.content,
+                "image":str(post.image,encoding="utf-8"),
+                "privfriends":post.privfriends,
+                "timestamp":post.tstamp,
+                "id":post.id,
+                "author":author_dict,
+            }
+            post_list.append(post_dict)
+    return HttpResponse(json.dumps(post_list))
+    
+
+
+
 # def comment(request, user_id, post_id):
 #     if request.method == "POST":
 
@@ -636,10 +671,13 @@ def search_user(request, *args, **kwargs):
             
     conn.close()
     return render(request,"search_user.html",context)
+
+
 @api_view(['GET','POST'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def account(request,user_id):
+    # This method can GET and POST an author by their UUID
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
@@ -649,7 +687,7 @@ def account(request,user_id):
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
     except:
         return HttpResponseNotFound("The account you requested does not exist\n")
-    if method == "GET":
+    if method == "GET": # We want to return a JSON object of the Author requested
         author_dict = {
             "id": f"http://{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
@@ -687,7 +725,7 @@ def account_view(request, *args, **kwargs):
     method = request.META["REQUEST_METHOD"]
     if method == "POST":
         data = request.POST
-        # print(data["git_url"])
+
         from firstapp.models import Author
         author = Author.objects.get(userid = user_id)
         author.github = data["git_url"]
