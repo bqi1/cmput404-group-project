@@ -428,18 +428,16 @@ def allposts(request,user_id):
 @api_view(['POST'])
 def likepost(request, user_id, post_id):
     resp = ""
-    conn = connection
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    print(request.user.id)
-    ############# LIKEPOST DOES NOT WORK ON HEROKU. PLEASE TRY TO FIX THIS ##########################
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
+    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
         return HttpResponse("Post already liked", status=409)
     else:
         while True:
-            like_id = rand(2**30)
+            like_id = rand(2**31-1)
             cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
@@ -453,6 +451,22 @@ def likepost(request, user_id, post_id):
         url = request.get_full_path()
         # make_like_object(url, author)
         return HttpResponse("Post liked successfully") # #TODO send to inbox here
+
+def make_like_object(object, user_id, make_json = True):
+    like_dict = {}
+    like_dict["type"] = "like"
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        r = requests.get(url)
+        like_dict["author"] = r.json()
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["object"] = object
+    if make_json:
+        return json.dumps(like_dict)
+    else:
+        return like_dict
 
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
