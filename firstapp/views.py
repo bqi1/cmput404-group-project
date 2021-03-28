@@ -362,6 +362,7 @@ def post(request,user_id,post_id):
 @permission_classes([EditPermission])
 def allposts(request,user_id):
     print("allposts entered")
+    print(f"method was {method}")
     resp = ""
     method = request.META["REQUEST_METHOD"]
     conn = connection
@@ -372,11 +373,14 @@ def allposts(request,user_id):
 
     cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
+    print(f"123{user_token}")
 
     cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
+    print(f"13232323{author_id}")
+
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-    print(f"UAHSDUNDUANWUN BUNGERBUNGER{trueauth} {request.user.is_authenticated} {author_id}==?{request.user.id}")
+    print(f"UAHSDUNDwinoetoinwetoUANWUN BUNGERBUNGER{trueauth} {request.user.is_authenticated} {author_id}==?{request.user.id}")
 
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
