@@ -533,7 +533,7 @@ def liked(request,user_id):
     # data = cursor.fetchall()
     
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE from_user='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(data)
 
