@@ -4,11 +4,12 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-# from .form import UserForm, CommentForm
-from .form import UserForm
+from .form import UserForm, CommentForm
+# from .form import UserForm
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.http import QueryDict
 from django.utils.datastructures import MultiValueDictKeyError
 import sqlite3
 import os
@@ -27,9 +28,10 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
+import requests
 
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
@@ -48,16 +50,16 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s" AND a.userid = u.id;' % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             token = Token.objects.create(user=request.user)
             cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
             data = cursor.fetchall()[0]
-        user_id,token = data[0], data[1]
+        user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -90,7 +92,7 @@ def signup(request):
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -98,7 +100,7 @@ def signup(request):
             user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"http://{request.get_host()}/author/{uuid.uuid4().hex}")
+                        consistent_id=f"{uuid.uuid4().hex}")
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -204,8 +206,17 @@ def make_post_html(data,user_id,isowner=False):
 def make_post_list(data,user_id,isowner=False):
     post_list = []
     for d in data:
-        #cursor.execute('SELECT * FROM author_privacy WHERE post_id=%d'%d.post_id) # See if the current post is private to any authors
-        #priv = cursor.fetchall()
+
+        # This block assigns the author object to each post object.
+        author = Author.objects.get(consistent_id=d.user_id)
+        author_dict = {
+            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
             "post_id":d.post_id,
@@ -216,7 +227,9 @@ def make_post_list(data,user_id,isowner=False):
             "content":d.content,
             "image":str(d.image,encoding="utf-8"),
             "privfriends":d.privfriends,
-            "timestamp":d.tstamp
+            "timestamp":d.tstamp,
+            "id":d.id,
+            "author":author_dict,
         }
         # post is public or post belongs to user
         if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
@@ -243,15 +256,18 @@ def post(request,user_id,post_id):
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    data = Author.objects.filter(userid=user_id)
+    data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
-    trueauth = (request.user.is_authenticated and request.user.id == user_id)
+    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    author_id = cursor.fetchall()[0][0]
+    trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
+
     if method == 'GET':
         resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
@@ -261,10 +277,13 @@ def post(request,user_id,post_id):
         if method == 'POST':
 
             p = request.POST
+            if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+                p = QueryDict('',mutable=True)
+                p.update(request.data)
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
-                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
+                if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
                 new_post = Post.objects.get(post_id=post_id,user_id=user_id)
                 new_post.title = p["title"]
                 new_post.description = p["description"]
@@ -297,11 +316,14 @@ def post(request,user_id,post_id):
         elif method == 'PUT':
 
             p = request.POST
+            if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+                p = QueryDict('',mutable=True)
+                p.update(request.data)
             try: image = p["image"] # image is an optional param!
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
-                if not validate_int(p,[post_id,user_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+                if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
+                new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -343,21 +365,29 @@ def post(request,user_id,post_id):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def allposts(request,user_id):
+    print("allposts entered")
     resp = ""
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    data = Author.objects.filter(userid=user_id)
+    data = Author.objects.filter(consistent_id=user_id)
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.id = "%d";'%user_id)
+
+    cursor.execute('SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= "%s";'%user_id)
     user_token = cursor.fetchall()[0][0]
-    trueauth = (request.user.is_authenticated and request.user.id == user_id)
+
+    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    author_id = cursor.fetchall()[0][0]
+    trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         p = request.POST
+        if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
+            p = QueryDict('',mutable=True)
+            p.update(request.data)
         while True:
             post_id = rand(2**63)
             data = Post.objects.filter(post_id=post_id)
@@ -368,7 +398,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+            new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -378,6 +408,7 @@ def allposts(request,user_id):
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
+
                 data = Author.objects.filter(userid=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
@@ -405,71 +436,148 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM postlikes WHERE from_user = %d AND post_id = %d'% (user_id,post_id))
+    print(request.user.id)
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d'% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        return HttpResponse("Post already liked")
+        return HttpResponse("Post already liked", status=409)
     else:
-        like_id = rand(2**31)
-        cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-        conn.commit()
-        return HttpResponse("Post liked successfully")
+        while True:
+            like_id = rand(2**31)
+            cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
+            if len(cursor.fetchall()) == 0:
+                like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
+                like.save()
+                break
+        # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
+        # conn.commit()
+        #TODO send like object to author's inbox
+        url = request.get_full_path()
+        # make_like_object(url, author)
+        return HttpResponse("Post liked successfully") # #TODO send to inbox here
+
+def make_like_object(object, user_id, make_json = True):
+    like_dict = {}
+    like_dict["type"] = "like"
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        r = requests.get(url)
+        like_dict["author"] = r.json()
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["object"] = object
+    if make_json:
+        return json.dumps(like_dict)
+    else:
+        return like_dict
 
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
-def likes(request, user_id, post_id):
+def postlikes(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT username FROM postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
-    data = cursor.fetchall()
-    author_list = []
-    for d in data:
-        author = d[0]
-        author_list.append(author)
-    num_likes = len(author_list)
-    return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+    agent = request.META["HTTP_USER_AGENT"]
+
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+        cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+        data = cursor.fetchall()
+        author_list = []
+        for d in data:
+            author = d[0]
+            author_list.append(author)
+        num_likes = len(author_list)
+    
+        return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+    else: 
+        #return a list of like objects
+        cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
+        data = cursor.fetchall()
+        url = request.get_full_path()
+        json_post_likes = make_post_likes_object(data, url)
+        return HttpResponse(json.dumps(json_post_likes))
+
+def make_post_likes_object(data, url):
+    #Get list of likes from other authors on author_ids's post post_id
+    post_likes_dict = {}
+    json_like_object_list = []
+
+    post_likes_dict["type"] = "post likes"
+    for like in data:
+        like_object = make_like_object(url, like[0], make_json=False)
+        json_like_object_list.append(like_object)
+    post_likes_dict["items"] = json_like_object_list
+    return post_likes_dict
+
 
 #get a list of posts and comments that the author has liked
 @api_view(['GET'])
 def liked(request,user_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT post_id FROM postlikes WHERE from_user=%d;'%(user_id))
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user=%d;'%(user_id))
     data = cursor.fetchall()
     liked_posts_list = []
     for id in data:
         post_id = id[0]
         liked_posts_list.append(post_id)
+
+    #TODO get comments that author has liked
     # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
     # data = cursor.fetchall()
+    agent = request.META["HTTP_USER_AGENT"]
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+        return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
+    else:
+        make_liked_object(data)
+        return 
 
-    return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
+def make_liked_object(like_list):
+    like_dict = {}
+    like_dict["type"] = "liked"
+    like_dict["items"] = [json.dumps(like_list)]
 
-@api_view(['GET','POST','PUT'])
+@api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):
+    resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %d AND post_id = %d;'% (user_id, post_id))
+    try:
+        request.user.id = int(request.user.id)
+    except:
+        request.user.id = 0
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = ? AND post_id = ?;'% (str(request.user.id), post_id))
     data = cursor.fetchall()
-    if len(data) == 0:
-       # p = request.POS
-       comment_id = rand(2**31)
-       comment = request.POST.get('comment_text')
-       post = Post.objects.only('id').get(id=data['user_id'])
-       new_comment = Comment(comment_id=comment_id, post = post_id, from_user=request.user.id, to_user = user_id)
-    #    cursor.execute('INSERT INTO firstapp_comment VALUES(%d, %s, %d, %d, %d);' %(comment_id, new_comment, user_id, request.user.id, post_id))
-        #new_comment.save()
-       conn.commit()
-       return HttpResponse("Comment created sucessfully!")
-    
-    return render(request, "comments.html")
+    print(request.method)
+    if request.method == "POST":
+        while True:
+            
+            comment_id = rand(2**31)
+            byte_body = request.body
+            body = byte_body.decode("utf-8")
+            comment = body.split("&comment=")[1]
+         #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
+            
+            cursor.execute('SELECT * FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
+            data1 = cursor.fetchall()
+            if len(data1)==0:
+                new_comment = Comment(post_id=post_id, comment_id=comment_id, from_user=request.user.id, to_user=user_id, comment_text=comment)
+                new_comment.save()
+                break
+              #  return HttpResponse("Comment created sucessfully!")
+                
+        url = request.get_full_path()
+        return render(request, "comments.html")
+    else:
+        return render(request, "comments.html")
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute('SELECT comment_id FROM comments WHERE from_user=%d AND post_id=%d;'%(user_id,post_id))
+    
+    cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
     data = cursor.fetchall()
     comment_list = []
     for d in data:
@@ -511,6 +619,45 @@ def search_user(request, *args, **kwargs):
     return render(request,"search_user.html",context)
     
 @api_view(['GET','POST'])
+@authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
+@permission_classes([EditPermission])
+def account(request,user_id):
+    # GET retrieves the account's information. POST updates the account's information if authenticated
+    resp = ""
+    method = request.META["REQUEST_METHOD"]
+    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    cursor = conn.cursor()
+    try: 
+        author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
+    if method == "GET":
+        author_dict = {
+            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+        return HttpResponse(json.dumps(author_dict))
+    else: # It's a POST request
+        try: # First see if the user exists
+            cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
+            user_token = cursor.fetchall()[0][0]
+        except IndexError:
+            return HttpResponse("User does not exist.")
+        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1] # Retrieve the API token. If it does not match the user's token, cannot update
+        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+        p = request.POST
+        try: # You can only edit your github and display name.
+            author = Author.objects.get(consistent_id=user_id)
+            author.github = p["github"]
+            author.username = p["displayName"]
+            author.save()
+        except MultiValueDictKeyError:
+            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters\n")
+        return HttpResponse("Updated profile")
+@api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
 
 
@@ -534,9 +681,7 @@ def account_view(request, *args, **kwargs):
     print("*****************")
     print(user_id)
     cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
-
     try:
-
         data = cursor.fetchall()[0]
         Author = get_user_model()
         account = Author.objects.get(id = user_id)

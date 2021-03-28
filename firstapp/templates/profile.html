@@ -292,22 +292,23 @@
 		console.log(url);
 		var X = new XMLHttpRequest();
 		X.onreadystatechange = function() {
-			if (X.readyState == 4 && X.status == 200)
+			if (X.readyState == 4 && X.status == 200){
 			// Send github username and url back to views.py
-			csrftoken = document.querySelector('*[name=csrfmiddlewaretoken]').value;
-			$.ajax(
-				{
-					type: "POST",
-					url: window.location.href,
-					headers:  { 'X-CSRFToken': csrftoken },
-					data: { "git_url": "http://github.com/"+github_url.value, "git_username": github_url.value},
-					success: function () {
-						location.reload();
-					},
-					error: function (response) { console.log(response); }
+				csrftoken = document.querySelector('*[name=csrfmiddlewaretoken]').value;
+				$.ajax(
+					{
+						type: "POST",
+						url: window.location.href,
+						headers:  { 'X-CSRFToken': csrftoken },
+						data: { "git_url": "http://github.com/"+github_url.value, "git_username": github_url.value},
+						success: function () {
+							location.reload();
+						},
+						error: function (response) { console.log(response); }
 
+					}
+				)
 				}
-			)
 		}
 		X.open("GET",url,true);
 		X.send(null);

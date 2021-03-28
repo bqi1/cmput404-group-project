@@ -7,7 +7,7 @@
     <h1>Make Comment:</h1>
     <label for="content">Content:</label></br>
     {% csrf_token %}
-    {{ comment_form.new_comment }}
-    <textarea id="content" cols="40" rows="10"></textarea></br>
+    <input type="text"id="comment"name="comment">
+    <!-- <textarea id="content" cols="40" rows="10"></textarea></br> -->
     <button type="submit" class="btn btn-sucess">Submit</button></form>
 </body>
