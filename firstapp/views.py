@@ -520,7 +520,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user='%s';"%(user_id))
+        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
