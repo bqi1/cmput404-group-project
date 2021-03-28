@@ -48,12 +48,15 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        print(f"epic{request.user}")
+        print(f"epic username=\"{request.user}\"")
+        print("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
         cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
+            print("index error detected")
             token = Token.objects.create(user=request.user)
+            print("passed token creation")
             cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
             data = cursor.fetchall()[0]
         user_id,token,author_uuid = data[0], data[1], data[2]
