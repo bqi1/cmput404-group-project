@@ -458,7 +458,7 @@ def make_like_object(object, user_id, make_json = True):
     try:
         author = Author.objects.get(consistent_id=user_id)
         print(author)
-        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        url = 'http://c404posties.herokuapp.com/author/' + author.consistent_id
         print(url)
         r = requests.get(url)
         print(r)
@@ -545,7 +545,7 @@ def make_liked_object(data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://127.0.0.1:8000/author/" + like[2] + "/posts/" + str(like[1])
+        url = "http://c404posties.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
