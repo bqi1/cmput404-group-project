@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import QueryDict
 from django.utils.datastructures import MultiValueDictKeyError
+from django.db import connection
 import sqlite3
 import os
 from random import randrange as rand
@@ -46,7 +47,7 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+        conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
         print(f"epic username=\"{request.user}\"")
 
