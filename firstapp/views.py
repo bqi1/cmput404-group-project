@@ -263,7 +263,7 @@ def post(request,user_id,post_id):
     cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-
+    print(f"UAHSDUNDUANWUN BUNGERBUNGER{trueauth} {request.user.is_authenticated} {author_id}==?{request.user.id}")
     if method == 'GET':
         resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
