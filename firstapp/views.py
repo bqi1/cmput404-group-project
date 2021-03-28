@@ -397,7 +397,7 @@ def allposts(request,user_id):
             p.update(request.data)
             print("ooooooooooooooooooo")
         while True:
-            post_id = rand(2**63)
+            post_id = rand(2**28)
             data = Post.objects.filter(post_id=post_id)
             print("dibby")
             if len(data) == 0 : break
