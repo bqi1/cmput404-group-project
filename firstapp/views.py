@@ -48,7 +48,8 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s" AND a.userid = u.id;' % request.user)
+        print(f"epic{request.user}")
+        cursor.execute('SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
@@ -245,7 +246,6 @@ def make_post_list(data,user_id,isowner=False):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def post(request,user_id,post_id):
-    print(f"aGGGGGGGGGGGGGGGGGG {user_id}")
     resp = ""
     method = request.META["REQUEST_METHOD"]
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
