@@ -80,7 +80,7 @@ def signup(request):
             # Else, let the use in the homepage, set Authorized to True
             conn = connection
             cursor = conn.cursor()
-            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
+            cursor.execute('SELECT usersneedauthentication from firstapp_setting;')
             try:
                 needs_authentication = cursor.fetchall()[0][0]
             except:

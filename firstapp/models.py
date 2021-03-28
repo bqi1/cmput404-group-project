@@ -56,7 +56,7 @@ class PostLikes(models.Model):
 class Setting(models.Model):
   # Contains variables for global settings
   # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
-  UsersNeedAuthentication = models.BooleanField(default=False)
+  usersneedauthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
 class PublicImage(models.Model): # Host images to a folder in server. Accessible in server admin
