@@ -508,6 +508,7 @@ def postlikes(request, user_id, post_id):
         data = cursor.fetchall()
         url = request.get_full_path()
         json_post_likes = make_post_likes_object(data, url)
+        print(json_post_likes)
         return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
