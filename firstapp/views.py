@@ -457,9 +457,13 @@ def make_like_object(object, user_id, make_json = True):
     like_dict["type"] = "like"
     try:
         author = Author.objects.get(consistent_id=user_id)
+        print(author)
         url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        print(url)
         r = requests.get(url)
+        print(r)
         like_dict["author"] = r.json()
+        print(like_dict)
     except:
         return "something went wrong"
     like_dict["object"] = object
