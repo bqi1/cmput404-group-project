@@ -4,7 +4,7 @@ from firstapp.views import(
 	account_view)
 app_name = 'firstapp'
 urlpatterns = [
-	path('<user_id>/',account_view,name = "view"),
+	path('<int:user_id>/',account_view,name = "view"),
 	path('', views.index, name='index'),
     path('signup/', views.signup, name='signup'),
     path('login/', views.login, name='login'),
@@ -16,5 +16,6 @@ urlpatterns = [
     path('author/<str:user_id>/posts/<int:post_id>/likepost/', views.likepost, name='likepost'),
     path('author/<str:user_id>/liked/', views.liked, name='liked'),
     path('author/<str:user_id>', views.account, name='account'),
+    path('posts/', views.publicposts,name='publicposts'),
     # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
 ]

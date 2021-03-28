@@ -31,6 +31,8 @@ Can now link GitHub activity
 
 Server admin can now host images
 
+Implemented Author API endpoints
+
 Hongfang Xu (hongfang)
 
 Contribution:
@@ -51,11 +53,15 @@ Contribution:
 
 Worked on majority of posts user stories
 
+Implemented Post API
+
 Jacky Huang(jzhuang)
 
 Contribution:
 
 Worked on majority of liking posts user stories
+
+Implemented Likes API
 
 
 
