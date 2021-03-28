@@ -382,7 +382,7 @@ def allposts(request,user_id):
             p = QueryDict('',mutable=True)
             p.update(request.data)
         while True:
-            post_id = rand(2**63)
+            post_id = rand(2**31-1)
             data = Post.objects.filter(post_id=post_id)
             if len(data) == 0 : break
         
@@ -429,7 +429,6 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    print(request.user.id)
     cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d'% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
@@ -437,9 +436,11 @@ def likepost(request, user_id, post_id):
         return HttpResponse("Post already liked", status=409)
     else:
         while True:
-            like_id = rand(2**31)
+            like_id = rand(2**31-1)
             cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
+                print(post_id)
+
                 like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
                 like.save()
                 break
@@ -538,7 +539,6 @@ def make_liked_object(data):
 
     for like in data:
         url = "http://127.0.0.1:8000/author/" + like[2] + "/posts/" + str(like[1])
-        print(url)
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
