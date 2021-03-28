@@ -56,7 +56,7 @@ def homepage(request):
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             token = Token.objects.create(user=request.user)
-            cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
+            cursor.execute("SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
             data = cursor.fetchall()[0]
         user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
@@ -258,9 +258,9 @@ def post(request,user_id,post_id):
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
+    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
-    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
@@ -370,10 +370,10 @@ def allposts(request,user_id):
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
 
-    cursor.execute('SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= "%s";'%user_id)
+    cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
 
-    cursor.execute('SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= "%s";'%user_id)
+    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
@@ -643,7 +643,7 @@ def account(request,user_id):
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
         try: # First see if the user exists
-            cursor.execute('SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = "%s";'%user_id)
+            cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
             user_token = cursor.fetchall()[0][0]
         except IndexError:
             return HttpResponse("User does not exist.")
@@ -681,7 +681,7 @@ def account_view(request, *args, **kwargs):
     cursor = conn.cursor()
     print("*****************")
     print(user_id)
-    cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.id = "%s";' % user_id)
+    cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
     try:
         data = cursor.fetchall()[0]
         Author = get_user_model()
