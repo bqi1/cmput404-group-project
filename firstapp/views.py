@@ -49,20 +49,13 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-        print(f"epic username=\"{request.user}\"")
 
-        print(Author.objects.get(username="EDWARD"))
-
-        cursor.execute("select * from firstapp_author where username='EDWARD'")
-        print(cursor.fetchall())
 
         cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s';" % request.user)
         try:
             data = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
-            print("index error detected")
             token = Token.objects.create(user=request.user)
-            print("passed token creation")
             cursor.execute('SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = "%s";' % request.user)
             data = cursor.fetchall()[0]
         user_id,token,author_uuid = data[0], data[1], data[2]
@@ -85,7 +78,7 @@ def signup(request):
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
-            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            conn = connection
             cursor = conn.cursor()
             cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
             try:
@@ -125,7 +118,7 @@ def login(request):
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
-            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            conn = connection
             cursor = conn.cursor()
             cursor.execute('SELECT Authorized FROM firstapp_author WHERE username = ?;',(new_username,))
             try:
@@ -257,7 +250,7 @@ def make_post_list(data,user_id,isowner=False):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
@@ -371,7 +364,7 @@ def allposts(request,user_id):
     print("allposts entered")
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
 
@@ -437,7 +430,7 @@ def allposts(request,user_id):
 @api_view(['POST'])
 def likepost(request, user_id, post_id):
     resp = ""
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     print(request.user.id)
     cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d'% (request.user.id, post_id))
@@ -479,7 +472,7 @@ def make_like_object(object, user_id, make_json = True):
 #get a list of likes from other authors on the post id
 @api_view(['GET'])
 def postlikes(request, user_id, post_id):
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
 
@@ -517,7 +510,7 @@ def make_post_likes_object(data, url):
 #get a list of posts and comments that the author has liked
 @api_view(['GET'])
 def liked(request,user_id):
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user=%d;'%(user_id))
     data = cursor.fetchall()
@@ -590,7 +583,7 @@ def search_user(request, *args, **kwargs):
         search_query = request.GET.get("q")
         if len(search_query) > 0:
             accounts = []
-            conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+            conn = connection
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE ?', ('{}%'.format(search_query),))
             duplicate = []
@@ -633,7 +626,7 @@ def account(request,user_id):
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     try: 
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
@@ -671,7 +664,7 @@ def account_view(request, *args, **kwargs):
 
     context = {}
     user_id = kwargs.get("user_id")
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
 
     # Receive request method from profile page. One possibility is having to change git username and user
     method = request.META["REQUEST_METHOD"]
