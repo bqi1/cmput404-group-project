@@ -50,7 +50,7 @@ def homepage(request):
         cursor = conn.cursor()
         print(f"epic username=\"{request.user}\"")
 
-        print(Author.objects.get(userid="EDWARD"))
+        print(Author.objects.get(username="EDWARD"))
 
         cursor.execute("select * from firstapp_author where username='EDWARD'")
         print(cursor.fetchall())
