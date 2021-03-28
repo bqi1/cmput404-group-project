@@ -41,7 +41,7 @@ class Author_Privacy(models.Model):
 
 class PostLikes(models.Model):
   like_id = models.AutoField(primary_key=True, blank=True, null=False)
-  from_user = models.TextField(max_length=500,blank=True)
+  from_user = models.IntegerField(blank=True)
   to_user = models.IntegerField(blank=True)
   post_id = models.IntegerField(blank=True, null=False)
 

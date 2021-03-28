@@ -458,6 +458,7 @@ def likepost(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     print(request.user.id)
+    ############# LIKEPOST DOES NOT WORK ON HEROKU. PLEASE TRY TO FIX THIS ##########################
     cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
