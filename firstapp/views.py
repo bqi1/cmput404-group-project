@@ -420,7 +420,6 @@ def allposts(request,user_id):
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
             print("leofme")
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
-            print("kek")
             else: private_authors = p.getlist("priv_author[]")
             print('dwmodpain')
             for pa in private_authors:
