@@ -580,7 +580,7 @@ def publicposts(request):
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
             }
-            
+
             post_dict = {
                 "post_id":post.post_id,
                 "user_id":post.user_id,
