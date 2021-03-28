@@ -374,68 +374,44 @@ def allposts(request,user_id):
 
     cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
-    print(f"123{user_token}")
 
     cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
-    print(f"13232323{author_id}")
 
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-    print(f"UAHSDUNDwinoetoinwetoUANWUN BUNGERBUNGER{trueauth} {request.user.is_authenticated} {author_id}==?{request.user.id}")
 
     if method == "POST":
-        print("u")
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        print("u")
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         p = request.POST
-        print("u")
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
-            print("oooooooooop")
             p = QueryDict('',mutable=True)
-            print("oooooooooooooo")
             p.update(request.data)
-            print("ooooooooooooooooooo")
         while True:
             post_id = rand(2**28)
             data = Post.objects.filter(post_id=post_id)
-            print("dibby")
             if len(data) == 0 : break
-        print("heeeeheeee")
         try: image = p["image"] # image is an optional param!
         except MultiValueDictKeyError: image = '0'
 
         try: # if all mandatory fields are passed
-            print("uwu")
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            print("uepic")
             new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
-            print("hamer")
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
 
         # Modify the author privacy table in the database
-        print("whereami")
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
-            print("leofme")
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
-            print('dwmodpain')
             for pa in private_authors:
-                print("in all")
                 data = Author.objects.filter(userid=pa)
-                print("known aviations")
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
-                print("a bee cannot fly")
                 new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
-                print("barry")
                 new_private_author.save()
-                print("breakfast is ready")
-        print("ciming")
         new_post.save()
-        print("lets see")
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
         resp = make_post_list(data,request.user.id,trueauth)
