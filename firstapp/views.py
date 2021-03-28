@@ -46,7 +46,7 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        conn = sqlite3.connect(FILEPATH+"../c")
+        conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
         print(f"epic username=\"{request.user}\"")
 
