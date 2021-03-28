@@ -120,7 +120,7 @@ def login(request):
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
             conn = connection
             cursor = conn.cursor()
-            cursor.execute('SELECT Authorized FROM firstapp_author WHERE username = ?;',(new_username,))
+            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
             try:
                 authenticated = cursor.fetchall()[0][0]
                 conn.close()
@@ -492,6 +492,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+        print(post_id)
         cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
         data = cursor.fetchall()
         author_list = []
