@@ -547,7 +547,7 @@ def commentpost(request, user_id, post_id):
         request.user.id = int(request.user.id)
     except:
         request.user.id = 0
-    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = ? AND post_id = ?;'% (str(request.user.id), post_id))
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %d;'% (request.user.id, post_id))
     data = cursor.fetchall()
     print(request.method)
     if request.method == "POST":
