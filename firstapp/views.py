@@ -461,23 +461,7 @@ def make_like_object(object, user_id, make_json = True):
         r = requests.get(url)
         like_dict["author"] = r.json()
     except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
-    like_dict["object"] = object
-    if make_json:
-        return json.dumps(like_dict)
-    else:
-        return like_dict
-
-def make_like_object(object, user_id, make_json = True):
-    like_dict = {}
-    like_dict["type"] = "like"
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
-        r = requests.get(url)
-        like_dict["author"] = r.json()
-    except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
+        return "something went wrong"
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
