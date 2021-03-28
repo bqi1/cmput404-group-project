@@ -458,7 +458,7 @@ def likepost(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     print(request.user.id)
-    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d'% (request.user.id, post_id))
+    cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d'% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
