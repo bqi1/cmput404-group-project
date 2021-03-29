@@ -31,7 +31,7 @@ from firstapp.models import Author, Post, Author_Privacy, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
 import requests
-
+import base64
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -49,8 +49,6 @@ def homepage(request):
     if request.user.is_authenticated:
         conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
         cursor = conn.cursor()
-
-
         cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
         try:
             data = cursor.fetchall()[0]
@@ -60,7 +58,19 @@ def homepage(request):
             data = cursor.fetchall()[0]
         user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid})
+
+        URL = "http://localhost:8000/posts"
+        r1 = requests.get(url=URL)
+        data1 = r1.json()
+
+        # Get all public posts from another server
+        URL = "https://iconicity-test-a.herokuapp.com/posts"
+        PARAMS = {'Authorization:':f"Basic {base64.b64encode('auth_user:authpass'.encode('ascii'))}"}
+        r2 = requests.get(url=URL, auth=("auth_user", "authpass"))
+        data2 = r2.json()
+
+
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid, 'our_server_posts':data1,'other_server_posts':data2})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -120,7 +130,7 @@ def login(request):
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
             conn = connection
             cursor = conn.cursor()
-            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
+            cursor.execute('SELECT Authorized FROM firstapp_author WHERE username = ?;',(new_username,))
             try:
                 authenticated = cursor.fetchall()[0][0]
                 conn.close()
@@ -430,7 +440,7 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
+    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
@@ -457,15 +467,27 @@ def make_like_object(object, user_id, make_json = True):
     like_dict["type"] = "like"
     try:
         author = Author.objects.get(consistent_id=user_id)
-        print(author)
-        url = 'http://c404posties.herokuapp.com/author/' + author.consistent_id
-        print(url)
+        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
         r = requests.get(url)
-        print(r)
         like_dict["author"] = r.json()
-        print(like_dict)
     except:
-        return "something went wrong"
+        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["object"] = object
+    if make_json:
+        return json.dumps(like_dict)
+    else:
+        return like_dict
+
+def make_like_object(object, user_id, make_json = True):
+    like_dict = {}
+    like_dict["type"] = "like"
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        r = requests.get(url)
+        like_dict["author"] = r.json()
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
@@ -480,8 +502,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        print(post_id)
-        cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
+        cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
         data = cursor.fetchall()
         author_list = []
         for d in data:
@@ -492,11 +513,10 @@ def postlikes(request, user_id, post_id):
         return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
     else: 
         #return a list of like objects
-        cursor.execute("SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;"%post_id)
+        cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
         data = cursor.fetchall()
         url = request.get_full_path()
         json_post_likes = make_post_likes_object(data, url)
-        print(json_post_likes)
         return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
@@ -520,7 +540,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
+        cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user=%s;'%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -533,7 +553,7 @@ def liked(request,user_id):
     # data = cursor.fetchall()
     
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute('SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE from_user=%s AND l.from_user=a.userid;'%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(data)
 
@@ -545,7 +565,7 @@ def make_liked_object(data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://c404posties.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
+        url = "http://127.0.0.1:8000/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
