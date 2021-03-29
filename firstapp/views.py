@@ -59,7 +59,7 @@ def homepage(request):
         user_id,token,author_uuid = data[0], data[1], data[2]
         conn.close()
 
-        URL = "http://localhost:8000/posts"
+        URL = "http://"+request.META['HTTP_HOST']+"/posts"
         r1 = requests.get(url=URL)
         data1 = r1.json()
 
