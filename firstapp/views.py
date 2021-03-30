@@ -440,7 +440,7 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %s AND post_id = %d"% (request.user.id, post_id))
+    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
@@ -467,23 +467,7 @@ def make_like_object(object, user_id, make_json = True):
     like_dict["type"] = "like"
     try:
         author = Author.objects.get(consistent_id=user_id)
-        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
-        r = requests.get(url)
-        like_dict["author"] = r.json()
-    except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
-    like_dict["object"] = object
-    if make_json:
-        return json.dumps(like_dict)
-    else:
-        return like_dict
-
-def make_like_object(object, user_id, make_json = True):
-    like_dict = {}
-    like_dict["type"] = "like"
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://127.0.0.1:8000/firstapp/author/' + author.consistent_id
+        url = 'http://c404posties.herokuapp.com/author/' + author.consistent_id
         r = requests.get(url)
         like_dict["author"] = r.json()
     except:
@@ -502,7 +486,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute('SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;'%post_id)
+        cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
         data = cursor.fetchall()
         author_list = []
         for d in data:
@@ -540,7 +524,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute('SELECT * FROM firstapp_postlikes WHERE from_user=%s;'%(user_id))
+        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -553,7 +537,7 @@ def liked(request,user_id):
     # data = cursor.fetchall()
     
     else:
-        cursor.execute('SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE from_user=%s AND l.from_user=a.userid;'%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(data)
 
@@ -565,7 +549,7 @@ def make_liked_object(data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://127.0.0.1:8000/author/" + like[2] + "/posts/" + str(like[1])
+        url = "http://c404posties.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
