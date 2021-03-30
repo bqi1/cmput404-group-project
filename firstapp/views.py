@@ -438,7 +438,7 @@ def allposts(request,user_id):
 @api_view(['POST'])
 def likepost(request, user_id, post_id):
     resp = ""
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
