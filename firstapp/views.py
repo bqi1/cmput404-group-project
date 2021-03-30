@@ -680,12 +680,7 @@ def search_user(request, *args, **kwargs):
             
     conn.close()
     return render(request,"search_user.html",context)
-<<<<<<< HEAD
-    
-=======
 
-
->>>>>>> 69d1c347c46a5aeec5ee794142031c32883c852b
 @api_view(['GET','POST'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
