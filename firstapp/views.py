@@ -443,6 +443,8 @@ def likepost(request, user_id, post_id):
     cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
     data = cursor.fetchall()
     # if post has already been liked
+    print("\n\n\n\n\n\n\n\n\n"+str(len(data)))
+
     if len(data) > 0:
         return HttpResponse("Post already liked", status=409)
     else:
