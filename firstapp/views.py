@@ -613,14 +613,16 @@ def commentpost(request, user_id, post_id):
         request.user.id = 0
     cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %d;'% (request.user.id, post_id))
     data = cursor.fetchall()
-    print(request.method)
     if request.method == "POST":
         while True:
             
             comment_id = rand(2**31)
-            byte_body = request.body
-            body = byte_body.decode("utf-8")
-            comment = body.split("&comment=")[1]
+            byte_data = request.data
+         #   data = byte_data.decode("utf-8")
+           # json_object = json.loads(request.data)
+          #  print(json_object)
+          #  comment = byte_data.split("&comment=")[1]
+            comment = byte_data
          #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
             
             cursor.execute('SELECT * FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
@@ -630,7 +632,7 @@ def commentpost(request, user_id, post_id):
                 new_comment.save()
                 break
               #  return HttpResponse("Comment created sucessfully!")
-                
+        #print(json_object)
         url = request.get_full_path()
         return render(request, "comments.html")
     else:
@@ -638,18 +640,21 @@ def commentpost(request, user_id, post_id):
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
- #   conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+   # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     conn = connection
     cursor = conn.cursor()
- #   cursor.execute('''SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;''',(user_id,post_id))
-    cursor.execute("SELECT comment_id FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
-    data = cursor.fetchall()
-    comment_list = []
-    for d in data:
-        comment_id = d[0]
-        comment_list.append(comment_id)
-    num_comments = len(comment_list)
-    return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+    agent = request.META["HTTP_USER_AGENT"]
+    
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
+        cursor.execute("SELECT comment_id FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
+        data = cursor.fetchall()
+        comment_list = []
+        for d in data:
+            comment_id = d[0]
+            comment_list.append(comment_id)
+        num_comments = len(comment_list)
+        return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
 
     
 def search_user(request, *args, **kwargs):
