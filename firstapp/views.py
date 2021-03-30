@@ -444,7 +444,8 @@ def likepost(request, user_id, post_id):
     data = cursor.fetchall()
     # if post has already been liked
     print("\n\n\n\n\n\n\n\n\n"+str(len(data)))
-
+    print(request.user.id)
+    print(post_id)
     if len(data) > 0:
         return HttpResponse("Post already liked", status=409)
     else:
