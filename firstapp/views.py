@@ -25,13 +25,14 @@ from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
-from friend.models import FriendList, FriendRequest
+from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
 from firstapp.models import Author, Post, Author_Privacy, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
 import requests
 import base64
+from .remote_friend import get_all_remote_user
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -639,6 +640,10 @@ def publicposts(request):
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
+    user_id = request.user.id
+    
+    remote_author_list = get_all_remote_user()
+        
     if request.method == "GET":
         search_query = request.GET.get("q")
         if len(search_query) > 0:
@@ -647,14 +652,17 @@ def search_user(request, *args, **kwargs):
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE %s', ("%" + search_query + "%",))
             duplicate = []
+
+            # Search for the local author 
             try:
+
                 data = cursor.fetchall()
                 Author = get_user_model()
                 account = Author.objects.filter(username = search_query)
-                
             except IndexError: # No token exists, must create a new one!
                 noresult = True 
             user = request.user
+                    # account.append((user[0]))
 
             # if not noresult:
             #     if user.is_authenticated:
@@ -673,6 +681,11 @@ def search_user(request, *args, **kwargs):
                     if(user[3] not in duplicate):
                         accounts.append((user,False))
                         duplicate.append(user[3])
+                        # print('user3')
+                        # print(user[3])
+                for user in remote_author_list:
+                    if(user not in accounts):
+                        accounts.append((user,False))
 
 
             context['searchResult'] = accounts
@@ -742,8 +755,8 @@ def account_view(request, *args, **kwargs):
 
 
     cursor = conn.cursor()
-    print("*****************")
-    print(user_id)
+    # print("*****************")
+    # print(user_id)
     cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
     try:
         data = cursor.fetchall()[0]

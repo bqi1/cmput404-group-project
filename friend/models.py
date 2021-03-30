@@ -4,6 +4,13 @@ from django.utils import timezone
 
 # Create your models here.
 
+
+class FriendShip(models.Model):
+	friend_a = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="friend_a_set", on_delete=models.CASCADE,blank=True, null=True)
+	friend_b = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="friend_b_set", on_delete=models.CASCADE, blank=True, null=True)
+	def __str__(self):
+		return '%s %s' % (self.friend_a, self.friend_b)
+
 class FriendList(models.Model):
 	user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete= models.CASCADE,related_name="user")
 	friends = models.ManyToManyField(settings.AUTH_USER_MODEL, blank = True, related_name="friends")
