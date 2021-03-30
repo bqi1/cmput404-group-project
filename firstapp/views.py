@@ -208,8 +208,15 @@ def make_post_html(data,user_id,isowner=False):
                 friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
                 if user_id in friend_ids or isowner: show_post = True
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
-                if image == '0': resp += starttag + endnoimage.format(d.post_id,d.post_id) % (d.markdown,)
-                else: resp += starttag + endimage.format(d.post_id,d.post_id) % (image,d.markdown)
+                if image == '0':
+                    resp += starttag
+                    resp += endnoimage.format(d.post_id) % (d.markdown,)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                else:
+                    resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
                 resp += "</br>"
     return resp
 
@@ -273,8 +280,9 @@ def make_post_list(data,user_id,isowner=False):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
-
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
