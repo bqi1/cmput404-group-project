@@ -29,6 +29,7 @@ from friend.models import FriendList, FriendRequest
 from friend.is_friend import get_friend_request_or_false
 from firstapp.models import Author, Post, Author_Privacy, PostLikes
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
@@ -182,7 +183,7 @@ def make_post_html(data,user_id,isowner=False):
             content = md.convert(content)
         starttag = jscript
         starttag += start % (d.title,d.description,content)
-        if len(priv) == 0: # post is not private
+        if len(priv) == 0 and d.privfriends == False: # post is not private
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
@@ -200,6 +201,12 @@ def make_post_html(data,user_id,isowner=False):
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                if user_id in friend_ids or isowner: show_post = True
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
                 if image == '0': resp += starttag + endnoimage.format(d.post_id,d.post_id) % (d.markdown,)
                 else: resp += starttag + endimage.format(d.post_id,d.post_id) % (image,d.markdown)
@@ -238,7 +245,7 @@ def make_post_list(data,user_id,isowner=False):
             "author":author_dict,
         }
         # post is public or post belongs to user
-        if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
+        if len(priv) == 0 and d.privfriends == False: post_list.append(post_dict)
         else:
             show_post = False
             # Determine if requesting author is among privacy list
@@ -246,6 +253,12 @@ def make_post_list(data,user_id,isowner=False):
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                if user_id in friend_ids or isowner: show_post = True
+
             if show_post and user_id != None: post_list.append(post_dict)
     return json.dumps(post_list,indent=4)
 
@@ -260,6 +273,8 @@ def make_post_list(data,user_id,isowner=False):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
+    viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
+
     conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
@@ -274,7 +289,7 @@ def post(request,user_id,post_id):
     author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == 'GET':
-        resp = make_post_list(data,request.user.id,isowner=trueauth)
+        resp = make_post_list(data,viewer_id,isowner=trueauth)
     else:
         token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
         if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
@@ -307,10 +322,11 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.") # check if author ids are valid
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
             else:
                 author_privacies = Author_Privacy.objects.filter(post_id=post_id)
@@ -338,10 +354,11 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
             new_post.save()
 
@@ -357,7 +374,7 @@ def post(request,user_id,post_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        if method == "GET": resp = make_post_html(data,request.user.id,isowner=trueauth)
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
         return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
@@ -376,15 +393,15 @@ def allposts(request,user_id):
     conn = connection
     cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
-
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-
     cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
 
     cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
     author_id = cursor.fetchall()[0][0]
-
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
@@ -413,15 +430,16 @@ def allposts(request,user_id):
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
-                data = Author.objects.filter(userid=pa)
+                data = Author.objects.filter(username=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
-                new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                consistent_id = Author.objects.get(username=pa).consistent_id
+                new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                 new_private_author.save()
         new_post.save()
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
-        resp = make_post_list(data,request.user.id,trueauth)
+        resp = make_post_list(data,viewer_id,trueauth)
     else:
         conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
@@ -429,7 +447,7 @@ def allposts(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
-        if method == "GET": resp = make_post_html(data,user_id,isowner=trueauth)
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)

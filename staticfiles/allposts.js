@@ -84,7 +84,7 @@ function makePost() {
                 },
                 error: function (response) {
                     if(response.status == 409) {alert("The post ID you entered has already been taken. Please enter another one.");}
-                    else if(response.status == 404) {alert("One or more user ids entered into the author privacy field are not valid user ids.");}
+                    else if(response.status == 404) {alert("One or more usernames entered into the author privacy field are not valid usernames.");}
                     else {console.log(response);}
                 }
 
@@ -103,7 +103,7 @@ function addPrivateAuthor() {
     private_author_id = document.createElement("input");
     private_author_id.setAttribute("class","pa_id")
     label = document.createElement("span");
-    label.innerHTML = "Private Author Id";
+    label.innerHTML = "Private Author Username";
 
     private_author.appendChild(label);
     private_author.appendChild(private_author_id);
