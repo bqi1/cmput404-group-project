@@ -645,7 +645,7 @@ def search_user(request, *args, **kwargs):
             accounts = []
             conn = connection
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE ?', ('{}%'.format(search_query),))
+            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE %s', ("%" + search_query + "%",))
             duplicate = []
             try:
                 data = cursor.fetchall()
