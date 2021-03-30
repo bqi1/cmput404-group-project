@@ -474,7 +474,7 @@ def make_like_object(object, user_id, make_json = True):
     like_dict["type"] = "like"
     try:
         author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404posties.herokuapp.com/author/' + author.consistent_id
+        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
         r = requests.get(url)
         like_dict["author"] = r.json()
     except:
@@ -556,7 +556,7 @@ def make_liked_object(data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://c404posties.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
+        url = "http://c404-project.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
@@ -604,7 +604,8 @@ def publicposts(request):
 @api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):
     resp = ""
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+  #  conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
     try:
         request.user.id = int(request.user.id)
@@ -637,10 +638,11 @@ def commentpost(request, user_id, post_id):
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
-    conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+ #   conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
     cursor = conn.cursor()
-    
-    cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
+ #   cursor.execute('''SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;''',(user_id,post_id))
+    cursor.execute("SELECT comment_id FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
     data = cursor.fetchall()
     comment_list = []
     for d in data:
@@ -648,6 +650,7 @@ def viewComments(request, user_id, post_id):
         comment_list.append(comment_id)
     num_comments = len(comment_list)
     return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+
     
 def search_user(request, *args, **kwargs):
     context = {}
