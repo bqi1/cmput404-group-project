@@ -63,10 +63,10 @@ class Comment(models.Model):
     def __str__(self):
         return self.comment_text
 class PostLikes(models.Model):
-  like_id = models.AutoField(primary_key=True, blank=True, null=False)
-  from_user = models.TextField(max_length=500,blank=True)
+  like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)
+  from_user = models.IntegerField(blank=True, null=False)
   to_user = models.TextField(max_length=500,blank=True)
-  post_id = models.IntegerField(blank=True, null=False)
+  post_id = models.PositiveIntegerField(blank=True, null=False)
 
 # class CommentLikes(models.Model):
 #   like_id = models.AutoField(primary_key=True, blank=True, null=False)
@@ -79,7 +79,7 @@ class PostLikes(models.Model):
 class Setting(models.Model):
   # Contains variables for global settings
   # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
-  UsersNeedAuthentication = models.BooleanField(default=False)
+  usersneedauthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
 class PublicImage(models.Model): # Host images to a folder in server. Accessible in server admin
