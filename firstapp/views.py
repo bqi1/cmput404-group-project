@@ -59,6 +59,7 @@ def get_our_author_object(host, author_uuid):
         return HttpResponseNotFound("The account you requested does not exist\n")
 
 def homepage(request):
+    print(request)
     if request.user.is_authenticated:
         try:
             author = Author.objects.get(username=request.user)
