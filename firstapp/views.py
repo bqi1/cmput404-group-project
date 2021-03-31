@@ -81,11 +81,15 @@ def homepage(request):
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 print("\n\n\n"+server.hostserver)
-                postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                if server.hostserver == "http://127.0.0.1:8000":
+                    postsRequest = requests.get(url=f"{server.hostserver}/posts")
+                else:
+                    postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 print(postsRequest)
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
-            except:
+            except Exception as e:
+                print(e)
                 continue
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
