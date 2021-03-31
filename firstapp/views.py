@@ -81,6 +81,7 @@ def homepage(request):
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 # print("\n\n\n"+server.hostserver)
+                os.environ['NO_PROXY'] = '127.0.0.1'
                 if server.hostserver == "http://localhost:8000":
                 #     postsRequest = requests.get(url=f"{server.hostserver}/posts")
                     postsRequest = requests.get("http://localhost:8000")
