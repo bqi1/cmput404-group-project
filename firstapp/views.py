@@ -366,7 +366,8 @@ def post(request,user_id,post_id):
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
         return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
-    else: return HttpResponse(resp)
+    else:
+        return HttpResponse(resp)
 
 # Api view for looking at all posts for a specific user
 # GET - get all posts for auser (not auth)
@@ -643,18 +644,17 @@ def viewComments(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
-    
+    cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
+    data = cursor.fetchall()
+    comment_list = []
+    for d in data:
+        comment_text = d[0]
+        comment_list.append(comment_text)
+    num_comments = len(comment_list)
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
-        cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
-        data = cursor.fetchall()
-        comment_list = []
-        for d in data:
-            comment_text = d[0]
-            comment_list.append(comment_text)
-        num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
-
+    else:
+        return HttpResponse(comment_list)
     
 def search_user(request, *args, **kwargs):
     context = {}
