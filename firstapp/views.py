@@ -80,9 +80,10 @@ def homepage(request):
         theirData = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
-                print("\n\n\n"+server.hostserver)
+                # print("\n\n\n"+server.hostserver)
                 if server.hostserver == "http://localhost:8000":
-                    postsRequest = requests.get(url=f"{server.hostserver}/posts")
+                #     postsRequest = requests.get(url=f"{server.hostserver}/posts")
+                    postsRequest = requests.get("http://localhost:8000")
                 else:
                     postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 print(postsRequest)
