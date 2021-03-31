@@ -24,7 +24,7 @@ def get_all_remote_user():
 				print(author_id)
 				print(author_name)
 				print(author_github)
-				remote_author = Author.objects.create(host = f"https://iconicity-test-a.herokuapp.com/",authorized=False, username = author_name, github = author_github ,consistent_id = author_id, userid = int(1000))
+				remote_author = Author.objects.create(host = f"https://iconicity-test-a.herokuapp.com/",authorized=False, username = author_name, github = author_github ,consistent_id = author_id, userid = 1000)
 				print(remote_author)
 				remote_author.save()
 				remote_author_list.append(remote_author)
