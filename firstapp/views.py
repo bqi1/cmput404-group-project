@@ -580,7 +580,7 @@ def publicposts(request):
             # Each post has an author object
             author = Author.objects.get(consistent_id = post.user_id)
             author_dict = {
-                "id": f"http://{author.host}/author/{author.consistent_id}",
+                "id": f"{author.host}/author/{author.consistent_id}",
                 "host": f"{author.host}/",
                 "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
@@ -721,7 +721,7 @@ def account(request,user_id):
         return HttpResponseNotFound("The account you requested does not exist\n")
     if method == "GET": # We want to return a JSON object of the Author requested
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
