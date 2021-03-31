@@ -35,13 +35,13 @@
                     document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
-                    // code adaped from david at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
-                    var likeButton = document.createElement('input')
-                    likeButton.type = "button"
-                    likeButton.addEventListener("click", function() {
+                    // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton' />";
+                    document.getElementById("nodeGoto").addEventListener("click", function() {
                         sendLike(item["source"]);
-                    });
-                    ​document.body.appendChild(likeButton);​
+                    }, false);
+
+                    
                 }
                 function sendLike(object){
                     let xhr = new XMLHttpRequest();
