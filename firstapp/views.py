@@ -76,6 +76,7 @@ def homepage(request):
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
+        print(servers)
         theirData = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
@@ -84,10 +85,7 @@ def homepage(request):
                     theirData.extend(postsRequest.json())
             except:
                 continue
-        print(request.META['HTTP_HOST'])
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
-        print(author_uuid)
-        print(our_author_object)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
     
 def signup(request):
