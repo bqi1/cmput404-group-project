@@ -102,6 +102,7 @@ def signup(request):
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
             auth_login(request, user) # Save user ID for further sessions
             user.save()
+            Token(user=user).save()
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
