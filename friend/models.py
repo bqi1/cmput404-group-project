@@ -11,6 +11,13 @@ class FriendShip(models.Model):
 	def __str__(self):
 		return '%s %s' % (self.friend_a, self.friend_b)
 
+class Follow(models.Model):
+	follower = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="follower_set", on_delete=models.CASCADE, blank=True, null=True)
+	receiver = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="receiver_set", on_delete=models.CASCADE, blank=True, null=True)
+	ignored = models.BooleanField(default=False)
+	def __str__(self):
+		return '%s %s' % (self.follower, self.receiver)
+
 class FriendList(models.Model):
 	user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete= models.CASCADE,related_name="user")
 	friends = models.ManyToManyField(settings.AUTH_USER_MODEL, blank = True, related_name="friends")

@@ -106,6 +106,7 @@ def signup(request):
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                             consistent_id=f"{uuid.uuid4().hex}")
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
+                user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
