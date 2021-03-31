@@ -51,7 +51,7 @@ def index(request):
 #helper function for getting json author objects from our server's database
 def get_our_author_object(host, author_uuid):
     try:
-        url = "https://"+host+"/author/"+author_uuid
+        url = "http://"+host+"/author/"+author_uuid
         r = requests.get(url)
         return r.json()
     except Exception as e:
@@ -71,9 +71,10 @@ def homepage(request):
 
         # Get all public posts from our server
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        print(ourURL)
         ourRequest = requests.get(url=ourURL)
-        ourData = ourRequest.json()
 
+        ourData = ourRequest.json()
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         print(servers)
