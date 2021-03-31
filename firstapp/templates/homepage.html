@@ -50,7 +50,7 @@
                         }
                     };
                     // Make like object
-                    var data = JSON.stringify({ "type": "like", "author": our_author_object, "object":object });
+                    var data = JSON.stringify({ "type": "like", "author": {our_author_object}, "object":object });
                     
                     // Sending data with the request
                     console.log(data)
