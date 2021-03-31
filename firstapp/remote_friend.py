@@ -24,11 +24,14 @@ def get_all_remote_user():
 				print(author_id)
 				print(author_name)
 				print(author_github)
-				remote_author = Author.objects.create(host = f"https://iconicity-test-a.herokuapp.com/",authorized=False, username = author_name, github = author_github ,consistent_id = author_id, userid = 1000)
-				print(remote_author)
-				remote_author.save()
-				remote_author_list.append(remote_author)
-				return remote_author_list
+				if  author = Author.objects.get(consistent_id=author_id):
+					return
+				else:	
+					remote_author = Author.objects.create(host = f"https://iconicity-test-a.herokuapp.com/",authorized=False, username = author_name, github = author_github ,consistent_id = author_id, userid = 1000)
+					print(remote_author)
+					remote_author.save()
+					remote_author_list.append(remote_author)
+				return 
 		except Exception as e :
 			print("An error occcur, error message: " + e)
 
