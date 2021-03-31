@@ -50,36 +50,28 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
-        cursor = conn.cursor()
-        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
-        try:
-            data = cursor.fetchall()[0]
-        except IndexError: # No token exists, must create a new one!
-            token = Token.objects.create(user=request.user)
-            cursor.execute("SELECT u.id,t.key FROM authtoken_token t, auth_user u WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
-            data = cursor.fetchall()[0]
-        user_id,token,author_uuid = data[0], data[1], data[2]
-        conn.close()
+        author = Author.objects.get(username=request.user)
+        user_id,author_uuid = author.userid,author.consistent_id
 
-        URL = "http://"+request.META['HTTP_HOST']+"/posts"
-        r1 = requests.get(url=URL)
-        data1 = r1.json()
+
+        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        ourRequest = requests.get(url=ourURL)
+        ourData = ourRequest.json()
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
-        data2 = []
+        theirData = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
-                    data2.extend(postsRequest.json())
+                    theirData.extend(postsRequest.json())
             except:
                 continue
 
 
 
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid, 'our_server_posts':data1,'other_server_posts':data2})
+        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
 def signup(request):
     # Called when user accesses the signup page
