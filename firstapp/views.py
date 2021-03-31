@@ -51,7 +51,7 @@ def index(request):
 #helper function for getting json author objects from our server's database
 def get_our_author_object(author_uuid):
     try:
-        url = 'http://c404-project.herokuapp.com/author/' + author_uuid
+        url = 'https://c404-project.herokuapp.com/author/' + author_uuid
         r = requests.get(url)
         return r.json()
     except:
