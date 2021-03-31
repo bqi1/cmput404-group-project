@@ -36,10 +36,10 @@
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
-                    document.getElementById("other_servers").innerHTML += "<input type='button' id='like' value='like'/>";
-                    document.getElementById("like").addEventListener("click", sendLike(item["source"]));
-
-                    function sendLike(object){
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likebutton' value='like'/>";
+                    document.getElementById("likebutton").addEventListener("click", sendLike(item["source"]));
+                }
+                function sendLike(object){
                     let xhr = new XMLHttpRequest();
                     let url = item['url'];
                     url += 
@@ -59,7 +59,6 @@
                     console.log(data);
                     xhr.send(data);
                     console.log("sent");
-                    }
                 }
             </script>
         {% endblock %}

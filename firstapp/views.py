@@ -234,7 +234,7 @@ def make_post_list(data,user_id,isowner=False):
         # This block assigns the author object to each post object.
         author = Author.objects.get(consistent_id=d.user_id)
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
