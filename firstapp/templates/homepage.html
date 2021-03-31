@@ -38,14 +38,13 @@
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton' />";
                     document.getElementById("likeButton").addEventListener("click", function() {
-                        sendLike(item["source"]);
+                        sendLike(item["source"], item["url"]);
                     }, false);
 
                     
                 }
-                function sendLike(object){
+                function sendLike(object, url){
                     let xhr = new XMLHttpRequest();
-                    let url = item['url'];
                     xhr.open("POST", url, true);
                     xhr.setRequestHeader("Content-Type", "application/json");
                     xhr.onreadystatechange = function () {
