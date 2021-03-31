@@ -131,16 +131,12 @@ def login(request):
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
             try:
-                authenticated = cursor.fetchall()[0][0]
-                conn.close()
-            except:
-                conn.close()
+                author = Author.objects.get(username=new_username)
+            except Author.DoesNotExist:
                 messages.add_message(request,messages.INFO, 'This user does not exist.')
                 return HttpResponseRedirect(reverse('login'))
+            authenticated = author.authorized
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
