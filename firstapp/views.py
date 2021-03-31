@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
 from django.contrib.auth import get_user_model
 import uuid
 import requests
@@ -50,10 +50,16 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        author = Author.objects.get(username=request.user)
+        try:
+            author = Author.objects.get(username=request.user)
+        except Author.DoesNotExist:
+            return HttpResponseNotFound("In the homepage function, the user you requested does not exist!!\n")
+        if not author.authorized:
+            messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+            return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
 
-
+        # Get all public posts from our server
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
@@ -69,8 +75,6 @@ def homepage(request):
             except:
                 continue
 
-
-
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
 def signup(request):
@@ -84,23 +88,18 @@ def signup(request):
             new_password = form.cleaned_data.get('password1')
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
             auth_login(request, user) # Save user ID for further sessions
-            Token(user=user).save()
             user.save()
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
             try:
-                needs_authentication = cursor.fetchall()[0][0]
-            except:
-                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
-                return HttpResponseRedirect(reverse('login'))
-            finally:
-                conn.close()
+                setting = Setting.objects.get()
+            except Setting.DoesNotExist:
+                print("setting not available. Let's make one!")
+                setting = Setting(usersneedauthentication=False)
+                setting.save()
 
-            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
+            if setting.usersneedauthentication:
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
@@ -109,12 +108,14 @@ def signup(request):
                 user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
-            # Else, let them in homepage.
-            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
-                userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
-                    name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"{uuid.uuid4().hex}")
-            return HttpResponseRedirect(reverse('home'))
+            else: 
+                # Else, let them in homepage.
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+                    userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
+                        name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                            consistent_id=f"{uuid.uuid4().hex}")
+                user.save()
+                return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
             return render(request, 'signup.html', context)
