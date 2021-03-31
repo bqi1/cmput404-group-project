@@ -51,7 +51,7 @@
                     };
                     // Make like object
                     var author_object = {{our_author_object|safe}};
-                    console.log(author_object)
+                    console.log(author_object);
                     var data = JSON.stringify({ "type": "like", "author": author_object, "object":object });
                     
                     // Sending data with the request
