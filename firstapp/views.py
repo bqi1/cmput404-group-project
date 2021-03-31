@@ -49,10 +49,9 @@ def index(request):
     return render(request, 'index.html')
 
 #helper function for getting json author objects from our server's database
-def get_our_author_object(user_id):
+def get_our_author_object(author_uuid):
     try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
+        url = 'http://c404-project.herokuapp.com/author/' + author_uuid
         r = requests.get(url)
         return r.json()
     except:
@@ -84,7 +83,7 @@ def homepage(request):
                     theirData.extend(postsRequest.json())
             except:
                 continue
-        our_author_object = get_our_author_object(user_id)
+        our_author_object = get_our_author_object(author_uuid)
         print(user_id)
         print(our_author_object)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
