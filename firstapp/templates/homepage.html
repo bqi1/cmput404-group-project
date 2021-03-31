@@ -50,13 +50,14 @@
                         }
                     };
                     // Make like object
-                    var author_object = {{our_author_object|safe}}
+                    var author_object = {{our_author_object|safe}};
+                    console.log(author_object)
                     var data = JSON.stringify({ "type": "like", "author": author_object, "object":object });
                     
                     // Sending data with the request
-                    console.log(data)
+                    console.log(data);
                     xhr.send(data);
-                    console.log("sent")
+                    console.log("sent");
                 }
 
             </script>
