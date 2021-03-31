@@ -17,7 +17,6 @@
             <div id = "demo"></div>
             <h3>Public Posts from other servers:</h3>
             <div id = "other_servers"></div>
-            <script src=".js"></script>
             <script>
                 var public_posts_from_our_server = {{our_server_posts|safe}};
                 for (var item of public_posts_from_our_server){
@@ -37,7 +36,7 @@
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
-                    document.getElementById("other_servers").innerHTML += "<input type='button' id='like'/>";
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='like' value='like'/>";
                     document.getElementById("like").addEventListener("click", sendLike(item["source"]));
                 }
                 function sendLike(object){
