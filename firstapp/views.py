@@ -684,9 +684,6 @@ def search_user(request, *args, **kwargs):
                         duplicate.append(user[3])
                         # print('user3')
                         # print(user[3])
-                for user in remote_author_list:
-                    if(user not in accounts):
-                        accounts.append((user,False))
 
 
             context['searchResult'] = accounts
