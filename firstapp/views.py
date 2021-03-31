@@ -622,10 +622,11 @@ def commentpost(request, user_id, post_id):
            # json_object = json.loads(request.data)
           #  print(json_object)
           #  comment = byte_data.split("&comment=")[1]
-            comment = byte_data
+            comment = byte_data.get('comment')
+          #  comment = request.POST.get('comment_text')
          #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
             
-            cursor.execute('SELECT * FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
+            cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
             data1 = cursor.fetchall()
             if len(data1)==0:
                 new_comment = Comment(post_id=post_id, comment_id=comment_id, from_user=request.user.id, to_user=user_id, comment_text=comment)
@@ -647,12 +648,12 @@ def viewComments(request, user_id, post_id):
     
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
      #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
-        cursor.execute("SELECT comment_id FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
+        cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
         data = cursor.fetchall()
         comment_list = []
         for d in data:
-            comment_id = d[0]
-            comment_list.append(comment_id)
+            comment_text = d[0]
+            comment_list.append(comment_text)
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
 

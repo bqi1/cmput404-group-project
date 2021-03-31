@@ -6,8 +6,8 @@
         {% csrf_token %}</head>
 <body>
     <p>{{ num_comments}} Comments on the Post</p>
-    {% for comment_id in comment_list %}
-        <li>{{comment_id}}</li>
+    {% for comment_text in comment_list %}
+        <li>{{comment_text}}</li>
     {% endfor %}
 </body>
 

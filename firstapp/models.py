@@ -58,7 +58,7 @@ class Comment(models.Model):
     comment_id = models.PositiveIntegerField(primary_key=True,null=False)
     from_user = models.PositiveIntegerField(blank=True, null=True)
     to_user = models.TextField(blank=True, null=True)
-    comment_text = models.TextField()
+    comment_text = models.TextField(null=False)
     
     def __str__(self):
         return self.comment_text
