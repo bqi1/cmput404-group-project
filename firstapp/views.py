@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node
 from django.contrib.auth import get_user_model
 import uuid
 import requests
@@ -66,11 +66,17 @@ def homepage(request):
         r1 = requests.get(url=URL)
         data1 = r1.json()
 
-        # Get all public posts from another server
-        URL = "https://iconicity-test-a.herokuapp.com/posts"
-        PARAMS = {'Authorization:':f"Basic {base64.b64encode('auth_user:authpass'.encode('ascii'))}"}
-        r2 = requests.get(url=URL, auth=("auth_user", "authpass"))
-        data2 = r2.json()
+        # Get all public posts from another server, from the admin panel
+        servers = Node.objects.all()
+        data2 = []
+        for server in servers: # Iterate through each server, providing authentication if necessary
+            try:
+                postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                if postsRequest.status_code == 200:
+                    data2.extend(postsRequest.json())
+            except:
+                continue
+
 
 
         return render(request, 'homepage.html', {'user_id':user_id,'token':token, 'author_uuid':author_uuid, 'our_server_posts':data1,'other_server_posts':data2})

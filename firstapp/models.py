@@ -24,7 +24,7 @@ class Author(models.Model):
 class Setting(models.Model):
   # Contains variables for global settings
   # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
-  UsersNeedAuthentication = models.BooleanField(default=False)
+  usersneedauthentication = models.BooleanField(default=False)
   def __str__(self):
     return "Settings"
 class PublicImage(models.Model): # Host images to a folder in server. Accessible in server admin
@@ -73,18 +73,9 @@ class PostLikes(models.Model):
 #   from_user = models.IntegerField(blank=True, null=True)
 #   to_user = models.IntegerField(blank=True, null=True)
 #   comment_id = models.ForeignKey('Comment', on_delete=models.CASCADE, blank=True, null=True)
-
-
-
-class Setting(models.Model):
-  # Contains variables for global settings
-  # Should be a singleton setting in Admin. If not set/initialized in admin, error is thrown when trying to sign up.
-  usersneedauthentication = models.BooleanField(default=False)
+class Node(models.Model):
+  hostserver = models.URLField(null=False)
+  authusername = models.TextField(null=False)
+  authpassword = models.TextField(null=False)
   def __str__(self):
-    return "Settings"
-class PublicImage(models.Model): # Host images to a folder in server. Accessible in server admin
-  # Followed tutorial by Will Vincent at 2021-03-05 at https://learndjango.com/tutorials/django-file-and-image-uploads-tutorial
-  title = models.TextField()
-  image = models.ImageField(upload_to='images/')
-  def __str__(self):
-    return self.title
+    return self.hostserver
