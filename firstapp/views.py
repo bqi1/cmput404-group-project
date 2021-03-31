@@ -54,7 +54,8 @@ def get_our_author_object(author_uuid):
         url = 'https://c404-project.herokuapp.com/author/' + author_uuid
         r = requests.get(url)
         return r.json()
-    except:
+    except Exception as e:
+        print(e)
         return HttpResponseNotFound("The account you requested does not exist\n")
 
 def homepage(request):
