@@ -1,0 +1,14 @@
+<html>
+    <head>
+    {% include "sub_basic/header.html" %}
+    {% csrf_token %}</head>
+<body>
+    <p>{{ num_share }} Shared Post</p>
+    {% for shared_id in share_list %}
+    <li>{{shared_id}}</li>
+    {% endfor %}
+</body>
+
+</html>
+    
+        

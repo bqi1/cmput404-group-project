@@ -21,3 +21,14 @@ function likePost(post_id) {
 function viewLikes(post_id) {
     location.replace(window.location.href + post_id + "/likes/")
 }
+
+function commentPost(post_id){
+    csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    location.replace(window.location.href + post_id + "/commentpost/")
+
+}
+
+function viewComment(post_id){
+    location.replace(window.location.href + post_id + "/viewComments/")
+}
+
