@@ -85,6 +85,7 @@ def homepage(request):
             except:
                 continue
         our_author_object = get_our_author_object(user_id)
+        print(user_id)
         print(our_author_object)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
     
