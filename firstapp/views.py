@@ -651,7 +651,7 @@ def search_user(request, *args, **kwargs):
             accounts = []
             conn = connection
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE %s', ("%" + search_query + "%",))
+            cursor.execute('SELECT * FROM authtoken_token t, firstapp_author a WHERE a.username LIKE %s', ("%" + search_query + "%",))
             duplicate = []
 
             # Search for the local author 
@@ -679,12 +679,13 @@ def search_user(request, *args, **kwargs):
             #                 duplicate.append(user[3])
             if not noresult:
                 for user in data:
-                    if(user[3] not in duplicate):
+                    if(user[8] not in duplicate):
+                        print(user[8])
+                        print(user)
                         accounts.append((user,False))
-                        duplicate.append(user[3])
+                        duplicate.append(user[8])
                         # print('user3')
-                        # print(user[3])
-
+                        # print(user[3]
 
             context['searchResult'] = accounts
             
@@ -755,7 +756,7 @@ def account_view(request, *args, **kwargs):
     cursor = conn.cursor()
     # print("*****************")
     # print(user_id)
-    cursor.execute("SELECT * FROM authtoken_token t, firstapp_author u WHERE u.id = '%s';" % user_id)
+    cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
     try:
         data = cursor.fetchall()[0]
         Author = get_user_model()
