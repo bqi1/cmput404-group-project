@@ -49,9 +49,9 @@ def index(request):
     return render(request, 'index.html')
 
 #helper function for getting json author objects from our server's database
-def get_our_author_object(author_uuid):
+def get_our_author_object(host, author_uuid):
     try:
-        url = 'https://c404-project.herokuapp.com/author/' + author_uuid
+        url = "https://"+host+"/author/"+author_uuid
         r = requests.get(url)
         return r.json()
     except Exception as e:
@@ -84,7 +84,8 @@ def homepage(request):
                     theirData.extend(postsRequest.json())
             except:
                 continue
-        our_author_object = get_our_author_object(author_uuid)
+        print(request.META['HTTP_HOST'])
+        our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
         print(author_uuid)
         print(our_author_object)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
@@ -549,17 +550,17 @@ def liked(request,user_id):
     else:
         cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
-        liked_object_list = make_liked_object(data)
+        liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
         return HttpResponse(json.dumps(liked_object_list))
 
-def make_liked_object(data):
+def make_liked_object(host,data):
     liked_dict = {}
     json_like_object_list = []
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://c404-project.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
+        url = "https://"+host+"/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
