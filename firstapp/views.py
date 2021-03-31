@@ -48,6 +48,16 @@ def index(request):
     #if request.user.is_authenticated:
     return render(request, 'index.html')
 
+#helper function for getting json author objects from our server's database
+def get_our_author_object(user_id):
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
+        r = requests.get(url)
+        return r.json()
+    except:
+        return HttpResponseNotFound("The account you requested does not exist\n")
+
 def homepage(request):
     if request.user.is_authenticated:
         try:
@@ -74,8 +84,9 @@ def homepage(request):
                     theirData.extend(postsRequest.json())
             except:
                 continue
+        our_author_object = get_our_author_object(user_id)
 
-        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
+        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -469,13 +480,7 @@ def likepost(request, user_id, post_id):
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
-        r = requests.get(url)
-        like_dict["author"] = r.json()
-    except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["author"] = get_our_author_object(user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)

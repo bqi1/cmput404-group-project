@@ -17,6 +17,7 @@
             <div id = "demo"></div>
             <h3>Public Posts from other servers:</h3>
             <div id = "other_servers"></div>
+            <script src=".js"></script>
             <script>
                 var public_posts_from_our_server = {{our_server_posts|safe}};
                 for (var item of public_posts_from_our_server){
@@ -35,7 +36,27 @@
                     document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
+                    // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='like'/>";
+                    document.getElementById("like").addEventListener("click", sendLike(item["source"]));
                 }
+                function sendLike(object){
+                    let xhr = new XMLHttpRequest();
+                    let url = item['author']['host'];
+                    xhr.open("POST", url, true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState === 4 && xhr.status === 200) {
+                            console.log(this.responseText);
+                        }
+                    };
+                    // Make like object
+                    var data = JSON.stringify({ "type": "like", "author": our_author_object, "object":object });
+        
+                    // Sending data with the request
+                    xhr.send(data);
+                }
+
             </script>
         {% endblock %}
     </body>
