@@ -41,7 +41,8 @@
                 }
                 function sendLike(object){
                     let xhr = new XMLHttpRequest();
-                    let url = item['author']['host'];
+                    let url = item['url'];
+                    url += 
                     xhr.open("POST", url, true);
                     xhr.setRequestHeader("Content-Type", "application/json");
                     xhr.onreadystatechange = function () {
