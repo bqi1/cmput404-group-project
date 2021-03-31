@@ -17,6 +17,7 @@ class Author(models.Model):
     email = models.EmailField(default="example@gmail.com")
     name = models.CharField(max_length=20,default="testname") # First and last name
     consistent_id = models.TextField(primary_key=True,max_length=20,blank=True)
+    api_token = models.TextField(max_length=50,blank=True)
 
     def __str__(self):
         return self.username
@@ -32,12 +33,18 @@ class Post(models.Model):
   content = models.TextField(max_length=500,blank=True)
   image = models.BinaryField(default=b"")
   privfriends = models.BooleanField(default = False)
-  tstamp = models.CharField(max_length=50,default="")
+  unlisted = models.BooleanField(default = False)
+  published = models.CharField(max_length=50,default="")
 
 class Author_Privacy(models.Model):
   type = "author_privacy"
   post_id = models.PositiveIntegerField(default=0)
   user_id = models.TextField(max_length=20,blank=True)
+
+class Category(models.Model):
+  type = "category"
+  post_id = models.PositiveIntegerField(default=0)
+  tag = models.TextField(max_length=20,blank=True) # The actual content of the category
 
 class PostLikes(models.Model):
   like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)

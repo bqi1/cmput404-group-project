@@ -21,6 +21,11 @@
         <input id="title"></br>
         <label for="desc">Post Desciption:</label>
         <input id = "desc"></br>
+        <label for="add_ca" >Categories</label>
+        <input id="add_ca" type="button" value="+" onclick="addCategory()">
+        <input id="rem_ca" type="button" value="-" onclick="removeCategory()">
+        <br/>
+        <ul id="ca_list"></ul></br></br>
         <label for="md">Use Markdown?</label>
         <input id="md" type="checkbox"></br>
         <label for ="content">Content:</label></br>
@@ -36,6 +41,8 @@
         <input id="rem_pa" type="button" value="-" onclick="removePrivateAuthor()">
         <br/>
         <ul id="pa_list"></ul>
+        <label for="un">Make post unlisted? (Post will not be able to be looked up by its id)</label>
+        <input id="un" type="checkbox"></br>
 
         <br/>
         </br>

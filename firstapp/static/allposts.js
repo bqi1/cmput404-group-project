@@ -50,9 +50,15 @@ function makePost() {
 
     privfriends = +document.getElementById("privfriends").checked;
 
+    ca_list = document.getElementsByClassName("ca_id");
+    categories = [];
+    for(i=0;i<ca_list.length;i++) {categories.push(ca_list[i].value);}
+
     pa_list = document.getElementsByClassName("pa_id");
     priv_author = [];
     for(i=0;i<pa_list.length;i++) {priv_author.push(pa_list[i].value);}
+
+    unlisted = +document.getElementById("un").checked;
 
     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -77,7 +83,7 @@ function makePost() {
                 url: URL,
                 method: method,
                 headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-                data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "privfriends":privfriends,"priv_author":priv_author },
+                data: { "title": title, "description": desc, "categories":categories,"markdown": markdown, "content": content, "image": image, "privfriends":privfriends,"priv_author":priv_author,"unlisted":unlisted },
                 success: function () {
                     alert("Successfully created post!");
                     location.reload();
@@ -91,6 +97,32 @@ function makePost() {
             }
         );
     })
+
+}
+
+// Add a new category field when the + button is clicked
+function addCategory() {
+    pa_list = document.getElementById("ca_list");
+    private_author = document.createElement("li");
+    br = document.createElement("br");
+
+    private_author_id = document.createElement("input");
+    private_author_id.setAttribute("class","ca_id")
+    label = document.createElement("span");
+    label.innerHTML = "Category Tag";
+
+    private_author.appendChild(label);
+    private_author.appendChild(private_author_id);
+    private_author.appendChild(br);
+
+    pa_list.appendChild(private_author);
+}
+
+// Remove a new category field when the - button is clicked
+function removeCategory() {
+    element_list = document.getElementById("ca_list");
+    num_children = element_list.childNodes.length
+    if (num_children>0){element_list.removeChild(element_list.childNodes[num_children-1]);}
 
 }
 

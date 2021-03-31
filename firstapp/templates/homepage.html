@@ -8,9 +8,8 @@
         {% block content %}
             {% if user.is_authenticated %}
                 <p>This is {{ user.username }}.
-                    Your unique userid is {{user_id}}.
-                    Your API token is {{token}}.
-                    Your UUID is {{author_uuid}}.</p>
+                    Your unique userid is {{author_uuid}}.
+                    Your API token is {{token}}.</p>
                 <a href= "/author/{{author_uuid}}/posts">My Stream</a> <!--Link to making a post/view your post-->
             {% endif %}
             <!-- <p> {{other_server_posts}}</p> -->
@@ -22,7 +21,7 @@
                 var public_posts_from_our_server = {{our_server_posts|safe}};
                 for (var item of public_posts_from_our_server){
                     console.log(item)
-                    document.getElementById("demo").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["timestamp"]+"</h4>";
+                    document.getElementById("demo").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4>";
                     document.getElementById("demo").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("demo").innerHTML += "<p> Content: "+item["content"]+"</p>";
                 }
