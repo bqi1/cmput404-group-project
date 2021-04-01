@@ -69,6 +69,7 @@ class Comment(models.Model):
     
     def __str__(self):
         return self.comment_text
+        
 class PostLikes(models.Model):
   like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)
   from_user = models.IntegerField(blank=True, null=False)

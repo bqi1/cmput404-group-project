@@ -41,6 +41,8 @@ function viewPost(post_id) {
 // Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {
+    var username = "%s";
+    var password = "%s";
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;
@@ -79,6 +81,7 @@ function makePost() {
 
         }
         $.ajax(
+            
             {
                 url: URL,
                 method: method,
@@ -150,8 +153,4 @@ function removePrivateAuthor() {
     num_children = element_list.childNodes.length
     if (num_children>0){element_list.removeChild(element_list.childNodes[num_children-1]);}
 
-}
-
-function viewShare(user_id){
-    location.replace(window.location.href + "check_share/")
 }

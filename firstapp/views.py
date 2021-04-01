@@ -36,6 +36,7 @@ import uuid
 import requests
 import base64
 from .remote_friend import get_all_remote_user
+from django.contrib.auth.models import User
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -55,13 +56,11 @@ def homepage(request):
             author = Author.objects.get(username=request.user)
             token = author.api_token
         except Author.DoesNotExist:
-            return HttpResponseNotFound("In the homepage function, the user you requested does not exist!!\n")
+            return HttpResponseNotFound(f"In the homepage function, the user you requested does not exist!!{request.user}\n")
         if not author.authorized:
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-
-        # Get all public posts from our server
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
@@ -74,7 +73,8 @@ def homepage(request):
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
-            except:
+            except Exception as e:
+                print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
 
         return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
@@ -96,13 +96,12 @@ def signup(request):
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
             try:
-                setting = Setting.objects.get()
+                settings = Setting.objects.get()
             except Setting.DoesNotExist:
-                print("setting not available. Let's make one!")
-                setting = Setting(usersneedauthentication=False)
-                setting.save()
-
-            if setting.usersneedauthentication:
+                print("make a setting")
+                settings = Setting(usersneedauthentication=False)
+            needs_authentication = settings.usersneedauthentication
+            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
@@ -111,14 +110,12 @@ def signup(request):
                 user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
-            else: 
-                # Else, let them in homepage.
-                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
-                    userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
-                        name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
-                user.save()
-                return HttpResponseRedirect(reverse('home'))
+            # Else, let them in homepage.
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+                userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
+                    name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                        consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
+            return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
             return render(request, 'signup.html', context)
@@ -131,13 +128,19 @@ def login(request):
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
-        user = authenticate(request, username = new_username, password = new_password)
+        print(new_username)
+        print(new_password)
+        print(request)
+        print(request.user)
+        # print(Author.objects.get(username=request.user))
+        user = authenticate(username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
+
             try:
                 author = Author.objects.get(username=new_username)
             except Author.DoesNotExist:
-                messages.add_message(request,messages.INFO, 'This user does not exist.')
+                messages.add_message(request,messages.INFO, f'This user, {new_username}, does not exist.')
                 return HttpResponseRedirect(reverse('login'))
             authenticated = author.authorized
             if not authenticated:
@@ -248,22 +251,28 @@ def make_post_list(data,user_id,isowner=False,uri=""):
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
             "type":"post",
+            "title":d.title,
+            "id":d.id,
+            "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
+            "origin":f"{author.host}/posts",
+            "description":d.description,
+            "contentType":"text/markdown" if d.markdown else "text/plain",
+            "content":d.content,
+            "categories":[],
+            "count":0,
+            "size":0,
+            "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+            "comments":[],
+            "visibility":[],
+            "unlisted":False if not d.privfriends else True,
             "post_id":d.post_id,
             "user_id":d.user_id,
-            "title":d.title,
-            "source":uri,
-            "origin":uri,
-            "description":d.description,
-            "categories":[],
-            "markdown":d.markdown,
-            "contentType":("text/markdown" if d.markdown else "text/plain"),
-            "content":d.content,
             "image":str(d.image,encoding="utf-8"),
+            "markdown":d.markdown,
             "privfriends":d.privfriends,
             "visibility":[],
             "unlisted":d.unlisted,
             "published":d.published,
-            "id":d.id,
             "author":author_dict,
         }
 
@@ -327,7 +336,6 @@ def post(request,user_id,post_id):
             pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
 
         if method == 'POST':
-
             p = request.POST
             if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
                 p = QueryDict('',mutable=True)
@@ -640,7 +648,7 @@ def publicposts(request):
             # Each post has an author object
             author = Author.objects.get(consistent_id = post.user_id)
             author_dict = {
-                "id": f"http://{author.host}/author/{author.consistent_id}",
+                "id": f"{author.host}/author/{author.consistent_id}",
                 "host": f"{author.host}/",
                 "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
@@ -649,21 +657,28 @@ def publicposts(request):
 
             post_dict = {
                 "type":"post",
+                "title":post.title,
+                "id":post.id,
+                "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
+                "origin":f"{author.host}/posts",
+                "description":post.description,
+                "contentType":"text/markdown" if post.markdown else "text/plain",
+                "content":post.content,
+                "author":author_dict,
+                "categories":[],
+                "count":0,
+                "size":0,
+                "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+                "comments":[],
+                "published":post.tstamp,
+                "unlisted":False if not post.privfriends else True,
                 "post_id":post.post_id,
                 "user_id":post.user_id,
-                "title":post.title,
-                "source":request.build_absolute_uri(),
-                "origin":request.build_absolute_uri(),
-                "description":post.description,
-                "categories":[],
-                "markdown":post.markdown,
-                "contentType":("text/markdown" if post.markdown else "text/plain"),
-                "content":post.content,
                 "image":str(post.image,encoding="utf-8"),
+                "markdown":post.markdown,
                 "privfriends":post.privfriends,
                 "visbility":["PUBLIC"],
                 "published":post.published,
-                "id":post.id,
                 "author":author_dict,
             }
             # retrieve all categories for post
@@ -673,9 +688,6 @@ def publicposts(request):
     print(post_list)
     return HttpResponse(json.dumps(post_list))
     
-
-
-
 @api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):
     resp = ""
@@ -693,13 +705,7 @@ def commentpost(request, user_id, post_id):
             
             comment_id = rand(2**31)
             byte_data = request.data
-         #   data = byte_data.decode("utf-8")
-           # json_object = json.loads(request.data)
-          #  print(json_object)
-          #  comment = byte_data.split("&comment=")[1]
             comment = byte_data.get('comment')
-          #  comment = request.POST.get('comment_text')
-         #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
             
             cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
             data1 = cursor.fetchall()
@@ -716,13 +722,10 @@ def commentpost(request, user_id, post_id):
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
-   # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
-    
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
         cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
         data = cursor.fetchall()
         comment_list = []
@@ -731,8 +734,32 @@ def viewComments(request, user_id, post_id):
             comment_list.append(comment_text)
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+    else:
+  #      return HttpResponse(comment_list)
+        json_comment_list = []
+        comments = Comment.objects.filter(post_id=post_id)
+        for comment in comments:
+           # for comment in comments:
+            author = Author.objects.get(consistent_id = comment.to_user)
+            author_dict = {
+                "type":"author",
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "url": f"{author.host}/author/{author.consistent_id}",
+                "displayName": author.username,
+                "github": author.github,
+            }
+            comment_dict = {
+                "type":"comment",
+                "author":author_dict,
+                "comment":comment.comment_text,
+                "contentType":"text/markdown",
+                "published":str(datetime.now()),
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
+            }
+            json_comment_list.append(comment_dict)
+        return HttpResponse(json.dumps(json_comment_list))
 
-    
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
@@ -763,8 +790,6 @@ def search_user(request, *args, **kwargs):
             if not noresult:
                 for user in data:
                     if(user[8] not in duplicate):
-                        print(user[8])
-                        print(user)
                         accounts.append((user,False))
                         duplicate.append(user[8])
                         # print('user3')
@@ -783,8 +808,7 @@ def account(request,user_id):
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = connection
-    cursor = conn.cursor()
+
     try: 
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
     except:
@@ -800,20 +824,30 @@ def account(request,user_id):
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
         try: # First see if the user exists
-            cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-            user_token = cursor.fetchall()[0][0]
-        except IndexError:
-            return HttpResponse("User does not exist.")
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1] # Retrieve the API token. If it does not match the user's token, cannot update
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+            author = Author.objects.get(consistent_id=user_id)
+        except Author.DoesNotExist:
+            messages.add_message(request,messages.INFO, 'This user does not exist.')
+            return HttpResponseRedirect(reverse('login'))
+        authenticated = check_authentication(request)
+        if not authenticated:
+            return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+        # Can only POST if you're the user itself, or are the admin
+        username = authenticated.get_username()
+
+        if not username == author.username and not request.user.is_superuser:
+            return HttpResponse('{"detail":"You are not the author."}',status=401)
         p = request.POST
         try: # You can only edit your github and display name.
+            user = User.objects.get(username=author.username)
+            user.username = p["displayName"]
+            user.save()
             author = Author.objects.get(consistent_id=user_id)
             author.github = p["github"]
             author.username = p["displayName"]
             author.save()
         except MultiValueDictKeyError:
-            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters\n")
+            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters. Must only change github and displayName\n")
+        
         return HttpResponse("Updated profile")
 @api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
@@ -838,22 +872,21 @@ def account_view(request, *args, **kwargs):
     cursor = conn.cursor()
     # print("*****************")
     # print(user_id)
-    cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
+    cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % user_id)
+
     try:
         data = cursor.fetchall()[0]
         Author = get_user_model()
         account = Author.objects.get(id = user_id)
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
-    # print("here is data")
-    # print(data)
-    
-    # print(len(data))
-    if data:
 
-        context['id'] = data[3]
-        context['username'] = data[7]
+    if data != None:
+
+        context['id'] = data[8]
+        context['username'] = data[3]
         context['email'] = data[9]
+        context['host'] = data[6]
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -914,7 +947,16 @@ def getAuthor(userid):
     my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
         
-
+def check_authentication(request):
+    # From turtlefranklin at 2021-03-31 at https://stackoverflow.com/questions/38016684/accessing-username-and-password-in-django-request-header-returns-none
+    auth_header = request.META['HTTP_AUTHORIZATION']
+    encoded_credentials = auth_header.split(' ')[1]  # Removes "Basic " to isolate credentials
+    decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8").split(':')
+    username = decoded_credentials[0]
+    password = decoded_credentials[1]
+    authenticated = authenticate(username=username, password=password)
+    return authenticated
+    ########################
         
 
     
