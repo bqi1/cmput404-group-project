@@ -59,6 +59,7 @@
                     
                     // Sending data with the request
                     console.log(data);
+                    xhr.setRequestHeader("Authorization", "Basic", + btoa({{authuser|safe}}+":"+{{authpass|safe}}))
                     xhr.send(data);
                     console.log("sent");
                 }
