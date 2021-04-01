@@ -39,37 +39,37 @@
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     var author_object = {{our_author_object|safe}};
                     var like_obj = JSON.stringify({ "obj":{"context": "", "summary":item["author"]["displayname"]+" liked your post" , "type": "like", "author": author_object, "object":item["source"]}});
-                    document.getElementById("other_servers").innerHTML += "<form method='post' action='api/likepost'><input type='text' value='"+like_obj+"'name='Like'><input type='text' value='"+item["author"]["url"]+"/inbox"+"'name='Like'><button type='submit'>Like</button>";
+                    document.getElementById("other_servers").innerHTML += "<form method='post' action='api/likepost'><input type='hidden' value='"+like_obj+"'name='Like'><input type='hidden' value='"+item["author"]["url"]+"/inbox"+"'name='Like'><button type='submit'>Like</button>";
                 }
-                for(let i = 0; i < public_posts_from_other_server.length; i++){
-                    (function () {
-                        var item = public_posts_from_other_server[i];
-                        var likeButtonId = "likeButton"+i;
-                        document.getElementById(likeButtonId).addEventListener("click", function() {
-                            sendLike(item["source"], item["author"]["url"]+"/inbox", item["author"]["host"]);
-                        }, false);
-                    }());
+                // for(let i = 0; i < public_posts_from_other_server.length; i++){
+                //     (function () {
+                //         var item = public_posts_from_other_server[i];
+                //         var likeButtonId = "likeButton"+i;
+                //         document.getElementById(likeButtonId).addEventListener("click", function() {
+                //             sendLike(item["source"], item["author"]["url"]+"/inbox", item["author"]["host"]);
+                //         }, false);
+                //     }());
 
-                }
-                function sendLike(object, inboxUrl, host){
-                    let xhr = new XMLHttpRequest();
-                    xhr.open("POST", inboxUrl, true);
-                    xhr.setRequestHeader("Content-Type", "application/json");
-                    xhr.onreadystatechange = function () {
-                        if (xhr.readyState === 4 && xhr.status === 200) {
-                            console.log(this.responseText);
-                        }
-                    };
-                    // Make like object
-                    //This object is specific to TEAM7 since their like object has a second layer object for some reason
-                    var data = 
+                // }
+                // function sendLike(object, inboxUrl, host){
+                //     let xhr = new XMLHttpRequest();
+                //     xhr.open("POST", inboxUrl, true);
+                //     xhr.setRequestHeader("Content-Type", "application/json");
+                //     xhr.onreadystatechange = function () {
+                //         if (xhr.readyState === 4 && xhr.status === 200) {
+                //             console.log(this.responseText);
+                //         }
+                //     };
+                //     // Make like object
+                //     //This object is specific to TEAM7 since their like object has a second layer object for some reason
+                //     var data = 
                     
-                    xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
-                    console.log("sending a like object to other server");
-                    console.log(data)
-                    xhr.send(data);
+                //     xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
+                //     console.log("sending a like object to other server");
+                //     console.log(data)
+                //     xhr.send(data);
 
-                }
+                // }
             </script>
         {% endblock %}
     </body>
