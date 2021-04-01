@@ -63,11 +63,12 @@
                     var auth_list_for_other_servers = {{auth_list|safe}};
                     var authuser = ""
                     var authpass = ""
+                    console.log(auth_list_for_other_servers)
                     for(auth in auth_list_for_other_servers) {
                         console.log("hello")
+                        console.log(host)
+                        console.log(auth[0])
                         if(auth[0].includes(host)) {
-                            console.log(host)
-                            console.log(auth[0])
                             authuser = auth[1]
                             authpass = auth[2]
                             console.log(authuser)
