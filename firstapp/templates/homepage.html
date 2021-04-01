@@ -20,7 +20,7 @@
             <script>
                 var public_posts_from_our_server = {{our_server_posts|safe}};
                 for (var item of public_posts_from_our_server){
-                    console.log(item)
+                    console.log(item);
                     document.getElementById("demo").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["timestamp"]+"</h4>";
                     document.getElementById("demo").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("demo").innerHTML += "<p> Content: "+item["content"]+"</p>";
@@ -31,9 +31,9 @@
                 var None = null;
                 var public_posts_from_other_server = {{other_server_posts|safe}};
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
-                    var item = public_posts_from_other_server[0]
+                    var item = public_posts_from_other_server[0];
                 // for (var item of public_posts_from_other_server){
-                    console.log(item)
+                    console.log(item);
                     document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
@@ -41,12 +41,17 @@
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
                 }
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
-                    var item = public_posts_from_other_server[0]
-                    console.log("binding time: " + item)
+                    var item = public_posts_from_other_server[0];
+                    console.log("binding time: " + item);
                     var likeButtonId = "likeButton"+i;
+                    console.log(likeButtonId);
                     document.getElementById(likeButtonId).addEventListener("click", function() {
                         sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
                     }, false);
+                    console.log(item["source"]);
+                    console.log(item["author"]["url"]);
+                    console.log(item["author"]["host"]);
+
                 }
                 function sendLike(object, inboxUrl, host){
                     let xhr = new XMLHttpRequest();
