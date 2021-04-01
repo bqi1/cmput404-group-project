@@ -38,7 +38,8 @@
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+buttonID+"' value='like'/>";
-                    document.getElementById("likeButton0").addEventListener("click", function() {
+                    var likeButtonId = "likeButton"+buttonID
+                    document.getElementById(likeButtonId).addEventListener("click", function() {
                         sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
                     }, false);
                     buttonID++;
