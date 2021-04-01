@@ -1,11 +1,10 @@
     
 <!DOCTYPE html>
     <head>
+        {% include "sub_basic/header.html" %}
         {% csrf_token %}
-
     </head>
     <body>
-        {% extends "index.html" %}
         {% block content %}
             {% if user.is_authenticated %}
                 <p>This is {{ user.username }}.
