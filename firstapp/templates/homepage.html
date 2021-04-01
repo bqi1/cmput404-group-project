@@ -41,6 +41,8 @@
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
                 }
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
+                    (function () {
+
                     var item = public_posts_from_other_server[i];
                     console.log(item);
                     var likeButtonId = "likeButton"+i;
@@ -51,6 +53,7 @@
                     console.log(item["source"]);
                     console.log(item["author"]["url"]);
                     console.log(item["author"]["host"]);
+                }());
 
                 }
                 function sendLike(object, inboxUrl, host){
