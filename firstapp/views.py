@@ -777,6 +777,7 @@ def account_view(request, *args, **kwargs):
         context['id'] = data[8]
         context['username'] = data[3]
         context['email'] = data[9]
+        context['host'] = data[6]
 
         try:
             friend_list = FriendList.objects.get(user=account)
