@@ -96,7 +96,18 @@ def homepage(request):
                 continue
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'auth_user':auth_user, 'auth_pass':auth_pass})
-    
+
+@api_view(['POST'])
+def api_like_post(request):
+    like_object = request.POST.get('Like')
+    url = request.POST.get('Url')
+    response = requests.post(url, auth=requests.HTTPBasicAuth('USER', 'PASSWORD'), headers={'Content-Type': 'application/json'}, json=like_object)
+    if response.status_code == 200:
+        print("Code 200, liked post succesfully")
+    else:
+        print("Code not 200, post was not liked")
+
+
 def signup(request):
     # Called when user accesses the signup page
     success = False
