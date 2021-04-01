@@ -29,12 +29,13 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
 from django.contrib.auth import get_user_model
 import uuid
 import requests
 import base64
 from .remote_friend import get_all_remote_user
+from django.contrib.auth.models import User
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -60,10 +61,13 @@ def get_our_author_object(host, author_uuid):
 
 def homepage(request):
     if request.user.is_authenticated:
+        conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
+        cursor = conn.cursor()
+        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
         try:
             author = Author.objects.get(username=request.user)
         except Author.DoesNotExist:
-            return HttpResponseNotFound("In the homepage function, the user you requested does not exist!!\n")
+            return HttpResponseNotFound(f"In the homepage function, the user you requested does not exist!!{request.user}\n")
         if not author.authorized:
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
@@ -86,9 +90,9 @@ def homepage(request):
                 auth_pass = server.authpassword
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
-                    #TODO figure out a way to pass in auth information for each server
+                    #TODO find a way to pass in auth info with post json
             except Exception as e:
-                print(e)
+                print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'auth_user':auth_user, 'auth_pass':auth_pass})
@@ -104,19 +108,23 @@ def signup(request):
             new_password = form.cleaned_data.get('password1')
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
             auth_login(request, user) # Save user ID for further sessions
-            user.save()
             Token(user=user).save()
+            user.save()
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
+            conn = connection
+            cursor = conn.cursor()
+            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
             try:
-                setting = Setting.objects.get()
-            except Setting.DoesNotExist:
-                print("setting not available. Let's make one!")
-                setting = Setting(usersneedauthentication=False)
-                setting.save()
+                needs_authentication = cursor.fetchall()[0][0]
+            except:
+                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
+                return HttpResponseRedirect(reverse('login'))
+            finally:
+                conn.close()
 
-            if setting.usersneedauthentication:
+            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
@@ -125,14 +133,12 @@ def signup(request):
                 user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
-            else: 
-                # Else, let them in homepage.
-                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
-                    userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
-                        name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"{uuid.uuid4().hex}")
-                user.save()
-                return HttpResponseRedirect(reverse('home'))
+            # Else, let them in homepage.
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+                userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
+                    name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                        consistent_id=f"{uuid.uuid4().hex}")
+            return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
             return render(request, 'signup.html', context)
@@ -145,15 +151,23 @@ def login(request):
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
-        user = authenticate(request, username = new_username, password = new_password)
+        print(new_username)
+        print(new_password)
+        print(request)
+        print(request.user)
+        # print(Author.objects.get(username=request.user))
+        print("whyy")
+        user = authenticate(username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
+            conn = connection
+            cursor = conn.cursor()
+            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
             try:
                 author = Author.objects.get(username=new_username)
             except Author.DoesNotExist:
-                messages.add_message(request,messages.INFO, 'This user does not exist.')
+                messages.add_message(request,messages.INFO, f'This user, {new_username}, does not exist.')
                 return HttpResponseRedirect(reverse('login'))
-            authenticated = author.authorized
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -246,17 +260,30 @@ def make_post_list(data,user_id,isowner=False):
 
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
+            "type":"post",
+            "title":d.title,
+            "id":d.id,
+            "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
+            "origin":f"{author.host}/posts",
+            "description":d.description,
+            "contentType":"text/markdown" if d.markdown else "text/plain",
+            "content":d.content,
+            "author":author_dict,
+            "categories":["web","tutorial"],
+            "count":0,
+            "size":0,
+            "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+            "comments":[],
+            "published":d.tstamp,
+            "visibility":"PUBLIC" if not d.privfriends else "FRIENDS",
+            "unlisted":False if not d.privfriends else True,
             "post_id":d.post_id,
             "user_id":d.user_id,
-            "title":d.title,
-            "description":d.description,
-            "markdown":d.markdown,
-            "content":d.content,
             "image":str(d.image,encoding="utf-8"),
+            "markdown":d.markdown,
             "privfriends":d.privfriends,
             "timestamp":d.tstamp,
-            "id":d.id,
-            "author":author_dict,
+            
         }
         # post is public or post belongs to user
         if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
@@ -283,25 +310,34 @@ def post(request,user_id,post_id):
     method = request.META["REQUEST_METHOD"]
     conn = connection
     cursor = conn.cursor()
+    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
+    user_token = cursor.fetchall()[0][0]
     data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+    except Author.DoesNotExist:
+        messages.add_message(request,messages.INFO, 'This user does not exist.')
+        return HttpResponseRedirect(reverse('login'))
+    author_id = author.userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == 'GET':
         resp = make_post_list(data,request.user.id,isowner=trueauth)
     else:
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        # First see if their username and password in Basic Authentication is valid
+        authenticated = check_authentication(request)
+        if not authenticated:
+            return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        # Now check if the user that wants to modify a post is the one that created the post
+        username = authenticated.get_username()
+        if not username == author.username and not request.user.is_superuser:
+            return HttpResponse('{"detail":"You are not the author."}',status=401)
 
         if method == 'POST':
-
             p = request.POST
             if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
                 p = QueryDict('',mutable=True)
@@ -378,8 +414,9 @@ def post(request,user_id,post_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
+        
         if method == "GET": resp = make_post_html(data,request.user.id,isowner=trueauth)
-        with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
+        with open(FILEPATH+"static/post.js","r") as f: script = f.read() % ("adminB", "adminB", "adminB","adminB")
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
         return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
@@ -400,17 +437,23 @@ def allposts(request,user_id):
 
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
 
+    try:
+        author = Author.objects.get(consistent_id=user_id)
+    except Author.DoesNotExist:
+        messages.add_message(request,messages.INFO, 'This user does not exist.')
+        return HttpResponseRedirect(reverse('login'))
+
     cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
     user_token = cursor.fetchall()[0][0]
 
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
+    author_id = author.userid
 
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        authenticated = check_authentication(request)
+        if not authenticated:
+            return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         p = request.POST
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
             p = QueryDict('',mutable=True)
@@ -449,7 +492,9 @@ def allposts(request,user_id):
     conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
+        # user = User.objects.get(username = author.username)
+        # print(user.username,user.password)
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % ("adminB","adminB")
         if method == "GET": resp = make_post_html(data,user_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
@@ -591,17 +636,30 @@ def publicposts(request):
             }
 
             post_dict = {
+                "type":"post",
+                "title":post.title,
+                "id":post.id,
+                "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
+                "origin":f"{author.host}/posts",
+                "description":post.description,
+                "contentType":"text/markdown" if post.markdown else "text/plain",
+                "content":post.content,
+                "author":author_dict,
+                "categories":["web","tutorial"],
+                "count":0,
+                "size":0,
+                "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+                "comments":[],
+                "published":post.tstamp,
+                "visibility":"PUBLIC" if not post.privfriends else "FRIENDS",
+                "unlisted":False if not post.privfriends else True,
                 "post_id":post.post_id,
                 "user_id":post.user_id,
-                "title":post.title,
-                "description":post.description,
-                "markdown":post.markdown,
-                "content":post.content,
                 "image":str(post.image,encoding="utf-8"),
+                "markdown":post.markdown,
                 "privfriends":post.privfriends,
                 "timestamp":post.tstamp,
-                "id":post.id,
-                "author":author_dict,
+                
             }
             post_list.append(post_dict)
     return HttpResponse(json.dumps(post_list))
@@ -696,8 +754,6 @@ def search_user(request, *args, **kwargs):
             if not noresult:
                 for user in data:
                     if(user[8] not in duplicate):
-                        print(user[8])
-                        print(user)
                         accounts.append((user,False))
                         duplicate.append(user[8])
                         # print('user3')
@@ -733,20 +789,30 @@ def account(request,user_id):
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
         try: # First see if the user exists
-            cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-            user_token = cursor.fetchall()[0][0]
-        except IndexError:
-            return HttpResponse("User does not exist.")
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1] # Retrieve the API token. If it does not match the user's token, cannot update
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+            author = Author.objects.get(consistent_id=user_id)
+        except Author.DoesNotExist:
+            messages.add_message(request,messages.INFO, 'This user does not exist.')
+            return HttpResponseRedirect(reverse('login'))
+        authenticated = check_authentication(request)
+        if not authenticated:
+            return HttpResponse('{"detail":"Authentication credentials were incorrectly provided."}',status=401) # Incorrect or missing token
+        # Can only POST if you're the user itself, or are the admin
+        username = authenticated.get_username()
+
+        if not username == author.username and not request.user.is_superuser:
+            return HttpResponse('{"detail":"You are not the author."}',status=401)
         p = request.POST
         try: # You can only edit your github and display name.
+            
+            user.username = p["displayName"]
+            user.save()
             author = Author.objects.get(consistent_id=user_id)
             author.github = p["github"]
             author.username = p["displayName"]
             author.save()
         except MultiValueDictKeyError:
-            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters\n")
+            return HttpResponseBadRequest("Failed to modify post:\nInvalid/not enough parameters. Must only change github and displayName\n")
+        
         return HttpResponse("Updated profile")
 @api_view(['GET','POST'])
 def account_view(request, *args, **kwargs):
@@ -771,22 +837,21 @@ def account_view(request, *args, **kwargs):
     cursor = conn.cursor()
     # print("*****************")
     # print(user_id)
-    cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
+    cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % user_id)
+
     try:
         data = cursor.fetchall()[0]
         Author = get_user_model()
         account = Author.objects.get(id = user_id)
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
-    # print("here is data")
-    # print(data)
-    
-    # print(len(data))
-    if data:
 
-        context['id'] = data[3]
-        context['username'] = data[7]
+    if data != None:
+
+        context['id'] = data[8]
+        context['username'] = data[3]
         context['email'] = data[9]
+        context['host'] = data[6]
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -847,7 +912,16 @@ def getAuthor(userid):
     my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
         
-
+def check_authentication(request):
+    # From turtlefranklin at 2021-03-31 at https://stackoverflow.com/questions/38016684/accessing-username-and-password-in-django-request-header-returns-none
+    auth_header = request.META['HTTP_AUTHORIZATION']
+    encoded_credentials = auth_header.split(' ')[1]  # Removes "Basic " to isolate credentials
+    decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8").split(':')
+    username = decoded_credentials[0]
+    password = decoded_credentials[1]
+    authenticated = authenticate(username=username, password=password)
+    return authenticated
+    ########################
         
 
     

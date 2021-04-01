@@ -41,6 +41,8 @@ function viewPost(post_id) {
 // Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {
+    var username = "%s";
+    var password = "%s";
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;
@@ -73,10 +75,12 @@ function makePost() {
 
         }
         $.ajax(
+            
             {
                 url: URL,
                 method: method,
-                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
+                headers: { 'X-CSRFToken': csrftoken},
+                beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },                
                 data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "privfriends":privfriends,"priv_author":priv_author },
                 success: function () {
                     alert("Successfully created post!");

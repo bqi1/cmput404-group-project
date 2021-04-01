@@ -54,6 +54,8 @@ function resetFile() {
 }
 // Get parameters and send ajax POST request to post api view (to edit post)
 function editPost() {
+    var username = "%s";
+    var password = "%s";
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;
@@ -80,7 +82,8 @@ function editPost() {
             {
                 url: window.location.href,
                 method: 'POST',
-                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
+                headers: { 'X-CSRFToken': csrftoken},
+                beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },                
                 data: { "title": title, "description": desc, "markdown": markdown, "content": content, "image": image, "privfriends":privfriends, "priv_author":priv_author },
                 success: function () {
                     alert("Successfully modified post!");
@@ -98,6 +101,8 @@ function editPost() {
 
 // Get parameters and send ajax DELETE request to post api view (to delete post)
 function deletePost() {
+    var username ="%s";
+    var password = "%s";
     confirm_delete = confirm("Are you sure you want to delete this post?");
     if(confirm_delete == true) {
         csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -105,7 +110,8 @@ function deletePost() {
             {
                 url: window.location.href,
                 method: 'DELETE',
-                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
+                headers: { 'X-CSRFToken': csrftoken},
+                beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },                
                 success: function () {
                     alert("Successfully deleted post!");
                     window.location.replace(window.location.href.match(/(.*)(?=\/)/g)[0]);
