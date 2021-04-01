@@ -655,16 +655,17 @@ def viewComments(request, user_id, post_id):
                 "type":"author",
                 "id": f"http://{author.host}/author/{author.consistent_id}",
                 "host": f"{author.host}/",
-                "url": f"{author.host}/firstapp/{author.userid}",
+                "url": f"http://{author.host}/author/{author.consistent_id}",
                 "displayName": author.username,
                 "github": author.github,
             }
             comment_dict = {
+                "type":"comment",
                 "author":author_dict,
                 "comment":comment.comment_text,
-              #  "contentType":"text/markdown",
+                "contentType":"text/markdown",
               #  "published":comment.tstamp,
-                "id":comment.comment_id,
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
             }
             json_comment_list.append(comment_dict)
         return HttpResponse(json.dumps(json_comment_list))
