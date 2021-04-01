@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
 from django.contrib.auth import get_user_model
 import uuid
 import requests
