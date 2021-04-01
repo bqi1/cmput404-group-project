@@ -101,7 +101,7 @@ def homepage(request):
 def api_like_post(request):
     like_object = request.POST.get('Like')
     url = request.POST.get('Url')
-    response = requests.post(url, auth=requests.HTTPBasicAuth('USER', 'PASSWORD'), headers={'Content-Type': 'application/json'}, json=like_object)
+    response = requests.post(url, auth=requests.HTTPBasicAuth('auth_user', 'auth_pass'), headers={'Content-Type': 'application/json'}, json=like_object)
     if response.status_code == 200:
         print("Code 200, liked post succesfully")
     else:
