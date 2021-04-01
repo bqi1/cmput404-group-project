@@ -63,6 +63,7 @@ def homepage(request):
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
+        
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
@@ -72,7 +73,8 @@ def homepage(request):
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
-            except:
+            except Exception as e:
+                print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
 
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
