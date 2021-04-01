@@ -39,7 +39,7 @@
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     var author_object = {{our_author_object|safe}};
                     var like_obj = JSON.stringify({ "obj":{"context": "", "summary":item["author"]["displayname"]+" liked your post" , "type": "like", "author": author_object, "object":item["source"]}});
-                    document.getElementById("other_servers").innerHTML += "<input id='like' type='button' value='likePost' onclick='likePost("+like_obj+","+item["author"]["url"]+"/inbox)'>";
+                    document.getElementById("other_servers").innerHTML += "<input id='like' type='button' value='likePost' onclick='likePost("+like_obj+","+item["author"]["url"]+"/inbox"+")'>";
 
                 function likePost(like_obj, url){
                     csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
