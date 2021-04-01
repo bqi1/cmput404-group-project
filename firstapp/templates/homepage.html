@@ -39,11 +39,11 @@
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+buttonID+"' value='like'/>";
                     document.getElementById("likeButton"+buttonID).addEventListener("click", function() {
-                        sendLike(item["source"], item["author"]["url"]);
+                        sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
                     }, false);
                     buttonID++;
                 }
-                function sendLike(object, inboxUrl){
+                function sendLike(object, inboxUrl, host){
                     let xhr = new XMLHttpRequest();
                     xhr.open("POST", inboxUrl, true);
                     xhr.setRequestHeader("Content-Type", "application/json");
@@ -59,8 +59,15 @@
                     
                     // Sending data with the request
                     console.log(data);
-                    var authuser = "" + {{authuser|safe}}
-                    var authpass = "" + {{authpass|safe}}
+                    //auth_list contains a list of tuples, each tuple has (host, authuser, authpassword)
+                    for(auth in auth_list) {
+                        if(host in auth[0]) {
+                            let authuser = auth[1]
+                            let authpass = "" + auth[2]
+                            break
+                        }
+                    }
+                    
                     xhr.setRequestHeader("Authorization", "Basic", + btoa(auth_user+":"+authpass))
                     xhr.send(data);
                     console.log("sent");

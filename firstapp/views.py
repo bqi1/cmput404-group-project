@@ -77,17 +77,18 @@ def homepage(request):
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         theirData = []
+        auth_list = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
-                    print (theirData)
+                    auth_list.append((server.hostserver,server.username,server.authpassword))
             except Exception as e:
                 print(e)
                 continue
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
-        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'authuser':server.authusername, "authpass":server.authpassword})
+        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'auth_list':auth_list})
     
 def signup(request):
     # Called when user accesses the signup page
