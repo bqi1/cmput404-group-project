@@ -61,11 +61,11 @@
                     // Make like object
                     var author_object = {{our_author_object|safe}};
                     //This object is specific to TEAM7 since their like object has a second layer object for some reason
-                    var data = JSON.stringify({ "obj":{"context": "", "summary":author["displayname"]+"liked your post" ,"author": author_object, "object":object, "type": "like" }});
+                    var data = JSON.stringify({ "obj":{"context": "", "summary":author_object["displayname"]+"liked your post" ,"author": author_object, "object":object, "type": "like" }});
                     
                     xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
                     xhr.send(data);
-                    console.log("sent");
+                    console.log("sent a like object to other server");
                 }
             </script>
         {% endblock %}
