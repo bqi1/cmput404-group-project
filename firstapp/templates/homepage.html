@@ -55,6 +55,7 @@
                 }
                 function sendLike(object, inboxUrl, host){
                     let xhr = new XMLHttpRequest();
+                    console.log(inboxUrl)
                     xhr.open("POST", inboxUrl, true);
                     xhr.setRequestHeader("Content-Type", "application/json");
                     xhr.onreadystatechange = function () {
