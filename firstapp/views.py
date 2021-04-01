@@ -215,7 +215,8 @@ def make_post_html(data,user_id,isowner=False):
             # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
             if d.privfriends == True:
                 cons_id = Author.objects.get(consistent_id=d.user_id).userid
-                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                except FriendList.DoesNotExist: friend_ids = []
                 if user_id in friend_ids or isowner: show_post = True
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
                 if image == '0':
@@ -296,7 +297,8 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             if d.privfriends == True:
                 post_dict["visibility"].append("FRIENDS")
                 cons_id = Author.objects.get(consistent_id=d.user_id).userid
-                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                except FriendList.DoesNotExist: friend_ids = []
                 if user_id in friend_ids or isowner: show_post = True
 
             if show_post and user_id != None: post_list.append(post_dict)
