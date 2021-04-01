@@ -276,9 +276,13 @@
 	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
 	if (sendRemoteFriendRequestBtn != null){
 		sendRemoteFriendRequestBtn.addEventListener("click", function(){
-			let xhr = new XMLHttpRequest();
-			xhr.open('GET',"{{host}}", true);
-			xhr.send();
+			$.ajax({
+				type: "POST",
+				url: "../sen_remote_friend_request.py",
+				data: { param: "{{host}}"}
+			}).done(function( o ) {
+			   // do something
+			});
 		})
 	}
 
@@ -286,7 +290,8 @@
 	var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
 	if(cancelFriendRequestBtn != null){
 		cancelFriendRequestBtn.addEventListener("click", function(){
-			//cancelFriendRequest("{{id}}", onFriendRequestCancelled)
+			const url = "{{host}}";
+			document.write(url);
 		})
 	}
 
