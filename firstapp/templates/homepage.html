@@ -59,7 +59,7 @@
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+public_posts_from_other_server[i]["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+public_posts_from_other_server[i]["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
-                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i"' value='like'/>";
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
                     var likeButtonId = "likeButton"+i
                     document.getElementById(likeButtonId).addEventListener("click", function() {
                         sendLike(public_posts_from_other_server[i]["source"], public_posts_from_other_server[i]["author"]["url"], public_posts_from_other_server[i]["author"]["host"]);
