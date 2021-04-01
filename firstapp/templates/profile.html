@@ -169,7 +169,7 @@
 						<!-- You sent them a request -->
 						{% if request_sent == 1 %}
 						<div >
-							<button >
+							<button  id = "id_cancel_friend_request_btn">
 								Cancel Friend Request
 							</button>
 						</div>
@@ -196,6 +196,7 @@
 					
 					
 				{% if is_friend %}
+
 					<div class="dropdown pt-4 m-auto">
 						<button class="btn btn-secondary dropdown-toggle friends-btn" type="button" id="id_friends_toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 						Friends
@@ -208,13 +209,16 @@
 		
 				<!-- TODO -->
 				<!-- Friend list link -->
-		  		<div class="d-flex flex-column pt-4">
-					<a href="{% url 'friend:list' user_id=id %}">
-						<div class="d-flex flex-row align-items-center justify-content-center icon-container">
-							<span class="material-icons mr-2 friends-icon"></span><span class="friend-text">Friends ({{friends|length}})</span>
-						</div>
-					</a>
-				</div>
+				{% if is_self == True%}
+			  		<div class="d-flex flex-column pt-4">
+						<a href="{% url 'friend:list' user_id=id %}">
+							<div class="d-flex flex-row align-items-center justify-content-center icon-container">
+								<span class="material-icons mr-2 friends-icon"></span><span class="friend-text">Friends ({{friends|length}})</span>
+							</div>
+						</a>
+					</div>
+				{% endif %}
+
 
 			</div>
 
@@ -290,8 +294,9 @@
 	var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
 	if(cancelFriendRequestBtn != null){
 		cancelFriendRequestBtn.addEventListener("click", function(){
-			const url = "{{host}}";
-			document.write(url);
+			const url = "{{host}}" + "{{id}}";
+			alert(url);
+
 		})
 	}
 
