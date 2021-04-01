@@ -793,6 +793,7 @@ def account(request,user_id):
             return HttpResponse('{"detail":"You are not the author."}',status=401)
         p = request.POST
         try: # You can only edit your github and display name.
+            user = User.objects.get(username=author.username)
             user.username = p["displayName"]
             user.save()
             author = Author.objects.get(consistent_id=user_id)
