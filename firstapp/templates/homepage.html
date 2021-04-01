@@ -31,7 +31,7 @@
                 var None = null;
                 var public_posts_from_other_server = {{other_server_posts|safe}};
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
-                    var item = public_posts_from_other_server[0];
+                    var item = public_posts_from_other_server[i];
                 // for (var item of public_posts_from_other_server){
                     console.log(item);
                     document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
@@ -41,7 +41,7 @@
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
                 }
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
-                    var item = public_posts_from_other_server[0];
+                    var item = public_posts_from_other_server[i];
                     console.log(item);
                     var likeButtonId = "likeButton"+i;
                     console.log(likeButtonId);
