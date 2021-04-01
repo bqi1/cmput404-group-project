@@ -151,3 +151,7 @@ function removePrivateAuthor() {
     if (num_children>0){element_list.removeChild(element_list.childNodes[num_children-1]);}
 
 }
+
+function viewShare(user_id){
+    location.replace(window.location.href + "check_share/")
+}

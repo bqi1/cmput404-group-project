@@ -1,10 +1,11 @@
-from django.shortcuts import render, HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, HttpResponse, HttpResponseRedirect, get_object_or_404
 from django.http import HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-from .form import UserForm
+from .form import UserForm, CommentForm
+# from .form import UserForm
 from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -18,6 +19,7 @@ from datetime import datetime
 import json
 from django.conf import settings
 from markdown import Markdown as Md
+from django.core.mail import send_mail
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
@@ -25,14 +27,15 @@ from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
-from friend.models import FriendList, FriendRequest
+from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, PostLikes, Category
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Category, Node, Setting
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
+from .remote_friend import get_all_remote_user
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -48,22 +51,33 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        author = Author.objects.get(username=request.user)
-        token = author.api_token
-        author_uuid = author.consistent_id
+        try:
+            author = Author.objects.get(username=request.user)
+            token = author.api_token
+        except Author.DoesNotExist:
+            return HttpResponseNotFound("In the homepage function, the user you requested does not exist!!\n")
+        if not author.authorized:
+            messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
+            return HttpResponseRedirect(reverse('login'))
+        user_id,author_uuid = author.userid,author.consistent_id
 
-        URL = "http://"+request.META['HTTP_HOST']+"/posts"
-        r1 = requests.get(url=URL)
-        data1 = r1.json()
+        # Get all public posts from our server
+        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        ourRequest = requests.get(url=ourURL)
+        ourData = ourRequest.json()
 
-        # Get all public posts from another server
-        URL = "https://iconicity-test-a.herokuapp.com/posts"
-        PARAMS = {'Authorization:':f"Basic {base64.b64encode('auth_user:authpass'.encode('ascii'))}"}
-        r2 = requests.get(url=URL, auth=("auth_user", "authpass"))
-        data2 = r2.json()
+        # Get all public posts from another server, from the admin panel
+        servers = Node.objects.all()
+        theirData = []
+        for server in servers: # Iterate through each server, providing authentication if necessary
+            try:
+                postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                if postsRequest.status_code == 200:
+                    theirData.extend(postsRequest.json())
+            except:
+                continue
 
-
-        return render(request, 'homepage.html', {'token':token, 'author_uuid':author_uuid, 'our_server_posts':data1,'other_server_posts':data2})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -81,31 +95,30 @@ def signup(request):
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute('SELECT usersneedauthentication from firstapp_setting;')
             try:
-                needs_authentication = cursor.fetchall()[0][0]
-            except:
-                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
-                return HttpResponseRedirect(reverse('login'))
-            finally:
-                conn.close()
+                setting = Setting.objects.get()
+            except Setting.DoesNotExist:
+                print("setting not available. Let's make one!")
+                setting = Setting(usersneedauthentication=False)
+                setting.save()
 
-            if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
+            if setting.usersneedauthentication:
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                             consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
+                user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
-            # Else, let them in homepage.
-            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
-                userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
-                    name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
-            return HttpResponseRedirect(reverse('home'))
+            else: 
+                # Else, let them in homepage.
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+                    userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
+                        name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
+                            consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
+                user.save()
+                return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
             return render(request, 'signup.html', context)
@@ -121,16 +134,12 @@ def login(request):
         user = authenticate(request, username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
             try:
-                authenticated = cursor.fetchall()[0][0]
-                conn.close()
-            except:
-                conn.close()
+                author = Author.objects.get(username=new_username)
+            except Author.DoesNotExist:
                 messages.add_message(request,messages.INFO, 'This user does not exist.')
                 return HttpResponseRedirect(reverse('login'))
+            authenticated = author.authorized
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -158,8 +167,9 @@ def validate_int(p,optional=[]):
 # canaedit - true if the current user is allowed to edit the post
 def make_post_html(data,user_id,isowner=False):
     resp = ""
+  #  resp1 = ""
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
-
+  #  with open(FILEPATH+"static/comment.js","r") as f1: script1 = f1.read()
     #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
     start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><p class="tags">%s</p></br>'
@@ -182,10 +192,14 @@ def make_post_html(data,user_id,isowner=False):
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
+                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
             else: 
                 resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
                 resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
+                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
 
             resp += "</br>"
         else: # post is private
@@ -525,7 +539,7 @@ def make_like_object(object, user_id, make_json = True):
     like_dict["type"] = "like"
     try:
         author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404posties.herokuapp.com/author/' + author.consistent_id
+        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
         r = requests.get(url)
         like_dict["author"] = r.json()
     except:
@@ -607,7 +621,7 @@ def make_liked_object(data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://c404posties.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
+        url = "http://c404-project.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
         like_object = make_like_object(url,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
@@ -662,92 +676,104 @@ def publicposts(request):
 
 
 
-# def comment(request, user_id, post_id):
-#     if request.method == "POST":
-
-# #get a list of likes from other authors on the post id's comment id
-# @api_view(['GET'])
-# def commlikes(request):
-#     method = request.META["REQUEST_METHOD"]
-#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-#     cursor = conn.cursor()
-#     cursor.execute('SELECT from_id FROM likes WHERE id=%d AND comm;'%post_id)
-#     data = cursor.fetchall()
-
-#     return HttpResponse("why")
-
-# @api_view(['GET','POST','DELETE'])
-# def inbox(request):
-#     ADD_LIKE_QUERY = "INSERT INTO likes VALUES (?,?,?,?);"
-
-#     method = request.META["REQUEST_METHOD"]
-#     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
-#     cursor = conn.cursor()
-
-#     if method  == "GET":
-#         #Get a list of posts sent to author id
-#     elif method == "POST":
-#         if request.type == "post":
-#             #TODO add post to author's inbox
-#         elif request.type == "follow":
-#             #TODO add follow to author's inbox
-#         elif request.type == "like":
-#             #TODO add like to author's inbox
-#             cursor.execute('SELECT id FROM auth_user WHERE id=%d'%user_id)
-#             data = cursor.fetchall()
-#             if len(data) == 0:
-#                 return HttpResponseNotFound("The user you requested does not exist\n")
-#             cursor.execute(ADD_LIKE_QUERY, (from_user, user_id, post_id, comment_id)
+@api_view(['GET','POST'])
+def commentpost(request, user_id, post_id):
+    resp = ""
+  #  conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
+    cursor = conn.cursor()
+    try:
+        request.user.id = int(request.user.id)
+    except:
+        request.user.id = 0
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %d;'% (request.user.id, post_id))
+    data = cursor.fetchall()
+    if request.method == "POST":
+        while True:
             
-#         else:
-#             return HttpResponseNotFound("This type of object does not exist\n")
-#     else:
-#         #TODO clear the inbox
+            comment_id = rand(2**31)
+            byte_data = request.data
+         #   data = byte_data.decode("utf-8")
+           # json_object = json.loads(request.data)
+          #  print(json_object)
+          #  comment = byte_data.split("&comment=")[1]
+            comment = byte_data.get('comment')
+          #  comment = request.POST.get('comment_text')
+         #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
+            
+            cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
+            data1 = cursor.fetchall()
+            if len(data1)==0:
+                new_comment = Comment(post_id=post_id, comment_id=comment_id, from_user=request.user.id, to_user=user_id, comment_text=comment)
+                new_comment.save()
+                break
+              #  return HttpResponse("Comment created sucessfully!")
+        #print(json_object)
+        url = request.get_full_path()
+        return render(request, "comments.html")
+    else:
+        return render(request, "comments.html")
 
+@api_view(['GET'])
+def viewComments(request, user_id, post_id):
+   # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
+    conn = connection
+    cursor = conn.cursor()
+    agent = request.META["HTTP_USER_AGENT"]
+    
+    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
+        cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
+        data = cursor.fetchall()
+        comment_list = []
+        for d in data:
+            comment_text = d[0]
+            comment_list.append(comment_text)
+        num_comments = len(comment_list)
+        return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+
+    
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
+    user_id = request.user.id
+    
+    remote_author_list = get_all_remote_user()
+        
     if request.method == "GET":
         search_query = request.GET.get("q")
         if len(search_query) > 0:
             accounts = []
             conn = connection
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM authtoken_token t, auth_user u WHERE u.username LIKE %s', ("%" + search_query + "%",))
+            cursor.execute('SELECT * FROM authtoken_token t, firstapp_author a WHERE a.username LIKE %s', ("%" + search_query + "%",))
             duplicate = []
+
+            # Search for the local author 
             try:
+
                 data = cursor.fetchall()
                 Author = get_user_model()
                 account = Author.objects.filter(username = search_query)
-                
             except IndexError: # No token exists, must create a new one!
                 noresult = True 
             user = request.user
+                    # account.append((user[0]))
 
-            # if not noresult:
-            #     if user.is_authenticated:
-            #         auth_user_friend_list = FriendList.objects.get( user = user )
-            #         for user in data:
-            #             if(user[3] not in duplicate):
-            #                 accounts.append((user,auth_user_friend_list.is_mutual_friend(account)))
-            #                 duplicate.append(user[3])
-            #     else:
-            #         for user in data:
-            #             if(user[3] not in duplicate):
-            #                 accounts.append((user,False))
-            #                 duplicate.append(user[3])
             if not noresult:
                 for user in data:
-                    if(user[3] not in duplicate):
+                    if(user[8] not in duplicate):
+                        print(user[8])
+                        print(user)
                         accounts.append((user,False))
-                        duplicate.append(user[3])
-
+                        duplicate.append(user[8])
+                        # print('user3')
+                        # print(user[3]
 
             context['searchResult'] = accounts
             
     conn.close()
     return render(request,"search_user.html",context)
-
 
 @api_view(['GET','POST'])
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
@@ -810,8 +836,8 @@ def account_view(request, *args, **kwargs):
 
 
     cursor = conn.cursor()
-    print("*****************")
-    print(user_id)
+    # print("*****************")
+    # print(user_id)
     cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
     try:
         data = cursor.fetchall()[0]
@@ -873,7 +899,7 @@ def account_view(request, *args, **kwargs):
 
         user = request.user
         if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
-            is_self = False 
+            is_self = False
 
         context['is_self'] =is_self
         context['is_friend'] = is_friend
@@ -887,4 +913,11 @@ def getAuthor(userid):
     # This function gets the Author object associated with the userid. Returns None
     my_user = Author.objects.get(userid=userid) # Will change it to include the uuid rather than userid
     return my_user
+        
 
+        
+
+    
+    
+    
+    

@@ -8,7 +8,8 @@
         {% block content %}
             {% if user.is_authenticated %}
                 <p>This is {{ user.username }}.
-                    Your unique userid is {{author_uuid}}.
+                    Your unique userid is {{user_id}}.
+                    Your UUID is {{author_uuid}}.
                     Your API token is {{token}}.</p>
                 <a href= "/author/{{author_uuid}}/posts">My Stream</a> <!--Link to making a post/view your post-->
             {% endif %}
