@@ -311,11 +311,6 @@ def post(request,user_id,post_id):
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         except IndexError: # Client is using basic authentication
             pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
-            '''
-            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
-            stupid_username, stupid_password = enc[0], enc[1]
-            raise ValueError("Keel sends his regards :3\nMy Stupid Username is %s, and My Stupid Password %s" %(stupid_username, stupid_password))
-            '''
 
         if method == 'POST':
 
@@ -441,8 +436,11 @@ def allposts(request,user_id):
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentiation
+            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
         p = request.POST
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
             p = QueryDict('',mutable=True)
