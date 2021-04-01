@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
 from django.contrib.auth import get_user_model
 import uuid
 import requests
@@ -51,9 +51,6 @@ def index(request):
 
 def homepage(request):
     if request.user.is_authenticated:
-        conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
-        cursor = conn.cursor()
-        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
         try:
             author = Author.objects.get(username=request.user)
         except Author.DoesNotExist:
@@ -62,7 +59,6 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
@@ -79,7 +75,6 @@ def homepage(request):
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
         print(theirData)
-
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
 def signup(request):
@@ -98,17 +93,12 @@ def signup(request):
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
             try:
-                needs_authentication = cursor.fetchall()[0][0]
-            except:
-                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
-                return HttpResponseRedirect(reverse('login'))
-            finally:
-                conn.close()
-
+                settings = Setting.objects.get()
+            except Setting.DoesNotExist:
+                print("make a setting")
+                settings = Setting(usersneedauthentication=False)
+            needs_authentication = settings.usersneedauthentication
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
@@ -141,19 +131,16 @@ def login(request):
         print(request)
         print(request.user)
         # print(Author.objects.get(username=request.user))
-        print("whyy")
         user = authenticate(username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
+
             try:
                 author = Author.objects.get(username=new_username)
             except Author.DoesNotExist:
                 messages.add_message(request,messages.INFO, f'This user, {new_username}, does not exist.')
                 return HttpResponseRedirect(reverse('login'))
-            authenticated = check_authentication(request)
+            authenticated = author.authorized
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -776,8 +763,7 @@ def account(request,user_id):
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = connection
-    cursor = conn.cursor()
+
     try: 
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
     except:
@@ -807,7 +793,6 @@ def account(request,user_id):
             return HttpResponse('{"detail":"You are not the author."}',status=401)
         p = request.POST
         try: # You can only edit your github and display name.
-            
             user.username = p["displayName"]
             user.save()
             author = Author.objects.get(consistent_id=user_id)
