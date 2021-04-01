@@ -33,6 +33,7 @@
                 var buttonID = 0;
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
                 // for (var item of public_posts_from_other_server){
+                    (function () {
                     console.log(public_posts_from_other_server[i])
                     document.getElementById("other_servers").innerHTML += "<h4>"+public_posts_from_other_server[i]["title"]+" from "+public_posts_from_other_server[i]["author"]["display_name"]+" on "+public_posts_from_other_server[i]["published"]+"</h4>";
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+public_posts_from_other_server[i]["description"]+"</p>";
@@ -44,6 +45,7 @@
                         sendLike(public_posts_from_other_server[i]["source"], public_posts_from_other_server[i]["author"]["url"], public_posts_from_other_server[i]["author"]["host"]);
                     }, false);
                     buttonID++;
+                    }());
                 }
                 function sendLike(object, inboxUrl, host){
                     let xhr = new XMLHttpRequest();
