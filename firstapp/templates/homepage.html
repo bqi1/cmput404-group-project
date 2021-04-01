@@ -60,9 +60,9 @@
                     // Sending data with the request
                     console.log(data);
                     //auth_list contains a list of tuples, each tuple has (host, authuser, authpassword)
-                    var authuser = {{auth_user}}
-                    var authpass = {{auth_pass}}
-                    xhr.setRequestHeader("Authorization", "Basic", + btoa(authuser+":"+authpass))
+                    var authuser = {{auth_user|safe}};
+                    var authpass = {{auth_pass\safe}};
+                    xhr.setRequestHeader("Authorization", "Basic", + btoa(authuser+":"+authpass));
                     xhr.send(data);
                     console.log("sent");
                 }
