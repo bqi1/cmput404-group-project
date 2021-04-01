@@ -70,7 +70,7 @@ def homepage(request):
         theirData = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
-                postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                postsRequest = requests.get(url=f"{server.hostserver}/posts/", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
             except Exception as e:
