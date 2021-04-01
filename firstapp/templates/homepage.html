@@ -30,6 +30,22 @@
                 var True = true;
                 var None = null;
                 var public_posts_from_other_server = {{other_server_posts|safe}};
+                for(let i = 0; i < public_posts_from_other_server.length; i++){
+                    var item = public_posts_from_other_server[0]
+                // for (var item of public_posts_from_other_server){
+                    console.log(item)
+                    document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
+                    document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
+                    document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
+                    // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
+                    var likeButtonId = "likeButton"+i;
+                }
+                for(let i = 0; i < public_posts_from_other_server.length; i++){
+                    document.getElementById(likeButtonId).addEventListener("click", function() {
+                        sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
+                    }, false);
+                }
                 function sendLike(object, inboxUrl, host){
                     let xhr = new XMLHttpRequest();
                     xhr.open("POST", inboxUrl, true);
@@ -50,20 +66,6 @@
                     xhr.setRequestHeader("Authorization", "Basic", + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
                     xhr.send(data);
                     console.log("sent");
-                }
-                // for(var i = 0; i < public_posts_from_other_server.length; i++){
-                for (var item of public_posts_from_other_server){
-                    (function () {
-                    console.log(item);
-                    document.getElementById("other_servers").innerHTML += "<h4>"+item["title"]+" from "+item["author"]["display_name"]+" on "+item["published"]+"</h4>";
-                    document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
-                    document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
-                    // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
-                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton' value='like'/>";
-                    document.getElementById("likeButton").addEventListener("click", function() {
-                        sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
-                    }, false);
-                    }());
                 }
             </script>
         {% endblock %}
