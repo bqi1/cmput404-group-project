@@ -630,22 +630,6 @@ def commentpost(request, user_id, post_id):
     else:
         return render(request, "comments.html")
 
-#def make_comment_object(object, user_id, jsonify=True):
-#    comment_dict = {}
- #   comment_dict["type"] = "comment"
-  #  try:
-   #     author = Author.objects.get(consistent_id=user_id)
-    #    url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
-     #   r = requests.get(url)
-      #  comment_dict["author"] = r.json()
-    #except:
-     #   return HttpResponseNotFound("The account you requested does not exist\n")
-   # comment_dict["object"] = object
-    #if jsonify:
-     #   return json.dumps(comment_dict)
-   # else:
-    #    return comment_dict
-
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
     conn = connection
@@ -661,23 +645,26 @@ def viewComments(request, user_id, post_id):
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
+  #      return HttpResponse(comment_list)
         json_comment_list = []
         comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
            # for comment in comments:
             author = Author.objects.get(consistent_id = comment.to_user)
             author_dict = {
+                "type":"author",
                 "id": f"http://{author.host}/author/{author.consistent_id}",
                 "host": f"{author.host}/",
-                "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
+                "displayName": author.username,
                 "github": author.github,
             }
             comment_dict = {
-                "comment":comment.comment_text,
-           #     "published":comment.tstamp,
-                "id":comment.comment_id,
                 "author":author_dict,
+                "comment":comment.comment_text,
+              #  "contentType":"text/markdown",
+              #  "published":comment.tstamp,
+                "id":comment.comment_id,
             }
             json_comment_list.append(comment_dict)
         return HttpResponse(json.dumps(json_comment_list))
