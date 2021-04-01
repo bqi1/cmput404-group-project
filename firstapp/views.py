@@ -292,18 +292,14 @@ def post(request,user_id,post_id):
     viewer_id = "0"
     if type(request.user) != AnonymousUser:
         viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
-    conn = connection
-    cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
+    user_token = data[0].api_token
+    author_id = data[0].userid
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == 'GET':
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
@@ -407,9 +403,7 @@ def post(request,user_id,post_id):
             new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
         else:
-            conn.close()
             return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
         if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
@@ -428,18 +422,13 @@ def allposts(request,user_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
-    conn = connection
-    cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
     viewer_id = "0"
     if type(request.user) != AnonymousUser:
         viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-    cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
+    user_token = data[0].api_token
+    author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
@@ -487,9 +476,7 @@ def allposts(request,user_id):
         data = Post.objects.filter(user_id=user_id)
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
     else:
-        conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
