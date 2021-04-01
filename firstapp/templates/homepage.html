@@ -44,7 +44,7 @@
                         var item = public_posts_from_other_server[i];
                         var likeButtonId = "likeButton"+i;
                         document.getElementById(likeButtonId).addEventListener("click", function() {
-                            sendLike(item["source"], item["author"]["url"], item["author"]["host"]);
+                            sendLike(item["source"], item["author"]["url"]+"/inbox", item["author"]["host"]);
                         }, false);
                     }());
 
