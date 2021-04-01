@@ -247,6 +247,7 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             "image":str(d.image,encoding="utf-8"),
             "privfriends":d.privfriends,
             "visibility":[],
+            "unlisted":d.unlisted,
             "published":d.published,
             "id":d.id,
             "author":author_dict,
@@ -305,8 +306,16 @@ def post(request,user_id,post_id):
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
         if data[0].unlisted and not trueauth: return HttpResponseNotFound("The post you requested does not exist\n") # Unlisted posts will not be returned from this method!
     else:
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentication
+            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
+            '''
+            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+            stupid_username, stupid_password = enc[0], enc[1]
+            raise ValueError("Keel sends his regards :3\nMy Stupid Username is %s, and My Stupid Password %s" %(stupid_username, stupid_password))
+            '''
 
         if method == 'POST':
 
