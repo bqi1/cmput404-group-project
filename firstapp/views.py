@@ -655,9 +655,6 @@ def publicposts(request):
             post_list.append(post_dict)
     return HttpResponse(json.dumps(post_list))
     
-
-
-
 @api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):
     resp = ""
@@ -675,13 +672,7 @@ def commentpost(request, user_id, post_id):
             
             comment_id = rand(2**31)
             byte_data = request.data
-         #   data = byte_data.decode("utf-8")
-           # json_object = json.loads(request.data)
-          #  print(json_object)
-          #  comment = byte_data.split("&comment=")[1]
             comment = byte_data.get('comment')
-          #  comment = request.POST.get('comment_text')
-         #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
             
             cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
             data1 = cursor.fetchall()
@@ -698,13 +689,10 @@ def commentpost(request, user_id, post_id):
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
-   # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
-    
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
         cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
         data = cursor.fetchall()
         comment_list = []
@@ -713,8 +701,32 @@ def viewComments(request, user_id, post_id):
             comment_list.append(comment_text)
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+    else:
+  #      return HttpResponse(comment_list)
+        json_comment_list = []
+        comments = Comment.objects.filter(post_id=post_id)
+        for comment in comments:
+           # for comment in comments:
+            author = Author.objects.get(consistent_id = comment.to_user)
+            author_dict = {
+                "type":"author",
+                "id": f"http://{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "url": f"http://{author.host}/author/{author.consistent_id}",
+                "displayName": author.username,
+                "github": author.github,
+            }
+            comment_dict = {
+                "type":"comment",
+                "author":author_dict,
+                "comment":comment.comment_text,
+                "contentType":"text/markdown",
+              #  "published":comment.tstamp,
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
+            }
+            json_comment_list.append(comment_dict)
+        return HttpResponse(json.dumps(json_comment_list))
 
-    
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
