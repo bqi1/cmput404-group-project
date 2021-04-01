@@ -113,8 +113,7 @@ function deletePost() {
             {
                 url: window.location.href,
                 method: 'DELETE',
-                headers: { 'X-CSRFToken': csrftoken},
-                beforeSend: function(xhr) { xhr.setRequestHeader("Authorization", "Basic " + btoa(username + ":" + password)); },                
+                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
                 success: function () {
                     alert("Successfully deleted post!");
                     window.location.replace(window.location.href.match(/(.*)(?=\/)/g)[0]);

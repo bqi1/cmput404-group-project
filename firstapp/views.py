@@ -333,8 +333,11 @@ def post(request,user_id,post_id):
             token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         except IndexError: # Client is using basic authentication
-            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
-
+            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+            uname, pword = enc[0], enc[1]
+            user = User.objects.get(id=author_id)
+            if user.username != uname or not user.check_password(pword):
+                return HttpResponse('{"detail":"Invalid username/password."}',status=401) # A correct uname and pword supplied, but not for this specific user
         if method == 'POST':
             p = request.POST
             if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
@@ -462,7 +465,11 @@ def allposts(request,user_id):
             token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
         except IndexError: # Client is using basic authentiation
-            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
+            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+            uname, pword = enc[0], enc[1]
+            user = User.objects.get(id=author_id)
+            if user.username != uname or not user.check_password(pword):
+                return HttpResponse('{"detail":"Invalid username/password."}',status=401) # A correct uname and pword supplied, but not for this specific user
         p = request.POST
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
             p = QueryDict('',mutable=True)
