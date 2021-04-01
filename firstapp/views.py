@@ -29,8 +29,9 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Category, Node, Setting
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
@@ -38,7 +39,7 @@ from .remote_friend import get_all_remote_user
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
+EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, published=? WHERE post_id=? AND user_id =?;"
 
 PRIV_ADD_QUERY = "INSERT INTO author_privacy VALUES (?,?);"
 STR2BOOL = lambda x: bool(int(x))
@@ -52,6 +53,7 @@ def homepage(request):
     if request.user.is_authenticated:
         try:
             author = Author.objects.get(username=request.user)
+            token = author.api_token
         except Author.DoesNotExist:
             return HttpResponseNotFound("In the homepage function, the user you requested does not exist!!\n")
         if not author.authorized:
@@ -75,7 +77,7 @@ def homepage(request):
             except:
                 continue
 
-        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -88,8 +90,8 @@ def signup(request):
             new_password = form.cleaned_data.get('password1')
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
             auth_login(request, user) # Save user ID for further sessions
-            user.save()
-            Token(user=user).save()
+            #Token(user=user).save()
+            #user.save()
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
@@ -104,7 +106,7 @@ def signup(request):
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
@@ -114,7 +116,7 @@ def signup(request):
                 user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                     userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 user.save()
                 return HttpResponseRedirect(reverse('home'))
         else:
@@ -170,20 +172,21 @@ def make_post_html(data,user_id,isowner=False):
   #  with open(FILEPATH+"static/comment.js","r") as f1: script1 = f1.read()
     #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
-    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
+    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><p class="tags">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
     endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
 
     for d in data:
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
+        tags = [c.tag for c in Category.objects.filter(post_id=d.post_id)]
         image = str(d.image,encoding="utf-8")
         content = d.content
         if d.markdown: # use markdown!
             md = Md()
             content = md.convert(content)
         starttag = jscript
-        starttag += start % (d.title,d.description,content)
-        if len(priv) == 0: # post is not private
+        starttag += start % (d.title,d.description,content,",".join(tags))
+        if len(priv) == 0 and d.privfriends == False: # post is not private
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
@@ -205,16 +208,29 @@ def make_post_html(data,user_id,isowner=False):
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                if user_id in friend_ids or isowner: show_post = True
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
-                if image == '0': resp += starttag + endnoimage.format(d.post_id,d.post_id) % (d.markdown,)
-                else: resp += starttag + endimage.format(d.post_id,d.post_id) % (image,d.markdown)
+                if image == '0':
+                    resp += starttag
+                    resp += endnoimage.format(d.post_id) % (d.markdown,)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                else:
+                    resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
                 resp += "</br>"
     return resp
 
 # This function will return all visible posts, and return them in a list to be displayed to non-browser user agents
 # data - the list of tuples returned from sql
 # user_id - used to check to see if the current user can view the post (is it private to specific authors, or public?)
-def make_post_list(data,user_id,isowner=False):
+def make_post_list(data,user_id,isowner=False,uri=""):
     post_list = []
     for d in data:
 
@@ -228,29 +244,52 @@ def make_post_list(data,user_id,isowner=False):
             "github": author.github,
         }
 
+
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
+            "type":"post",
             "post_id":d.post_id,
             "user_id":d.user_id,
             "title":d.title,
+            "source":uri,
+            "origin":uri,
             "description":d.description,
+            "categories":[],
             "markdown":d.markdown,
+            "contentType":("text/markdown" if d.markdown else "text/plain"),
             "content":d.content,
             "image":str(d.image,encoding="utf-8"),
             "privfriends":d.privfriends,
-            "timestamp":d.tstamp,
+            "visibility":[],
+            "unlisted":d.unlisted,
+            "published":d.published,
             "id":d.id,
             "author":author_dict,
         }
+
+        # retrieve all categories for post
+        categories = Category.objects.filter(post_id=d.post_id)
+        for ca in categories:post_dict["categories"].append(ca.tag)
+
         # post is public or post belongs to user
-        if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
+        if len(priv) == 0 and d.privfriends == False:
+            post_dict["visibility"].append("PUBLIC")
+            post_list.append(post_dict)
         else:
             show_post = False
             # Determine if requesting author is among privacy list
+            if len(priv) > 0: post_dict["visibility"].append("SELECT AUTHOR(S)")
             for p in priv:
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                post_dict["visibility"].append("FRIENDS")
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                if user_id in friend_ids or isowner: show_post = True
+
             if show_post and user_id != None: post_list.append(post_dict)
     return json.dumps(post_list,indent=4)
 
@@ -265,24 +304,27 @@ def make_post_list(data,user_id,isowner=False):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = connection
-    cursor = conn.cursor()
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
+    user_token = data[0].api_token
+    author_id = data[0].userid
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == 'GET':
-        resp = make_post_list(data,request.user.id,isowner=trueauth)
+        resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
+        if data[0].unlisted and not trueauth: return HttpResponseNotFound("The post you requested does not exist\n") # Unlisted posts will not be returned from this method!
     else:
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentication
+            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
 
         if method == 'POST':
 
@@ -297,11 +339,12 @@ def post(request,user_id,post_id):
                 new_post = Post.objects.get(post_id=post_id,user_id=user_id)
                 new_post.title = p["title"]
                 new_post.description = p["description"]
-                new_post.markdown = p["markdown"]
+                new_post.markdown = STR2BOOL(p["markdown"])
                 new_post.content = p["content"]
                 new_post.image = sqlite3.Binary(bytes(image,encoding="utf-8"))
-                new_post.privfriends = p["privfriends"]
-                new_post.tstamp = str(datetime.now())
+                new_post.privfriends = STR2BOOL(p["privfriends"])
+                new_post.unlisted = STR2BOOL(p["unlisted"])
+                new_post.published = str(datetime.now())
                 resp = "Successfully modified post: %d\n" % post_id
 
             except MultiValueDictKeyError:
@@ -312,14 +355,25 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.") # check if author ids are valid
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
             else:
                 author_privacies = Author_Privacy.objects.filter(post_id=post_id)
                 for ap in author_privacies: ap.delete()
+            # Modify the categories table in the database
+            if "categories" in p.keys() or "categories[]" in p.keys():
+                if "categories" in p.keys(): private_authors = p.getlist("categories")
+                else: categories = p.getlist("categories[]")
+                for ca in categories:
+                    category = Category(post_id=post_id,tag=ca)
+                    category.save()
+            else:
+                categories = Category.objects.filter(post_id=post_id)
+                for ca in categories: ca.delete()
             new_post.save()
 
  
@@ -333,7 +387,7 @@ def post(request,user_id,post_id):
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+                new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -343,26 +397,34 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
+            # Modify the categories table in the database
+            if "categories" in p.keys() or "categories[]" in p.keys():
+                if "categories" in p.keys(): private_authors = p.getlist("categories")
+                else: categories = p.getlist("categories[]")
+                for ca in categories:
+                    category = Category(post_id=post_id,tag=ca)
+                    category.save()
             new_post.save()
 
         elif method == 'DELETE':
             author_privacies = Author_Privacy.objects.filter(post_id=post_id)
             for ap in author_privacies: ap.delete()
+            categories = Category.objects.filter(post_id=post_id)
+            for ca in categories: ca.delete()
             new_post = Post.objects.get(post_id=post_id,user_id=user_id)
             new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
         else:
-            conn.close()
             return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        if method == "GET": resp = make_post_html(data,request.user.id,isowner=trueauth)
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
         return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
@@ -378,23 +440,21 @@ def allposts(request,user_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
-    conn = connection
-    cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
-
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-
-    cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-
-    cursor.execute("SELECT a.userid FROM firstapp_author a WHERE a.consistent_id= '%s';"%user_id)
-    author_id = cursor.fetchall()[0][0]
-
+    user_token = data[0].api_token
+    author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
 
     if method == "POST":
-        token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
-        if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentiation
+            pass # We don't need to do anything here, the server will automatically return a 401 if the wrong password is supplied!
         p = request.POST
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
             p = QueryDict('',mutable=True)
@@ -408,7 +468,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+            new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -418,23 +478,30 @@ def allposts(request,user_id):
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
-                data = Author.objects.filter(userid=pa)
+                data = Author.objects.filter(username=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
-                new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                consistent_id = Author.objects.get(username=pa).consistent_id
+                new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                 new_private_author.save()
+
+        # Modify the categories table in the database
+        if "categories" in p.keys() or "categories[]" in p.keys():
+            if "categories" in p.keys(): private_authors = p.getlist("categories")
+            else: categories = p.getlist("categories[]")
+            for ca in categories:
+                category = Category(post_id=post_id,tag=ca)
+                category.save()
         new_post.save()
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
-        resp = make_post_list(data,request.user.id,trueauth)
+        resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
     else:
-        conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
-        if method == "GET": resp = make_post_html(data,user_id,isowner=trueauth)
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
@@ -581,19 +648,29 @@ def publicposts(request):
             }
 
             post_dict = {
+                "type":"post",
                 "post_id":post.post_id,
                 "user_id":post.user_id,
                 "title":post.title,
+                "source":request.build_absolute_uri(),
+                "origin":request.build_absolute_uri(),
                 "description":post.description,
+                "categories":[],
                 "markdown":post.markdown,
+                "contentType":("text/markdown" if post.markdown else "text/plain"),
                 "content":post.content,
                 "image":str(post.image,encoding="utf-8"),
                 "privfriends":post.privfriends,
-                "timestamp":post.tstamp,
+                "visbility":["PUBLIC"],
+                "published":post.published,
                 "id":post.id,
                 "author":author_dict,
             }
+            # retrieve all categories for post
+            categories = Category.objects.filter(post_id=post.post_id)
+            for ca in categories:post_dict["categories"].append(ca.tag)
             post_list.append(post_dict)
+    print(post_list)
     return HttpResponse(json.dumps(post_list))
     
 
