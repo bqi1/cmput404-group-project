@@ -39,26 +39,7 @@
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     var author_object = {{our_author_object|safe}};
                     var like_obj = JSON.stringify({ "obj":{"context": "", "summary":item["author"]["displayname"]+" liked your post" , "type": "like", "author": author_object, "object":item["source"]}});
-                    document.getElementById("other_servers").innerHTML += "<input id='like' type='button' value='likePost' onclick='likePost("+like_obj+","+item["author"]["url"]+"/inbox"+")'>";
-
-                function likePost(like_obj, url){
-                    csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    $.ajax(
-                        {
-                            type: "POST",
-                            url: window.location.href + "api/likepost/",
-                            headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
-    						data: { "Like": like_obj, "Url":url},
-                            success: function () {
-                                alert("Successfully liked post!");
-                                location.reload();
-                            },
-                            error: function (response) {
-                                if(response.status == 409) {alert("You've already liked this post.");}
-                                else {console.log(response);}
-                            }
-                        }
-                    )
+                    document.getElementById("other_servers").innerHTML += "<form method='post' action='api/likepost'><input type='hidden' name='csrf' value='{{csrf_token}}'/><input type='hidden' value='"+like_obj+"'name='Like'><input type='hidden' value='"+item["author"]["url"]+"/inbox"+"'name='Like'><button type='submit'>Like</button>";
                 }
                 // for(let i = 0; i < public_posts_from_other_server.length; i++){
                 //     (function () {
