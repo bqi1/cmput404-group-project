@@ -765,7 +765,7 @@ def account_view(request, *args, **kwargs):
     cursor = conn.cursor()
     # print("*****************")
     # print(user_id)
-    cursor.execute("SELECT * FROM authtoken_token t, auth_user u WHERE u.id = '%s';" % user_id)
+    cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % user_id)
     try:
         data = cursor.fetchall()[0]
         Author = get_user_model()

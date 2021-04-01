@@ -21,9 +21,9 @@ def get_all_remote_user():
 				author_id = author["uid"].split("/")[-1]
 				author_name = author["display_name"]
 				author_github = author["github"]
-				print(author_id)
-				print(author_name)
-				print(author_github)
+				# print(author_id)
+				# print(author_name)
+				# print(author_github)
 				if Author.objects.get(consistent_id=author_id):
 					return
 				else:	
@@ -34,4 +34,10 @@ def get_all_remote_user():
 				return 
 		except Exception as e :
 			print("An error occcur, error message: " + e)
+
+def send_remote_friend_request(remote_user,local_user):
+	pass
+
+
+
 
