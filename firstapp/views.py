@@ -82,8 +82,11 @@ def homepage(request):
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
+                    print("0")
                     theirData.extend(postsRequest.json())
+                    print("1")
                     auth_list.append(tuple((server.hostserver,server.username,server.authpassword)))
+                    print("2")
             except Exception as e:
                 print(e)
                 continue
