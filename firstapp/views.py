@@ -85,7 +85,7 @@ def homepage(request):
                     print("0")
                     theirData.extend(postsRequest.json())
                     print("1")
-                    auth_list.append(tuple((server.hostserver,server.username,server.authpassword)))
+                    auth_list.append(tuple((server.hostserver,server.authusername,server.authpassword)))
                     print("2")
             except Exception as e:
                 print(e)
