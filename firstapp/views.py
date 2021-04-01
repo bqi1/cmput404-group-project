@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
+from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node
 from django.contrib.auth import get_user_model
 import uuid
 import requests
@@ -63,9 +63,9 @@ def homepage(request):
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
 
-        URL = "http://"+request.META['HTTP_HOST']+"/posts"
-        r1 = requests.get(url=URL)
-        data1 = r1.json()
+        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        ourRequest = requests.get(url=ourURL)
+        ourData = ourRequest.json()
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
@@ -78,6 +78,7 @@ def homepage(request):
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
+        print(theirData)
 
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
     
