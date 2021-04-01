@@ -698,9 +698,9 @@ def viewComments(request, user_id, post_id):
             author = Author.objects.get(consistent_id = comment.to_user)
             author_dict = {
                 "type":"author",
-                "id": f"http://{author.host}/author/{author.consistent_id}",
+                "id": f"{author.host}/author/{author.consistent_id}",
                 "host": f"{author.host}/",
-                "url": f"http://{author.host}/author/{author.consistent_id}",
+                "url": f"{author.host}/author/{author.consistent_id}",
                 "displayName": author.username,
                 "github": author.github,
             }
