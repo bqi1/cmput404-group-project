@@ -65,8 +65,12 @@
                     var authpass = ""
                     for(auth in auth_list_for_other_servers) {
                         if(host in auth[0]) {
+                            console.log(host)
+                            console.log(auth[0])
                             authuser = auth[1]
                             authpass = auth[2]
+                            console.log(authuser)
+                            console.log(authpass)
                             break
                         }
                     }
