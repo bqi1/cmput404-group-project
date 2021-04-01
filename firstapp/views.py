@@ -82,14 +82,12 @@ def homepage(request):
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
-                    print("0")
                     theirData.extend(postsRequest.json())
-                    print("1")
                     auth_list.append(tuple((server.hostserver,server.authusername,server.authpassword)))
-                    print("2")
             except Exception as e:
                 print(e)
                 continue
+        auth_list = json.dumps(auth_list)
         our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
         print(auth_list)
         return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'auth_list':auth_list})
