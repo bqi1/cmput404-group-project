@@ -60,22 +60,8 @@
                     // Sending data with the request
                     console.log(data);
                     //auth_list contains a list of tuples, each tuple has (host, authuser, authpassword)
-                    var auth_list_for_other_servers = {{auth_list|safe}};
-                    var authuser = ""
-                    var authpass = ""
-                    console.log(auth_list_for_other_servers)
-                    for(auth in auth_list_for_other_servers) {
-                        console.log(auth["host"])
-                        if(auth[0].includes(host)) {
-                            authuser = auth[1]
-                            authpass = auth[2]
-                            console.log(authuser)
-                            console.log(authpass)
-                            break
-                        }
-                    }
-                    console.log(authuser)
-                    console.log(authpass)
+                    var authuser = {{auth_user}}
+                    var authpass = {{auth_pass}}
                     xhr.setRequestHeader("Authorization", "Basic", + btoa(authuser+":"+authpass))
                     xhr.send(data);
                     console.log("sent");
