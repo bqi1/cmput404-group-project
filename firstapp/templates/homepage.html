@@ -1,10 +1,10 @@
     
 <!DOCTYPE html>
     <head>
-        {% include "sub_basic/header.html" %}
-        {% csrf_token %}
+
     </head>
     <body>
+        {% extends "index.html" %}
         {% block content %}
             {% if user.is_authenticated %}
                 <p>This is {{ user.username }}.
@@ -37,38 +37,38 @@
                     document.getElementById("other_servers").innerHTML += "<p> Description: "+item["description"]+"</p>";
                     document.getElementById("other_servers").innerHTML += "<p> Content: "+item["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
+                    document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+i+"' value='like'/>";
+                }
+                for(let i = 0; i < public_posts_from_other_server.length; i++){
+                    (function () {
+                        var item = public_posts_from_other_server[i];
+                        var likeButtonId = "likeButton"+i;
+                        document.getElementById(likeButtonId).addEventListener("click", function() {
+                            sendLike(item["source"], item["author"]["url"]+"/inbox", item["author"]["host"]);
+                        }, false);
+                    }());
+
+                }
+                function sendLike(object, inboxUrl, host){
+                    let xhr = new XMLHttpRequest();
+                    xhr.open("POST", inboxUrl, true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState === 4 && xhr.status === 200) {
+                            console.log(this.responseText);
+                        }
+                    };
+                    // Make like object
                     var author_object = {{our_author_object|safe}};
-                    var like_obj = JSON.stringify({ "obj":{"context": "", "summary":item["author"]["displayname"]+" liked your post" , "type": "like", "author": author_object, "object":item["source"]}});
-                    document.getElementById("other_servers").innerHTML += "<form method='post' action='api/likepost'><input type='hidden' name='csrf' value='{{csrf_token}}'/><input type='hidden' value='"+like_obj+"'name='Like'><input type='hidden' value='"+item["author"]["url"]+"/inbox"+"'name='Like'><button type='submit'>Like</button>";
-                // for(let i = 0; i < public_posts_from_other_server.length; i++){
-                //     (function () {
-                //         var item = public_posts_from_other_server[i];
-                //         var likeButtonId = "likeButton"+i;
-                //         document.getElementById(likeButtonId).addEventListener("click", function() {
-                //             sendLike(item["source"], item["author"]["url"]+"/inbox", item["author"]["host"]);
-                //         }, false);
-                //     }());
-
-                // }
-                // function sendLike(object, inboxUrl, host){
-                //     let xhr = new XMLHttpRequest();
-                //     xhr.open("POST", inboxUrl, true);
-                //     xhr.setRequestHeader("Content-Type", "application/json");
-                //     xhr.onreadystatechange = function () {
-                //         if (xhr.readyState === 4 && xhr.status === 200) {
-                //             console.log(this.responseText);
-                //         }
-                //     };
-                //     // Make like object
-                //     //This object is specific to TEAM7 since their like object has a second layer object for some reason
-                //     var data = 
+                    //This object is specific to TEAM7 since their like object has a second layer object for some reason
+                    var data = JSON.stringify({ "obj":{"context": "", "summary":author_object["displayname"]+"liked your post" ,"author": author_object, "object":object, "type": "like" }});
                     
-                //     xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
-                //     console.log("sending a like object to other server");
-                //     console.log(data)
-                //     xhr.send(data);
+                    xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
+                    console.log("sending a like object to other server");
+                    console.log(data)
+                    xhr.send(data);
 
-                // }
+                }
             </script>
         {% endblock %}
     </body>
