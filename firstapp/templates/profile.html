@@ -177,11 +177,20 @@
 
 						<!-- No requests have been sent -->
 						{% if request_sent == -1 %}
-						<div class="d-flex flex-column align-items-center pt-4">
-							<button class="btn btn-primary" id="id_send_friend_request_btn">
-								Send Friend Request
-							</button>
-						</div>
+							{% if id < 1000 %}
+								<div class="d-flex flex-column align-items-center pt-4">
+									<button class="btn btn-primary" id="id_send_friend_request_btn">
+										Send Friend Request
+									</button>
+								</div>
+							{% endif %}
+							{% if id >= 1000 %}
+								<div class="d-flex flex-column align-items-center pt-4">
+									<button class="btn btn-primary" id="id_send_remote_friend_request_btn">
+										Send Friend Request
+									</button>
+								</div>
+							{% endif %}
 						{% endif %}
 				{% endif %}
 					
@@ -264,6 +273,16 @@
 		})
 	}
 
+	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
+	if (sendRemoteFriendRequestBtn != null){
+		sendRemoteFriendRequestBtn.addEventListener("click", function(){
+			let xhr = new XMLHttpRequest();
+			xhr.open('GET',"{{host}}", true);
+			xhr.send();
+		})
+	}
+
+
 	var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
 	if(cancelFriendRequestBtn != null){
 		cancelFriendRequestBtn.addEventListener("click", function(){
@@ -337,9 +356,5 @@
 
 {% include 'send_request.html' %}
 {% include 'accept_friend_request.html' %}
-{#% include 'snippets/decline_friend_request.html' %#}
-{#% include 'snippets/cancel_friend_request.html' %#}
-{#% include 'snippets/remove_friend.html' %#}
-{#% include 'chat/create_or_return_private_chat.html' %#}
 
 {% endblock content %}
