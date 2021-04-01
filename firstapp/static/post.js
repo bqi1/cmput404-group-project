@@ -106,8 +106,6 @@ function editPost() {
 
 // Get parameters and send ajax DELETE request to post api view (to delete post)
 function deletePost() {
-    var username ="%s";
-    var password = "%s";
     confirm_delete = confirm("Are you sure you want to delete this post?");
     if(confirm_delete == true) {
         csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
