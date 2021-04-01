@@ -153,6 +153,7 @@ def login(request):
             except Author.DoesNotExist:
                 messages.add_message(request,messages.INFO, f'This user, {new_username}, does not exist.')
                 return HttpResponseRedirect(reverse('login'))
+            authenticated = check_authentication(request)
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
