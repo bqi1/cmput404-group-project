@@ -54,8 +54,6 @@ function resetFile() {
 }
 // Get parameters and send ajax POST request to post api view (to edit post)
 function editPost() {
-    var username = "%s";
-    var password = "%s";
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;

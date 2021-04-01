@@ -41,8 +41,6 @@ function viewPost(post_id) {
 // Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {
-    var username = "%s";
-    var password = "%s";
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;
