@@ -65,9 +65,7 @@
                     var authpass = ""
                     console.log(auth_list_for_other_servers)
                     for(auth in auth_list_for_other_servers) {
-                        console.log("hello")
-                        console.log(host)
-                        console.log(auth[0])
+                        console.log(auth["host"])
                         if(auth[0].includes(host)) {
                             authuser = auth[1]
                             authpass = auth[2]
