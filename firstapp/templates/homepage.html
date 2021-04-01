@@ -33,15 +33,15 @@
                 var buttonID = 0;
                 for(let i = 0; i < public_posts_from_other_server.length; i++){
                 // for (var item of public_posts_from_other_server){
-                    console.log(public_posts_from_other_server[0])
-                    document.getElementById("other_servers").innerHTML += "<h4>"+public_posts_from_other_server[0]["title"]+" from "+public_posts_from_other_server[0]["author"]["display_name"]+" on "+public_posts_from_other_server[0]["published"]+"</h4>";
-                    document.getElementById("other_servers").innerHTML += "<p> Description: "+public_posts_from_other_server[0]["description"]+"</p>";
-                    document.getElementById("other_servers").innerHTML += "<p> Content: "+public_posts_from_other_server[0]["content"]+"</p>";
+                    console.log(public_posts_from_other_server[i])
+                    document.getElementById("other_servers").innerHTML += "<h4>"+public_posts_from_other_server[i]["title"]+" from "+public_posts_from_other_server[i]["author"]["display_name"]+" on "+public_posts_from_other_server[i]["published"]+"</h4>";
+                    document.getElementById("other_servers").innerHTML += "<p> Description: "+public_posts_from_other_server[i]["description"]+"</p>";
+                    document.getElementById("other_servers").innerHTML += "<p> Content: "+public_posts_from_other_server[i]["content"]+"</p>";
                     // code adaped from kevinji at https://stackoverflow.com/questions/9643311/pass-a-string-parameter-in-an-onclick-function
                     document.getElementById("other_servers").innerHTML += "<input type='button' id='likeButton"+buttonID+"' value='like'/>";
                     var likeButtonId = "likeButton"+buttonID
                     document.getElementById(likeButtonId).addEventListener("click", function() {
-                        sendLike(public_posts_from_other_server[0]["source"], public_posts_from_other_server[0]["author"]["url"], public_posts_from_other_server[0]["author"]["host"]);
+                        sendLike(public_posts_from_other_server[i]["source"], public_posts_from_other_server[i]["author"]["url"], public_posts_from_other_server[i]["author"]["host"]);
                     }, false);
                     buttonID++;
                 }
