@@ -51,7 +51,7 @@ def index(request):
 #helper function for getting json author objects from our server's database
 def get_our_author_object(host, author_uuid):
     try:
-        url = "http://"+host+"/author/"+author_uuid
+        url = "https://"+host+"/author/"+author_uuid
         r = requests.get(url)
         return r.json()
     except Exception as e:
@@ -71,26 +71,15 @@ def homepage(request):
 
         # Get all public posts from our server
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
-        print(ourURL)
         ourRequest = requests.get(url=ourURL)
 
         ourData = ourRequest.json()
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
-        print(servers)
         theirData = []
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
-                # print("\n\n\n"+server.hostserver)
-                # os.environ['NO_PROXY'] = '127.0.0.1'
-                # if server.hostserver == "http://127.0.0.1:8000":
-                print("1")
-                #     postsRequest = requests.get(url=f"{server.hostserver}/posts")
-                # postsRequest = requests.get(url="http://127.0.0.1:8000/posts/")
-                print("2")
-                # else:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
-                print(postsRequest)
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
             except Exception as e:
