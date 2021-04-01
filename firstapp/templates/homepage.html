@@ -61,11 +61,12 @@
                     console.log(data);
                     //auth_list contains a list of tuples, each tuple has (host, authuser, authpassword)
                     var auth_list_for_other_servers = {{auth_list|safe}};
-
+                    var authuser = ""
+                    var authpass = ""
                     for(auth in auth_list_for_other_servers) {
                         if(host in auth[0]) {
-                            let authuser = auth[1]
-                            let authpass = "" + auth[2]
+                            authuser = auth[1]
+                            authpass = auth[2]
                             break
                         }
                     }
