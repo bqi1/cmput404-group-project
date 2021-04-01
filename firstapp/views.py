@@ -709,7 +709,7 @@ def viewComments(request, user_id, post_id):
                 "author":author_dict,
                 "comment":comment.comment_text,
                 "contentType":"text/markdown",
-              #  "published":comment.tstamp,
+                "published":str(datetime.now()),
                 "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
             }
             json_comment_list.append(comment_dict)
