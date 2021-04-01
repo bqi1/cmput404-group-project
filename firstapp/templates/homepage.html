@@ -60,7 +60,9 @@
                     // Sending data with the request
                     console.log(data);
                     //auth_list contains a list of tuples, each tuple has (host, authuser, authpassword)
-                    for(auth in auth_list) {
+                    var auth_list_for_other_servers = {{auth_list|safe}};
+
+                    for(auth in auth_list_for_other_servers) {
                         if(host in auth[0]) {
                             let authuser = auth[1]
                             let authpass = "" + auth[2]
