@@ -652,7 +652,6 @@ def viewComments(request, user_id, post_id):
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
         cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
         data = cursor.fetchall()
         comment_list = []
@@ -663,7 +662,7 @@ def viewComments(request, user_id, post_id):
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
         json_comment_list = []
-        comments = Comment.objects.filter()
+        comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
            # for comment in comments:
             author = Author.objects.get(consistent_id = comment.to_user)
