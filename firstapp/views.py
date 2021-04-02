@@ -679,7 +679,7 @@ def publicposts(request):
                 "size":0,
                 "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
                 "comments":[],
-                "published":post.tstamp,
+                "published":post.published,
                 "unlisted":False if not post.privfriends else True,
                 "post_id":post.post_id,
                 "user_id":post.user_id,
