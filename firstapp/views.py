@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Node, Setting
+from firstapp.models import Author, Post, Author_Privacy, Comment, Likes, Node, Setting, Inbox
 from django.contrib.auth import get_user_model
 import uuid
 import requests
@@ -517,7 +517,9 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = connection
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
+    host = request.build_absolute_uri('/')
+    object = f"{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
@@ -525,19 +527,47 @@ def likepost(request, user_id, post_id):
     else:
         while True:
             like_id = rand(2**31-1)
-            cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
-
-                like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
+                host = request.build_absolute_uri('/')
+                url = f"{host}/author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}"
+                like_object = make_like_object(object, user_id, make_json=True)
+                requests.post(url, data = like_object)
+                like = Likes(like_id=like_id, from_user =request.user.id, object = object)
                 like.save()
                 break
-        # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-        # conn.commit()
-        #TODO send like object to author's inbox
-        url = request.get_full_path()
-        # make_like_object(url, author)
-        return HttpResponse("Post liked successfully") # #TODO send to inbox here
+        HttpResponse("Like object sent to inbox", status=200)
+
+#like a comment
+@api_view(['POST'])
+def like_comment(request, user_id, post_id, comment_id):
+    resp = ""
+    conn = connection
+    cursor = conn.cursor()
+    host = request.build_absolute_uri('/')
+    object = f"{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
+    data = cursor.fetchall()
+    # if post has already been liked
+    if len(data) > 0:
+        return HttpResponse("Comment already liked", status=409)
+    else:
+        while True:
+            like_id = rand(2**31-1)
+            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+            if len(cursor.fetchall()) == 0:
+                print(post_id)
+                host = request.build_absolute_uri('/')
+                url = f"{host}/author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
+                like_object = make_like_object(object, user_id, make_json=True)
+                requests.post(url, data = like_object)
+                like = Likes(like_id=like_id, from_user = request.user.id, to_user = user_id, object = object)
+                like.save()
+                break
+        HttpResponse("Like object sent to inbox", status=200)
 
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
@@ -557,7 +587,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
+        cursor.execute("SELECT u.username FROM firstapp_likes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
         data = cursor.fetchall()
         author_list = []
         for d in data:
@@ -568,7 +598,7 @@ def postlikes(request, user_id, post_id):
         return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
     else: 
         #return a list of like objects
-        cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
+        cursor.execute('SELECT a.consistent_id FROM firstapp_likes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
         data = cursor.fetchall()
         url = request.get_full_path()
         json_post_likes = make_post_likes_object(data, url)
@@ -595,7 +625,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
+        cursor.execute("SELECT * FROM firstapp_likes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -603,12 +633,8 @@ def liked(request,user_id):
             liked_posts_list.append(post_id)
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
-    #TODO get comments that author has liked
-    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
-    # data = cursor.fetchall()
-    
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_likes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
@@ -934,8 +960,69 @@ def check_authentication(request):
     return authenticated
     ########################
         
+@api_view(['GET','POST', 'DELETE'])
+@authentication_classes([BasicAuthentication])
+def inbox(request,user_id):
+    method = request.META["REQUEST_METHOD"]
+    try:
+        host = request.build_absolute_uri('/')
+        print(host)
+        author_id = host + "/author/" + user_id
+        print(author_id)
+        inbox = Inbox.objects.get(author=author_id)
+        if method == "GET":
+            
+            inbox_object = {}
+            inbox_object["type"]= "inbox"
+            inbox_object["author"]= author_id
+            inbox_items = []
+            for item in inbox:
+                if item["type"] == "post":
+                    inbox_items.append(item)
+            inbox_object["items"] = inbox_items
+            
+            return HttpResponse(json.dumps(inbox_object))
 
-    
-    
-    
-    
+        elif method == "POST":
+            data_json_type = json.loads(request.data["type"])
+
+            if data_json_type == "like":
+                # save to likes table
+                conn = connection
+                cursor = conn.cursor()
+                like_id = rand(2**31-1)
+                cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+                if len(cursor.fetchall()) == 0:
+                    object = request.data["object"]
+
+                    #extract to_user uuid
+                    to_user = object.split("author/")[1]
+                    to_user = to_user.split("/")[0]
+                    # extract from_user uuid
+                    author_id = request.data["author"]["id"]
+                    author_id = author_id.split("author/")[1]
+                    #remove backslash at end of url if it's there
+                    if author_id[-1] == "/":
+                        author_id = author_id[:-1]
+                    like = Likes(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                    like.save()
+
+            elif data_json_type == "post":
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Post object has been added to author {author_id}'s inbox")
+
+            elif data_json_type == "follow":
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Follow object has been added to author {author_id}'s inbox")
+
+
+        elif method == "DELETE":
+            inbox.items = []
+            inbox.save()
+
+            return HttpResponse(f"{author_id}'s inbox has been cleared")
+
+    except Exception as e:
+        print("ERROR in inbox in views.py" + e)
