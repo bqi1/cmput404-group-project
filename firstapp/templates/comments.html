@@ -2,12 +2,13 @@
     <head>
         {% include "sub_basic/header.html" %}
     </head>
-<body>
+<body style="background:linear-gradient(to right top, #87CEFA, #ADD8E6, white);">
     <form method="post">
-    <h1>Make Comment:</h1>
-    <label for="content">Content:</label></br>
+    <h1 style="font-family:comic sans ms;color:#00008B;border:5px solid; border-image:linear-gradient(to right,red,orange,yellow,green,blue,indigo,violet) 1; ;width:30%;height:7%;background:#E6E6FA;margin-bottom:5%;">Make Comment:</h1>
+    <label for="content" style="font-family:comic sans ms;color:#4B0082;width:30%;font-size:40px;border:5px solid;margin-bottom:10px;border-image:linear-gradient(to right,red,orange,yellow,green,cyan,blue,purple) 1;background:#E0FFFF;">Content:</label></br>
     {% csrf_token %}
-    <input type="text"id="comment"name="comment">
+    <input type="text"id="comment"name="comment"style="background:#FFFFF0;border:3px solid #FF1493;width:30%;height:30%;margin-top:5%;margin-right:5%;margin-bottom:10%;">
     <!-- <textarea id="content" cols="40" rows="10"></textarea></br> -->
-    <button type="submit" class="btn btn-sucess">Submit</button></form>
+    <button type="submit" class="btn btn-sucess" style="width:15%;height:10%;text-align:center;border:border-radius:25px;font-family:comic sans ms;font-size:25px;background:#E0FFFF;color:#8B008B;border:3px solid #8B008B;margin-top:15%;border-radius:10px;">Submit</button></form>
+    <br/><br/><br/><br/><br/><br/><br/><br/>
 </body>

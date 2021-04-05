@@ -1,8 +1,20 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="en">
-
-<h1>Welcome to the Main Page!</h1>
+<style>
+    body{
+        background-color:rgb(45, 117, 67);
+    }
+    .btn {
+        text-align: center;
+    }
+    .links{
+        text-align:left;
+        font-size: larger;
+        font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
+</style>
+<h1 style="text-align: center; color:orange; font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;">Welcome to Team 04's Webserver!</h1>
     <!--If we have any messages, display them here.-->
     {% if messages %}
         <ul class="messages">
@@ -16,9 +28,13 @@
 
 {% include "sub_basic/header.html" %}
 {% block content %}
-<a class="btn btn=primary" href="{% url 'signup' %}">SignUp</a>
-<p>Or</p>
-<a class="btn btn=primary" href="{% url 'login' %}">Login</a>
+<div class = "links">
+    <br>
+    <a class="btn btn=primary" href="{% url 'login' %}">Login</a><br><br>
+    <a class="btn btn=primary" href="{% url 'signup' %}">SignUp</a>
+    
+</div>
+
 {% endblock %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
