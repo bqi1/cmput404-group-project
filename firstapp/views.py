@@ -634,7 +634,7 @@ def liked(request,user_id):
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_likes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.object FROM firstapp_likes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
@@ -646,8 +646,8 @@ def make_liked_object(host,data):
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "https://"+host+"/author/" + like[2] + "/posts/" + str(like[1])
-        like_object = make_like_object(url,like[0], make_json=False)
+        object = like[1]
+        like_object = make_like_object(object,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
     
