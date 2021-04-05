@@ -1006,6 +1006,9 @@ def inbox(request,user_id):
                         author_id = author_id[:-1]
                     like = Likes(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
                     like.save()
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Like object has been added to author {author_id}'s inbox")
 
             elif data_json_type == "post":
                 inbox.items.append(request.data)
