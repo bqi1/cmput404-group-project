@@ -72,9 +72,7 @@ def homepage(request):
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
-                    print(f"here's their data from {server.hostserver}\n\n\n")
                     theirData.extend(postsRequest.json())
-                    print("\n\n\n")
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
@@ -460,8 +458,9 @@ def allposts(request,user_id):
     user_token = data[0].api_token
     author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-
+    print("\n\noh, DO enter.\n\n")
     if method == "POST":
+        print(f"my authorization is... {request.META['HTTP_AUTHORIZATION']}\n\n")
         try: # Client is using token authentication
             token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
