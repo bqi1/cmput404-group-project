@@ -77,7 +77,7 @@ def homepage(request):
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
 
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData,"author":author})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -128,10 +128,7 @@ def login(request):
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
-        print(new_username)
-        print(new_password)
-        print(request)
-        print(request.user)
+
         # print(Author.objects.get(username=request.user))
         user = authenticate(username = new_username, password = new_password)
         if user is not None:
@@ -524,7 +521,7 @@ def allposts(request,user_id):
     else: return HttpResponse(resp)
 
 #like a post
-@api_view(['POST'])
+@api_view(['POST','GET'])
 def likepost(request, user_id, post_id):
     resp = ""
     conn = connection
@@ -533,7 +530,8 @@ def likepost(request, user_id, post_id):
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        return HttpResponse("Post already liked", status=409)
+        PostLikes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
+        return HttpResponse("Unliked post")
     else:
         while True:
             like_id = rand(2**31-1)
@@ -966,6 +964,33 @@ def check_authentication(request):
     authenticated = authenticate(username=username, password=password)
     return authenticated
     ########################
+
+# Like a post by sending a post request to the inbox.
+@api_view(['POST'])
+def likeAHomePagePost(request):
+    post = json.loads(request.POST.get('thePost', False))
+    print(post)
+    # If it's a local like:
+    if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+        return HttpResponseRedirect(f"{post['id']}/likepost/")
+    # Else, it's a remote like
+    try:
+        server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
+    except:
+        server = Node.objects.get(hostserver=f"{post['author']['host']}")
+    author = Author.objects.get(username=request.POST.get('author', False))
+    auth_dict = {
+        "type":"author",
+        "id": f"http://{author.host}/author/{author.consistent_id}",
+        "host": f"{author.host}/",
+        "displayName": author.username,
+        "url": f"{author.host}/firstapp/{author.userid}",
+        "github": author.github,
+    }
+    like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
+    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Liked!")
+
         
 
     

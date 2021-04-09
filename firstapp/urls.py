@@ -21,6 +21,6 @@ urlpatterns = [
     path('author/<str:user_id>/posts/<int:post_id>/viewComments/',views.viewComments,name='viewComments'),
 
     path('posts/', views.publicposts,name='publicposts'),
-
+    path('like',views.likeAHomePagePost,name="likeAPost"),
     # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
 ]
