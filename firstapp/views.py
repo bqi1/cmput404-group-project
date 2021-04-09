@@ -1060,18 +1060,20 @@ def inbox(request,user_id):
 
         elif method == "POST":
             print(request.data)
+            print(request.data["type"])
             data_json_type = json.loads(request.data["type"])
-
+            print(data_json_type)
             if data_json_type == "like":
                 # save to likes table
                 conn = connection
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)
+                print(like_id)
                 cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
                     object = request.data["object"]
-
+                    print(object)
                     #extract to_user uuid
                     to_user = object.split("author/")[1]
                     to_user = to_user.split("/")[0]
@@ -1082,6 +1084,7 @@ def inbox(request,user_id):
                     if author_id[-1] == "/":
                         author_id = author_id[:-1]
                     try: #if already liked then remove the like from db
+                        print("hmmmmm")
                         like = Likes.objects.get(from_user = author_id, to_user = to_user, object = object)
                         inbox.items.pop(like)
                         like.delete()
