@@ -72,7 +72,9 @@ def homepage(request):
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
                 if postsRequest.status_code == 200:
+                    print(f"here's their data from {server.hostserver}\n\n\n")
                     theirData.extend(postsRequest.json())
+                    print("\n\n\n")
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
