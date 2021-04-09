@@ -1092,7 +1092,7 @@ def inbox(request,user_id):
                         return HttpResponse(f"Like object has been removed from database and inbox")
 
                     except: #if not liked then add like to database
-                        like = EternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        like = ExternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
                         like.save()
                         inbox.items.append(request.data)
                         inbox.save()
