@@ -1044,6 +1044,7 @@ def inbox(request,user_id):
         author_id = host + "author/" + user_id
         print(author_id)
         inbox = Inbox.objects.get(author=author_id)
+        print(inbox)
         if method == "GET":
             
             inbox_object = {}
@@ -1058,6 +1059,7 @@ def inbox(request,user_id):
             return HttpResponse(json.dumps(inbox_object))
 
         elif method == "POST":
+            print(request.data)
             data_json_type = json.loads(request.data["type"])
 
             if data_json_type == "like":
