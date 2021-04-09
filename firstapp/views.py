@@ -529,7 +529,6 @@ def allposts(request,user_id):
                 category.save()
         new_post.save()
 
-
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
@@ -1067,6 +1066,7 @@ def inbox(request,user_id):
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)
                 cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+                #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
                     object = request.data["object"]
 
@@ -1079,11 +1079,21 @@ def inbox(request,user_id):
                     #remove backslash at end of url if it's there
                     if author_id[-1] == "/":
                         author_id = author_id[:-1]
-                    like = Likes(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
-                    like.save()
-                inbox.items.append(request.data)
-                inbox.save()
-                return HttpResponse(f"Like object has been added to author {author_id}'s inbox")
+                    try: #if already liked then remove the like from db
+                        like = Likes.objects.get(from_user = author_id, to_user = to_user, object = object)
+                        inbox.items.pop(like)
+                        like.delete()
+                        inbox.save()
+                        return HttpResponse(f"Like object has been removed from database and inbox")
+
+                    except: #if not liked then add like to database
+                        like = Likes(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        like.save()
+                        inbox.items.append(request.data)
+                        inbox.save()
+                        return HttpResponse(f"Like object has been added to author {author_id}'s inbox")
+
+                
 
             elif data_json_type == "post":
                 inbox.items.append(request.data)
