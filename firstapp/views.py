@@ -144,10 +144,7 @@ def login(request):
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
-        print(new_username)
-        print(new_password)
-        print(request)
-        print(request.user)
+
         # print(Author.objects.get(username=request.user))
         user = authenticate(username = new_username, password = new_password)
         if user is not None:
@@ -477,8 +474,9 @@ def allposts(request,user_id):
     user_token = data[0].api_token
     author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-
+    print("\n\noh, DO enter.\n\n")
     if method == "POST":
+        print(f"my authorization is... {request.META['HTTP_AUTHORIZATION']}\n\n")
         try: # Client is using token authentication
             token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
@@ -533,6 +531,7 @@ def allposts(request,user_id):
         return HttpResponseBadRequest("Error: invalid method used\n")
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
+        print(f"\nhibblyhobbly {user_token}\n")
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
         if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
@@ -540,7 +539,7 @@ def allposts(request,user_id):
     else: return HttpResponse(resp)
 
 #like a post
-@api_view(['POST'])
+@api_view(['POST','GET'])
 def likepost(request, user_id, post_id):
     resp = ""
     conn = connection
@@ -551,7 +550,8 @@ def likepost(request, user_id, post_id):
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        return HttpResponse("Post already liked", status=409)
+        PostLikes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
+        return HttpResponse("Unliked post")
     else:
         while True:
             like_id = rand(2**31-1)
@@ -730,7 +730,6 @@ def publicposts(request):
             categories = Category.objects.filter(post_id=post.post_id)
             for ca in categories:post_dict["categories"].append(ca.tag)
             post_list.append(post_dict)
-    print(post_list)
     return HttpResponse(json.dumps(post_list))
     
 @api_view(['GET','POST'])
@@ -1002,6 +1001,33 @@ def check_authentication(request):
     authenticated = authenticate(username=username, password=password)
     return authenticated
     ########################
+
+# Like a post by sending a post request to the inbox.
+@api_view(['POST'])
+def likeAHomePagePost(request):
+    post = json.loads(request.POST.get('thePost', False))
+    print(post)
+    # If it's a local like:
+    if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+        return HttpResponseRedirect(f"{post['id']}/likepost/")
+    # Else, it's a remote like
+    try:
+        server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
+    except:
+        server = Node.objects.get(hostserver=f"{post['author']['host']}")
+    author = Author.objects.get(username=request.POST.get('author', False))
+    auth_dict = {
+        "type":"author",
+        "id": f"http://{author.host}/author/{author.consistent_id}",
+        "host": f"{author.host}/",
+        "displayName": author.username,
+        "url": f"{author.host}/firstapp/{author.userid}",
+        "github": author.github,
+    }
+    like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
+    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Liked!")
+
         
 @api_view(['GET','POST', 'DELETE'])
 @authentication_classes([BasicAuthentication])
