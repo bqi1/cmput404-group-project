@@ -81,7 +81,7 @@
                     
                     xhr.setRequestHeader("Authorization", "Basic " + btoa("{{auth_user|safe}}:{{auth_pass|safe}}"));
                     console.log("sending a like object to other server");
-                    console.log(data)
+                    console.log(data);
                     xhr.send(data);
 
                 }
