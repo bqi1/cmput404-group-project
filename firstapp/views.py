@@ -507,7 +507,7 @@ def allposts(request,user_id):
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
-
+        print("DEBUG: "+ p)
         # Modify the author privacy table in the database
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
@@ -528,6 +528,8 @@ def allposts(request,user_id):
                 category = Category(post_id=post_id,tag=ca)
                 category.save()
         new_post.save()
+
+
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
