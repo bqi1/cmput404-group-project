@@ -125,6 +125,7 @@ def signup(request):
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
                 user_inbox = Inbox.objects.create(type="inbox", author=f"http://{request.get_host()}/author/{user.consistent_id}", items=[])
+                user_inbox.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
