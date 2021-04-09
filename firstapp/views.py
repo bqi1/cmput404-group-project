@@ -1113,4 +1113,4 @@ def inbox(request,user_id):
             return HttpResponse(f"{author_id}'s inbox has been cleared")
 
     except Exception as e:
-        print("ERROR in inbox in views.py" + e)
+        print("ERROR in inbox in views.py" + str(e))
