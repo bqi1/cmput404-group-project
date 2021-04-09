@@ -29,7 +29,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, Likes, Category, Node, Setting, Inbox
+from firstapp.models import Author, Post, Author_Privacy, Comment, Likes, Category, Node, Setting, Inbox, ExternalLike
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
@@ -1062,8 +1062,9 @@ def inbox(request,user_id):
             print(request.data)
             print(request.data["type"])
             print(type(request.data["type"]))
-            if request.data["type"] == "like":
-                # save to likes table
+            data_json_type = request.data["type"]
+            if data_json_type== "like":
+                # save to external like table
                 conn = connection
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)

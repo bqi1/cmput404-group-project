@@ -76,6 +76,12 @@ class Likes(models.Model):
   to_user = models.TextField(max_length=500,blank=True)
   object = models.TextField()
 
+class ExternalLike(models.Model):
+  like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)
+  from_user = models.TextField()
+  to_user = models.TextField(max_length=500,blank=True)
+  object = models.TextField()
+
 # class CommentLikes(models.Model):
 #   like_id = models.AutoField(primary_key=True, blank=True, null=False)
 #   from_user = models.IntegerField(blank=True, null=True)
