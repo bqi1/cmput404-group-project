@@ -1061,9 +1061,10 @@ def inbox(request,user_id):
         elif method == "POST":
             print(request.data)
             print(request.data["type"])
-            data = json.loads(request.json)
+            new_username = request.POST.get('username')
+
+            data_type = request.POST.get('type')
             print("1")
-            data_type = data["type"]
             print(data_type)
             if data_type == "like":
                 # save to likes table
