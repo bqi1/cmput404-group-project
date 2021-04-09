@@ -37,6 +37,7 @@ import requests
 import base64
 from .remote_friend import get_all_remote_user
 from django.contrib.auth.models import User
+from django.core import serializers
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -64,6 +65,8 @@ def homepage(request):
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
+
+
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
@@ -571,8 +574,11 @@ def postlikes(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
-    if request.is_ajax():
-        return HttpResponse(1)
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    if is_ajax:
+        postlikes = PostLikes.objects.filter(to_user=user_id,post_id=post_id)
+        data = serializers.serialize('json', postlikes)
+        return HttpResponse(data, content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
             cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
@@ -582,7 +588,6 @@ def postlikes(request, user_id, post_id):
                 author = d[0]
                 author_list.append(author)
             num_likes = len(author_list)
-            print("well.")
             return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
         else: 
             #return a list of like objects
@@ -590,8 +595,6 @@ def postlikes(request, user_id, post_id):
             data = cursor.fetchall()
             url = request.get_full_path()
             json_post_likes = make_post_likes_object(data, url)
-            print("\n\nWELL WELL WELL\n\n")
-            print(json_post_likes)
             return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
