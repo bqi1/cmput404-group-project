@@ -515,6 +515,7 @@ def allposts(request,user_id):
         return HttpResponseBadRequest("Error: invalid method used\n")
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
+        print(f"\nhibblyhobbly {user_token}\n")
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
         if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
@@ -693,7 +694,6 @@ def publicposts(request):
             categories = Category.objects.filter(post_id=post.post_id)
             for ca in categories:post_dict["categories"].append(ca.tag)
             post_list.append(post_dict)
-    print(post_list)
     return HttpResponse(json.dumps(post_list))
     
 @api_view(['GET','POST'])
