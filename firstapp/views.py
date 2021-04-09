@@ -1064,7 +1064,7 @@ def inbox(request,user_id):
             data_json = json.loads(request.data)
             data_type = data_json["type"]
             print(data_type)
-            if type == "like":
+            if data_type == "like":
                 # save to likes table
                 conn = connection
                 cursor = conn.cursor()
