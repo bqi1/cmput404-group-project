@@ -1040,7 +1040,7 @@ def inbox(request,user_id):
     try:
         host = request.build_absolute_uri('/')
         print(host)
-        author_id = host + "/author/" + user_id
+        author_id = host + "author/" + user_id
         print(author_id)
         inbox = Inbox.objects.get(author=author_id)
         if method == "GET":
