@@ -1069,7 +1069,7 @@ def inbox(request,user_id):
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)
                 print(like_id)
-                cursor.execute('SELECT * FROM firstapp_externallike WHERE like_id = %d'% (like_id))
+                cursor.execute("SELECT * FROM firstapp_externallike WHERE like_id = %d"% (like_id))
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
                     object = request.data["object"]
