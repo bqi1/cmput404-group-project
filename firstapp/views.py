@@ -737,7 +737,8 @@ def commentpost(request, user_id, post_id):
 def viewComments(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
-    if request.is_ajax():
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    if is_ajax:
         json_comment_list = []
         comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
