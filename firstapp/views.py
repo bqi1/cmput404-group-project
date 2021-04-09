@@ -507,7 +507,7 @@ def allposts(request,user_id):
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
-        print("DEBUG: "+ p)
+        print("DEBUG: "+ str(p))
         # Modify the author privacy table in the database
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
