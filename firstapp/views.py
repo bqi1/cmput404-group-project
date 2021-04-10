@@ -1232,9 +1232,10 @@ def inbox(request,user_id):
             elif data_json_type == "post":
                 inbox.items.append(request.data)
                 inbox.save()
-                return HttpResponse(f"Post object has been added to author {to_user}'s inbox")
+                return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
+                to_user = request.data["object"]["id"]
                 inbox.items.append(request.data)
                 inbox.save()
                 return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
