@@ -1076,20 +1076,15 @@ def inbox(request,user_id):
         if method == "GET":
             
             inbox_object = {}
-            print("1")
             inbox_object["type"]= "inbox"
-            print("2")
             inbox_object["author"]= author_id
-            print("3")
-            inbox_items = []
-            print("4")
-            if len(inbox_object) != 0:
-                for item in inbox_object["items"]:
-                    print("5")
-                    if item["type"] == "post":
-                        inbox_items.append(item)
+            inbox_post_items = []
+            author_inbox = Inbox.objects.get(author_id=author_id)
+            for item in author_inbox["items"]:
+                if item["type"] == "post":
+                    inbox_post_items.append(item)
                 print("6")
-            inbox_object["items"] = inbox_items
+            inbox_object["items"] = inbox_post_items
             print(inbox_object)
             return HttpResponse(json.dumps(inbox_object))
 
