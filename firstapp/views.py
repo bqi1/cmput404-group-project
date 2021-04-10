@@ -1091,10 +1091,13 @@ def inbox(request,user_id):
                         print(author_id)
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
-                            print(item)
-                            if item["author"]["id"] == f"https://{request.get_host()}/{author_id}" and item["object"] == object:
+                            print(item["author"]["id"])
+                            print(f"https://{request.get_host()}/author/{author_id}")
+                            print(item["object"])
+                            print(object)
+                            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
                                 del item
-                                ("item deleted from inbox")
+                                print("item deleted from inbox")
                                 break
                         inbox.save()
                         print("deleting like object from external like table")
