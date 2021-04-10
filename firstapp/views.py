@@ -53,7 +53,7 @@ def index(request):
 #helper function for getting json author objects from our server's database
 def get_our_author_object(host, author_uuid):
     try:
-        url = "https://"+host+"/author/"+author_uuid
+        url = host+"/author/"+author_uuid
         r = requests.get(url)
         return r.json()
     except Exception as e:
@@ -71,7 +71,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
+        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
 
@@ -119,23 +119,24 @@ def signup(request):
                 print("make a setting")
                 settings = Setting(usersneedauthentication=False)
             needs_authentication = settings.usersneedauthentication
+            # print(f"AUTHENTICATE ME http://{request.get_host()}")
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,userid=request.user.id,\
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                             consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
-                user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+                user_inbox = Inbox.objects.create(type="inbox", author=f"http://{request.get_host()}/author/{user.consistent_id}", items=[])
                 user_inbox.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,\
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                         consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
-            user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+            user_inbox = Inbox.objects.create(type="inbox", author=f"http://{request.get_host()}/author/{user.consistent_id}", items=[])
             
             return HttpResponseRedirect(reverse('home'))
         else:
@@ -604,7 +605,8 @@ def like_comment(request, user_id, post_id, comment_id):
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    like_dict["author"] = get_our_author_object(user_id)
+    author = Author.objects.get(consistent_id=user_id)
+    like_dict["author"] = get_our_author_object(author.host,user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
@@ -619,7 +621,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
     is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
     if is_ajax:
-        postlikes = PostLikes.objects.filter(to_user=user_id,post_id=post_id)
+        postlikes = ??????.objects.filter(to_user=user_id,post_id=post_id)
         data = serializers.serialize('json', postlikes)
         return HttpResponse(data, content_type="application/json")
     else:
@@ -637,7 +639,9 @@ def postlikes(request, user_id, post_id):
             cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
             data = cursor.fetchall()
             url = request.get_full_path()
+            print("IN I GO")
             json_post_likes = make_post_likes_object(data, url)
+            print("SUP")
             return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
@@ -1062,7 +1066,7 @@ def likeAHomePagePost(request):
         return HttpResponseRedirect(f"{post['id']}/likepost/")
     # Else, it's a remote like
     try:
-        server = Node.objects.get(hostserver=f"{post['author']['host']}")
+        server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
     except:
         server = Node.objects.get(hostserver=f"{post['author']['host']}")
     author = Author.objects.get(username=request.POST.get('author', False))
@@ -1087,13 +1091,19 @@ def commentAHomePagePost(request):
     print(post)
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
+
+    print(post['author']['host'])
+    print(request.get_host())
+
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
         comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
         comment.save()
     else:
         try:
-            server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
+            # print(f"gaaaaaa http://{post['author']['host']}")
+            server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
         except:
+            # print(f"aaaaaaaaaaaa {post['author']['host']}")
             server = Node.objects.get(hostserver=f"{post['author']['host']}")
         author_dict = {
             "type":"author",
@@ -1193,10 +1203,10 @@ def inbox(request,user_id):
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
                             print(item["author"]["id"])
-                            print(f"https://{request.get_host()}/author/{author_id}")
+                            print(f"http://{request.get_host()}/author/{author_id}")
                             print(item["object"])
                             print(object)
-                            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+                            if item["author"]["id"] == f"http://{request.get_host()}/author/{author_id}" and item["object"] == object:
                                 inbox.items.pop(i)
                                 print("item deleted from inbox")
                                 break
