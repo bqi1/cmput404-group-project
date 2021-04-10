@@ -1082,6 +1082,8 @@ def inbox(request,user_id):
             for item in inbox_object["items"]:
                 if item["type"] == "post":
                     inbox_items.append(item)
+            if len(inbox_items) == 0:
+                inbox_object["items"] = "[]"
             inbox_object["items"] = inbox_items
             
             return HttpResponse(json.dumps(inbox_object))
