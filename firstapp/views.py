@@ -1079,7 +1079,7 @@ def inbox(request,user_id):
             inbox_object["type"]= "inbox"
             inbox_object["author"]= author_id
             inbox_post_items = []
-            author_inbox = Inbox.objects.get(author_id=author_id)
+            author_inbox = Inbox.objects.get(author=author_id)
             for item in author_inbox["items"]:
                 if item["type"] == "post":
                     inbox_post_items.append(item)
