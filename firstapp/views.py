@@ -1084,7 +1084,7 @@ def inbox(request,user_id):
             inbox_items = []
             print("4")
             for item in inbox_object["items"]:
-            print("5")
+                print("5")
                 if item["type"] == "post":
                     inbox_items.append(item)
             print("6")
