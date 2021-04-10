@@ -1079,8 +1079,8 @@ def inbox(request,user_id):
             inbox_object["type"]= "inbox"
             inbox_object["author"]= author_id
             inbox_post_items = []
-            author_inbox = Inbox.objects.get(author=author_id)
-            for item in author_inbox["items"]:
+            author_inbox_items = Inbox.items
+            for item in author_inbox_items:
                 if item["type"] == "post":
                     inbox_post_items.append(item)
                 print("6")
