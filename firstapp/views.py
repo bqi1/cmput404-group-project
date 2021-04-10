@@ -1088,10 +1088,11 @@ def inbox(request,user_id):
                         print("removing like object from inbox")
                         print(like)
                         print(inbox.items)
+                        print(author_id)
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
                             print(item)
-                            if item["author"]["id"] == request.data["author"]["id"] and item["object"] == object:
+                            if item["author"]["id"] == author_id and item["object"] == object:
                                 del item
                                 ("item deleted from inbox")
                                 break
