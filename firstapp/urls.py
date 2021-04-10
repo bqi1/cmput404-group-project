@@ -14,6 +14,7 @@ urlpatterns = [
     # path('author/<int:user_id>/inbox', views.inbox, name='inbox'),
     path('author/<str:user_id>/posts/<int:post_id>/likes/', views.postlikes, name='postlikes'),
     path('author/<str:user_id>/posts/<int:post_id>/likepost/', views.likepost, name='likepost'),
+    path('author/<str:user_id>/posts/<int:post_id>/likecomment/', views.like_comment, name='likecomment'),
     path('author/<str:user_id>/liked/', views.liked, name='liked'),
     path('author/<str:user_id>', views.account, name='account'),
 
@@ -21,6 +22,7 @@ urlpatterns = [
     path('author/<str:user_id>/posts/<int:post_id>/comments/',views.viewComments,name='viewComments'),
 
     path('posts/', views.publicposts,name='publicposts'),
+    path('author/<str:user_id>/inbox', views.inbox,name='inbox'),
     path('like',views.likeAHomePagePost,name="likeAPost"),
     path('comment',views.commentAHomePagePost,name="commentAPost"),
     path('author/<str:user_id>/posts/<int:post_id>/comments/<str:comment_id>',views.viewComment,name='viewComment'),

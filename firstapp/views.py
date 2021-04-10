@@ -20,7 +20,6 @@ import json
 from django.conf import settings
 from markdown import Markdown as Md
 from django.core.mail import send_mail
-
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
 from .permissions import EditPermission
@@ -29,7 +28,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes, Category, Node, Setting
+from firstapp.models import Author, Post, Author_Privacy, Comment, Likes, Category, Node, Setting, Inbox, ExternalLike
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
@@ -51,6 +50,16 @@ def index(request):
     #if request.user.is_authenticated:
     return render(request, 'index.html')
 
+#helper function for getting json author objects from our server's database
+def get_our_author_object(host, author_uuid):
+    try:
+        url = "https://"+host+"/author/"+author_uuid
+        r = requests.get(url)
+        return r.json()
+    except Exception as e:
+        print(e)
+        return HttpResponseNotFound("The account you requested does not exist\n")
+
 def homepage(request):
     if request.user.is_authenticated:
         try:
@@ -62,7 +71,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
 
@@ -71,11 +80,16 @@ def homepage(request):
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         theirData = []
+        auth_user = ""
+        auth_pass = ""
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                auth_user = server.authusername
+                auth_pass = server.authpassword
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
+                    #TODO find a way to pass in auth info with post json
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
@@ -106,19 +120,23 @@ def signup(request):
                 settings = Setting(usersneedauthentication=False)
             needs_authentication = settings.usersneedauthentication
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
+                user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                             consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
+                user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+                user_inbox.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+            user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                         consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
+            user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+            
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -489,7 +507,7 @@ def allposts(request,user_id):
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
-
+        print("DEBUG: "+ str(p))
         # Modify the author privacy table in the database
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
@@ -510,6 +528,7 @@ def allposts(request,user_id):
                 category = Category(post_id=post_id,tag=ca)
                 category.save()
         new_post.save()
+
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
         resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
@@ -529,39 +548,63 @@ def likepost(request, user_id, post_id):
     resp = ""
     conn = connection
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
+    host = request.build_absolute_uri('/')
+    object = f"{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        PostLikes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
+        Likes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
         return HttpResponse("Unliked post")
     else:
         while True:
             like_id = rand(2**31-1)
-            cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
-
-                like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
+                host = request.build_absolute_uri('/')
+                url = f"{host}/author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}"
+                like_object = make_like_object(object, user_id, make_json=True)
+                requests.post(url, data = like_object)
+                like = Likes(like_id=like_id, from_user =request.user.id, object = object)
                 like.save()
                 break
-        # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-        # conn.commit()
-        #TODO send like object to author's inbox
-        url = request.get_full_path()
-        # make_like_object(url, author)
-        return HttpResponse("Post liked successfully") # #TODO send to inbox here
+        HttpResponse("Like object sent to inbox", status=200)
+
+#like a comment
+@api_view(['POST'])
+def like_comment(request, user_id, post_id, comment_id):
+    resp = ""
+    conn = connection
+    cursor = conn.cursor()
+    host = request.build_absolute_uri('/')
+    object = f"{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
+    data = cursor.fetchall()
+    # if post has already been liked
+    if len(data) > 0:
+        return HttpResponse("Comment already liked", status=409)
+    else:
+        while True:
+            like_id = rand(2**31-1)
+            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+            if len(cursor.fetchall()) == 0:
+                print(post_id)
+                host = request.build_absolute_uri('/')
+                url = f"{host}/author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
+                like_object = make_like_object(object, user_id, make_json=True)
+                requests.post(url, data = like_object)
+                like = Likes(like_id=like_id, from_user = request.user.id, to_user = user_id, object = object)
+                like.save()
+                break
+        HttpResponse("Like object sent to inbox", status=200)
 
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
-        r = requests.get(url)
-        like_dict["author"] = r.json()
-    except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["author"] = get_our_author_object(user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
@@ -618,7 +661,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
+        cursor.execute("SELECT * FROM firstapp_likes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -626,25 +669,21 @@ def liked(request,user_id):
             liked_posts_list.append(post_id)
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
-    #TODO get comments that author has liked
-    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
-    # data = cursor.fetchall()
-    
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.object FROM firstapp_likes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
-        liked_object_list = make_liked_object(data)
+        liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
         return HttpResponse(json.dumps(liked_object_list))
 
-def make_liked_object(data):
+def make_liked_object(host,data):
     liked_dict = {}
     json_like_object_list = []
     liked_dict["type"] = "liked"
 
     for like in data:
-        url = "http://c404-project.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
-        like_object = make_like_object(url,like[0], make_json=False)
+        object = like[1]
+        like_object = make_like_object(object,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
     
@@ -870,7 +909,7 @@ def account(request,user_id):
         return HttpResponseNotFound("The account you requested does not exist\n")
     if method == "GET": # We want to return a JSON object of the Author requested
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
@@ -1094,8 +1133,108 @@ def viewComment(request,user_id,post_id,comment_id):
     return HttpResponse(json.dumps(comment_dict))
 
         
+@api_view(['GET','POST', 'DELETE'])
+@authentication_classes([BasicAuthentication])
+def inbox(request,user_id):
+    method = request.META["REQUEST_METHOD"]
+    try:
+        host = request.build_absolute_uri('/')
+        print(host)
+        author_id = host + "author/" + user_id
+        print(author_id)
+        inbox = Inbox.objects.get(author=author_id)
+        print(inbox)
+        if method == "GET":
+            
+            inbox_object = {}
+            inbox_object["type"]= "inbox"
+            inbox_object["author"]= author_id
+            inbox_post_items = []
+            for item in inbox.items:
+                if item["type"] == "post":
+                    inbox_post_items.append(item)
+                print("6")
+            inbox_object["items"] = inbox_post_items
+            print(inbox_object)
+            return HttpResponse(json.dumps(inbox_object))
 
-    
-    
-    
-    
+        elif method == "POST":
+            print(request.data)
+            print(request.data["type"])
+            print(type(request.data["type"]))
+            data_json_type = request.data["type"]
+            if data_json_type== "like":
+                # save to external like table
+                conn = connection
+                cursor = conn.cursor()
+                like_id = rand(2**31-1)
+                print(like_id)
+                cursor.execute("SELECT * FROM firstapp_externallike WHERE like_id = %d"% (like_id))
+                #if id is not used (enforcing unique ids)
+                if len(cursor.fetchall()) == 0:
+                    object = request.data["object"]
+                    print(object)
+                    #extract to_user uuid
+                    to_user = object.split("author/")[1]
+                    to_user = to_user.split("/")[0]
+                    # extract from_user uuid
+                    author_id = request.data["author"]["id"]
+                    author_id = author_id.split("author/")[1]
+                    #remove backslash at end of url if it's there
+                    if author_id[-1] == "/":
+                        author_id = author_id[:-1]
+                    try: #if already liked then remove the like from db
+                        print("getting like object")
+                        like = ExternalLike.objects.get(from_user = author_id, to_user = to_user, object = object)
+                        print("removing like object from inbox")
+                        print(like)
+                        print(inbox.items)
+                        print(author_id)
+                        for i in range(len(inbox.items)):
+                            item = inbox.items[i]
+                            print(item["author"]["id"])
+                            print(f"https://{request.get_host()}/author/{author_id}")
+                            print(item["object"])
+                            print(object)
+                            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+                                inbox.items.pop(i)
+                                print("item deleted from inbox")
+                                break
+                        inbox.save()
+                        print("deleting like object from external like table")
+                        like.delete()
+
+                        return HttpResponse(f"Like object has been removed from database and inbox")
+
+                    except Exception as e: #if not liked then add like to database
+                        print(e)
+                        print("making like object for external table")
+                        like = ExternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        print("saving like object to table")
+                        like.save()
+                        print("adding object to inbox")
+                        inbox.items.append(request.data)
+                        inbox.save()
+                        return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
+
+                
+
+            elif data_json_type == "post":
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Post object has been added to author {to_user}'s inbox")
+
+            elif data_json_type == "follow":
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
+
+
+        elif method == "DELETE":
+            inbox.items = []
+            inbox.save()
+
+            return HttpResponse(f"{author_id}'s inbox has been cleared")
+
+    except Exception as e:
+        print("ERROR in inbox in views.py" + str(e))
