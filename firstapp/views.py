@@ -1093,8 +1093,8 @@ def inbox(request,user_id):
                             print(item)
                             if item["author"]["id"] == request.data["author"]["id"] and item["object"] == object:
                                 del item
+                                ("item deleted from inbox")
                                 break
-                                print("save inbox")
                         inbox.save()
                         print("deleting like object from external like table")
                         like.delete()
