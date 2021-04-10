@@ -97,4 +97,4 @@ class Node(models.Model):
 class Inbox(models.Model):
   type = models.TextField()
   author = models.TextField()
-  items = models.TextField(default=list)
+  items = models.JSONField(default=list)
