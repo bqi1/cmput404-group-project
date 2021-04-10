@@ -1102,7 +1102,7 @@ def inbox(request,user_id):
                         print("adding object to inbox")
                         inbox.items.append(request.data)
                         inbox.save()
-                        return HttpResponse(f"Like object has been added to author {author_id}'s inbox")
+                        return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
 
                 
 
