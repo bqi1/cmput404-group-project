@@ -1085,21 +1085,28 @@ def inbox(request,user_id):
                         author_id = author_id[:-1]
                     try: #if already liked then remove the like from db
                         print("getting like object")
+                        sys.stdout.flush()
                         like = ExternalLike.objects.get(from_user = author_id, to_user = to_user, object = object)
                         print("removing like object from inbox")
+                        sys.stdout.flush()
                         inbox.items.pop(like)
                         print("deleting like object from external like table")
+                        sys.stdout.flush()
                         like.delete()
                         print("save inbox")
+                        sys.stdout.flush()
                         inbox.save()
                         return HttpResponse(f"Like object has been removed from database and inbox")
 
                     except: #if not liked then add like to database
                         print("making like object for external table")
+                        sys.stdout.flush()
                         like = ExternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
                         print("saving like object to table")
+                        sys.stdout.flush()
                         like.save()
                         print("adding object to inbox")
+                        sys.stdout.flush()
                         inbox.items.append(request.data)
                         inbox.save()
                         return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
