@@ -1083,14 +1083,12 @@ def inbox(request,user_id):
             print("3")
             inbox_items = []
             print("4")
-            for item in inbox_object["items"]:
-                print("5")
-                if item["type"] == "post":
-                    inbox_items.append(item)
-            print("6")
-            if len(inbox_items) == 0:
-                inbox_object["items"] = "[]"
-                print(inbox_object)
+            if len(inbox_object) != 0:
+                for item in inbox_object["items"]:
+                    print("5")
+                    if item["type"] == "post":
+                        inbox_items.append(item)
+                print("6")
             inbox_object["items"] = inbox_items
             print(inbox_object)
             return HttpResponse(json.dumps(inbox_object))
