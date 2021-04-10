@@ -1088,11 +1088,15 @@ def inbox(request,user_id):
                         print("removing like object from inbox")
                         print(like)
                         print(inbox.items)
-                        inbox.items.remove(like)
+                        for i in range(len(inbox.items)):
+                            if inbox.items[i]["author"]["id"] == request.data["author"]["id"] and inbox.items["object"] == object:
+                                del inbox.items[i]
+                                break
+                                print("save inbox")
+                        inbox.save()
                         print("deleting like object from external like table")
                         like.delete()
-                        print("save inbox")
-                        inbox.save()
+
                         return HttpResponse(f"Like object has been removed from database and inbox")
 
                     except Exception as e: #if not liked then add like to database
