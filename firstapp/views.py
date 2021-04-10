@@ -242,7 +242,7 @@ def make_post_list(data,user_id,isowner=False,uri=""):
         # This block assigns the author object to each post object.
         author = Author.objects.get(consistent_id=d.user_id)
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
@@ -668,7 +668,23 @@ def publicposts(request):
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
             }
-
+            comments = Comment.objects.filter(post_id=post.id)
+            
+            comment_dict_list = []
+            i = 0
+            for comment_obj in comments:
+                if i >= 5: break
+                comment_dict = {
+                    "type":"comment",
+                    "author":author_dict,
+                    "comment":comment_obj.comment_text,
+                    "contentType":"text/plaintext",
+                    "published":comment_obj.published,
+                    "id":comment_obj.comment_id,
+                }
+                comment_dict_list.append(comment_dict)
+                i+=1
+            amount_of_comments = len(comment_dict_list)
             post_dict = {
                 "type":"post",
                 "title":post.title,
@@ -680,10 +696,10 @@ def publicposts(request):
                 "content":post.content,
                 "author":author_dict,
                 "categories":[],
-                "count":0,
+                "count":amount_of_comments,
                 "size":0,
-                "comments":f"{author.host}/author/{author.consistent_id}/posts/{post.post_id}/viewComments/",
-                "comments":[],
+                "comments_url":f"{author.host}/author/{author.consistent_id}/posts/{post.post_id}/comments",
+                "comments":comment_dict_list,
                 "published":post.published,
                 "unlisted":False if not post.privfriends else True,
                 "post_id":post.post_id,
@@ -711,16 +727,16 @@ def commentpost(request, user_id, post_id):
         request.user.id = int(request.user.id)
     except:
         request.user.id = 0
-    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %d;'% (request.user.id, post_id))
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %s;'% (request.user.id, post_id))
     data = cursor.fetchall()
     if request.method == "POST":
         while True:
             
-            comment_id = rand(2**31)
+            comment_id = f"{uuid.uuid4().hex}"
             byte_data = request.data
             comment = byte_data.get('comment')
             
-            cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
+            cursor.execute("SELECT comment_text FROM firstapp_comment WHERE comment_id='%s'"%(comment_id))
             data1 = cursor.fetchall()
             if len(data1)==0:
                 new_comment = Comment(post_id=post_id, comment_id=comment_id, from_user=request.user.id, to_user=user_id, comment_text=comment)
@@ -764,11 +780,12 @@ def viewComments(request, user_id, post_id):
         return HttpResponse(json.dumps(json_comment_list))
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-        cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
-        data = cursor.fetchall()
+        data = Comment.objects.filter(post_id=f"http://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
         comment_list = []
+        print(f"in comments http://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
+        print(data)
         for d in data:
-            comment_text = d[0]
+            comment_text = d.comment_text
             comment_list.append(comment_text)
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
@@ -1000,19 +1017,19 @@ def check_authentication(request):
 @api_view(['POST'])
 def likeAHomePagePost(request):
     post = json.loads(request.POST.get('thePost', False))
-    print(post)
+    # print(post)
     # If it's a local like:
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
         return HttpResponseRedirect(f"{post['id']}/likepost/")
     # Else, it's a remote like
     try:
-        server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
+        server = Node.objects.get(hostserver=f"{post['author']['host']}")
     except:
         server = Node.objects.get(hostserver=f"{post['author']['host']}")
     author = Author.objects.get(username=request.POST.get('author', False))
     auth_dict = {
         "type":"author",
-        "id": f"http://{author.host}/author/{author.consistent_id}",
+        "id": f"{author.host}/author/{author.consistent_id}",
         "host": f"{author.host}/",
         "displayName": author.username,
         "url": f"{author.host}/firstapp/{author.userid}",
@@ -1021,6 +1038,60 @@ def likeAHomePagePost(request):
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
     response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
     return HttpResponse("Liked!")
+
+# Comment a post by sending a comment request to the inbox.
+@api_view(['POST'])
+def commentAHomePagePost(request):
+    comment = request.POST.get("theComment",False)
+    post = json.loads(request.POST.get('thePost', False))
+    print("THE POST IS ")
+    print(post)
+    # If it's a local comment:
+    author = Author.objects.get(username=request.POST.get('author', False))
+    if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+        comment.save()
+    else:
+        try:
+            server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
+        except:
+            server = Node.objects.get(hostserver=f"{post['author']['host']}")
+        author_dict = {
+            "type":"author",
+            "id":f"{author.host}/author/{author.consistent_id}",
+            "url":f"{author.host}/firstapp/{author.userid}",
+            "host":author.host,
+            "displayName":author.username,
+            "github":author.github,
+        }
+        response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Commented!")
+
+@api_view(['GET'])
+def viewComment(request,user_id,post_id,comment_id):
+    try:
+        comment = Comment.objects.get(comment_id=f"http://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}/comments/{comment_id}")
+    except:
+        return HttpResponseBadRequest("Comment does not exist.")
+    author = Author.objects.get(consistent_id=user_id)
+    author = {
+        "type":"author",
+        "id":f"{author.host}/author/{author.consistent_id}",
+        "url":f"{author.host}/firstapp/{author.userid}",
+        "host":author.host,
+        "displayName":author.username,
+        "github":author.github,
+
+    }
+    comment_dict = {
+        "type":"comment",
+        "author":author,
+        "comment":comment.comment_text,
+        "contentType":"text/plaintext",
+        "published":comment.published,
+        "id":comment.comment_id,
+    }
+    return HttpResponse(json.dumps(comment_dict))
 
         
 
