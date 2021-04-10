@@ -1087,6 +1087,7 @@ def inbox(request,user_id):
                         like = ExternalLike.objects.get(from_user = author_id, to_user = to_user, object = object)
                         print("removing like object from inbox")
                         print(like)
+                        print(inbox.items)
                         inbox.items.remove(like)
                         print("deleting like object from external like table")
                         like.delete()
