@@ -1090,6 +1090,7 @@ def inbox(request,user_id):
                         print(inbox.items)
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
+                            print(item)
                             if item["author"]["id"] == request.data["author"]["id"] and item["object"] == object:
                                 del item
                                 break
