@@ -1092,7 +1092,7 @@ def inbox(request,user_id):
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
                             print(item)
-                            if item["author"]["id"] == author_id and item["object"] == object:
+                            if item["author"]["id"] == f"https://{request.get_host()}/{author_id}" and item["object"] == object:
                                 del item
                                 ("item deleted from inbox")
                                 break
