@@ -36,6 +36,7 @@ import requests
 import base64
 from .remote_friend import get_all_remote_user
 from django.contrib.auth.models import User
+from django.core import serializers
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -74,7 +75,8 @@ def homepage(request):
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
 
-        ourData = ourRequest.json()
+
+
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         theirData = []
@@ -91,9 +93,10 @@ def homepage(request):
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
-        our_author_object = get_our_author_object(request.META['HTTP_HOST'], author_uuid)
-        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData, 'our_author_object':our_author_object, 'auth_user':auth_user, 'auth_pass':auth_pass})
-
+        # print(ourData)
+        # print(theirData)
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData,"author":author})
+    
 def signup(request):
     # Called when user accesses the signup page
     success = False
@@ -270,15 +273,15 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             "type":"post",
             "title":d.title,
             "id":d.id,
-            "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
-            "origin":f"{author.host}/posts",
+            "source":f"{author.host}/author/{author.consistent_id}",
+            "origin":f"{author.host}/author/{author.consistent_id}",
             "description":d.description,
             "contentType":"text/markdown" if d.markdown else "text/plain",
             "content":d.content,
             "categories":[],
             "count":0,
             "size":0,
-            "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+            "comments":f"{author.host}/author/{author.consistent_id}/posts/{d.post_id}/viewComments/",
             "comments":[],
             "visibility":[],
             "unlisted":False if not d.privfriends else True,
@@ -477,9 +480,7 @@ def allposts(request,user_id):
     user_token = data[0].api_token
     author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-    print("\n\noh, DO enter.\n\n")
     if method == "POST":
-        print(f"my authorization is... {request.META['HTTP_AUTHORIZATION']}\n\n")
         try: # Client is using token authentication
             token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
             if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
@@ -535,7 +536,6 @@ def allposts(request,user_id):
         return HttpResponseBadRequest("Error: invalid method used\n")
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        print(f"\nhibblyhobbly {user_token}\n")
         with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
         if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
@@ -617,24 +617,28 @@ def postlikes(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
-
-    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT u.username FROM firstapp_likes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
-        data = cursor.fetchall()
-        author_list = []
-        for d in data:
-            author = d[0]
-            author_list.append(author)
-        num_likes = len(author_list)
-    
-        return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
-    else: 
-        #return a list of like objects
-        cursor.execute('SELECT a.consistent_id FROM firstapp_likes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
-        data = cursor.fetchall()
-        url = request.get_full_path()
-        json_post_likes = make_post_likes_object(data, url)
-        return HttpResponse(json.dumps(json_post_likes))
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    if is_ajax:
+        postlikes = PostLikes.objects.filter(to_user=user_id,post_id=post_id)
+        data = serializers.serialize('json', postlikes)
+        return HttpResponse(data, content_type="application/json")
+    else:
+        if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+            cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
+            data = cursor.fetchall()
+            author_list = []
+            for d in data:
+                author = d[0]
+                author_list.append(author)
+            num_likes = len(author_list)
+            return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+        else: 
+            #return a list of like objects
+            cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
+            data = cursor.fetchall()
+            url = request.get_full_path()
+            json_post_likes = make_post_likes_object(data, url)
+            return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
     #Get list of likes from other authors on author_ids's post post_id
@@ -708,8 +712,8 @@ def publicposts(request):
                 "type":"post",
                 "title":post.title,
                 "id":post.id,
-                "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
-                "origin":f"{author.host}/posts",
+                "source":f"{author.host}/author/{author.consistent_id}",
+                "origin":f"{author.host}/author/{author.consistent_id}",
                 "description":post.description,
                 "contentType":"text/markdown" if post.markdown else "text/plain",
                 "content":post.content,
@@ -717,7 +721,7 @@ def publicposts(request):
                 "categories":[],
                 "count":0,
                 "size":0,
-                "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+                "comments":f"{author.host}/author/{author.consistent_id}/posts/{post.post_id}/viewComments/",
                 "comments":[],
                 "published":post.published,
                 "unlisted":False if not post.privfriends else True,
@@ -772,6 +776,31 @@ def commentpost(request, user_id, post_id):
 def viewComments(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    if is_ajax:
+        json_comment_list = []
+        comments = Comment.objects.filter(post_id=post_id)
+        for comment in comments:
+           # for comment in comments:
+            author = Author.objects.get(consistent_id = comment.to_user)
+            author_dict = {
+                "type":"author",
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "url": f"{author.host}/author/{author.consistent_id}",
+                "displayName": author.username,
+                "github": author.github,
+            }
+            comment_dict = {
+                "type":"comment",
+                "author":author_dict,
+                "comment":comment.comment_text,
+                "contentType":"text/markdown",
+                "published":str(datetime.now()),
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
+            }
+            json_comment_list.append(comment_dict)
+        return HttpResponse(json.dumps(json_comment_list))
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
         cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
@@ -1121,12 +1150,12 @@ def inbox(request,user_id):
             elif data_json_type == "post":
                 inbox.items.append(request.data)
                 inbox.save()
-                return HttpResponse(f"Post object has been added to author {author_id}'s inbox")
+                return HttpResponse(f"Post object has been added to author {to_user}'s inbox")
 
             elif data_json_type == "follow":
                 inbox.items.append(request.data)
                 inbox.save()
-                return HttpResponse(f"Follow object has been added to author {author_id}'s inbox")
+                return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
 
 
         elif method == "DELETE":
