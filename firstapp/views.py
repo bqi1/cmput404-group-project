@@ -1104,7 +1104,7 @@ def inbox(request,user_id):
                         print("making like object for external table")
                         like = ExternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
                         print("saving like object to table")
-                        # like.save()
+                        like.save()
                         print("adding object to inbox")
                         inbox.items.append(request.data)
                         inbox.save()
