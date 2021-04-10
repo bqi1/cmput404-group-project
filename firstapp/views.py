@@ -1092,10 +1092,6 @@ def inbox(request,user_id):
             print(request.data["type"])
             print(type(request.data["type"]))
             data_json_type = request.data["type"]
-            object = request.data["object"]
-            #extract to_user uuid
-            to_user = object.split("author/")[1]
-            to_user = to_user.split("/")[0]
             if data_json_type== "like":
                 # save to external like table
                 conn = connection
@@ -1105,6 +1101,11 @@ def inbox(request,user_id):
                 cursor.execute("SELECT * FROM firstapp_externallike WHERE like_id = %d"% (like_id))
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
+                    object = request.data["object"]
+                    print(object)
+                    #extract to_user uuid
+                    to_user = object.split("author/")[1]
+                    to_user = to_user.split("/")[0]
                     # extract from_user uuid
                     author_id = request.data["author"]["id"]
                     author_id = author_id.split("author/")[1]
@@ -1148,11 +1149,16 @@ def inbox(request,user_id):
                 
 
             elif data_json_type == "post":
+                object = request.data["object"]
+                #extract to_user uuid
+                to_user = object.split("author/")[1]
+                to_user = to_user.split("/")[0]
                 inbox.items.append(request.data)
                 inbox.save()
                 return HttpResponse(f"Post object has been added to author {to_user}'s inbox")
 
             elif data_json_type == "follow":
+                to_user = request.data["object"]["id"]
                 inbox.items.append(request.data)
                 inbox.save()
                 return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
