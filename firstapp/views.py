@@ -1089,8 +1089,9 @@ def inbox(request,user_id):
                         print(like)
                         print(inbox.items)
                         for i in range(len(inbox.items)):
-                            if inbox.items[i]["author"]["id"] == request.data["author"]["id"] and inbox.items["object"] == object:
-                                del inbox.items[i]
+                            item = inbox.items[i]
+                            if item["author"]["id"] == request.data["author"]["id"] and item["object"] == object:
+                                del item
                                 break
                                 print("save inbox")
                         inbox.save()
