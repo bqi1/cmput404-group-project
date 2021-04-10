@@ -1149,13 +1149,9 @@ def inbox(request,user_id):
                 
 
             elif data_json_type == "post":
-                object = request.data["object"]
-                #extract to_user uuid
-                to_user = object.split("author/")[1]
-                to_user = to_user.split("/")[0]
                 inbox.items.append(request.data)
                 inbox.save()
-                return HttpResponse(f"Post object has been added to author {to_user}'s inbox")
+                return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
                 to_user = request.data["object"]["id"]
