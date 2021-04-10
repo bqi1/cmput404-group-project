@@ -69,12 +69,18 @@ class Comment(models.Model):
     
     def __str__(self):
         return self.comment_text
-        
-class PostLikes(models.Model):
+
+class Likes(models.Model):
   like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)
   from_user = models.IntegerField(blank=True, null=False)
   to_user = models.TextField(max_length=500,blank=True)
-  post_id = models.PositiveIntegerField(blank=True, null=False)
+  object = models.TextField()
+
+class ExternalLike(models.Model):
+  like_id = models.PositiveIntegerField(primary_key=True, blank=True, null=False)
+  from_user = models.TextField()
+  to_user = models.TextField(max_length=500,blank=True)
+  object = models.TextField()
 
 # class CommentLikes(models.Model):
 #   like_id = models.AutoField(primary_key=True, blank=True, null=False)
@@ -87,3 +93,8 @@ class Node(models.Model):
   authpassword = models.TextField(null=False)
   def __str__(self):
     return self.hostserver
+
+class Inbox(models.Model):
+  type = models.TextField()
+  author = models.TextField()
+  items = models.JSONField(default=list)
