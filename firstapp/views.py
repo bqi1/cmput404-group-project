@@ -741,10 +741,23 @@ def publicposts(request):
                 if i >= 5: break
                 author_url = str(comment_obj.from_user)
                 print(f"\n\nDAB {author_url}\n\n")
-                from_author_request = requests.get(url="https://iconicity-part2.herokuapp.com/author/4a6d1890-0160-45da-8777-06d0087ea0c2",auth=("auth_user","authpass"))
+                if request.get_host() in comment_obj.from_user:
+                    # http://c404posties.herokuapp.com/author/
+                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")-1:])
+                    from_author_dict = {
+                        "type":"author",
+                        "id": f"{author.host}/author/{author.consistent_id}",
+                        "host": f"{author.host}/",
+                        "url": f"{author.host}/author/{author.consistent_id}",
+                        "displayName": author.username,
+                        "github": author.github,
+                    }
+                else:
+                    from_author_request = requests.get(url=comment_obj.from_user)
+                    from_author_dict = from_author_request.json()
                 print(f"hmmm,m,m {from_author_request}")
                 
-                from_author_dict = from_author_request.json()
+                
                 print(f"uhhhhhhh,,,{from_author_dict}")
 
                 comment_dict = {
