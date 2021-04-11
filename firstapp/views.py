@@ -52,8 +52,9 @@ def index(request):
 
 #helper function for getting json author objects from our server's database
 def get_our_author_object(host, author_uuid):
+    print("entered get_our_author_object")
     try:
-        url = host+"/author/"+author_uuid
+        url = "http://"+host+"/author/"+author_uuid
         r = requests.get(url)
         return r.json()
     except Exception as e:
