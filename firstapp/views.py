@@ -740,7 +740,7 @@ def publicposts(request):
             for comment_obj in comments:
                 if i >= 5: break
                 author_url = comment_obj.from_user
-
+                print(f"\n\nDAB {author_url}\n\n")
                 from_author_request = requests.get(author_url)
                 print(f"hmmm,m,m {from_author_request}")
                 
