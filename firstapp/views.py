@@ -1135,9 +1135,17 @@ def likeAHomePagePost(request):
         except:
             # Like does not exist. Must like.
             like = Like.objects.create(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],like_id=rand(2**31-1),object=post["id"])
+            author_dict = {
+                "type":"author",
+                "id":f"{author.host}/author/{author.consistent_id}",
+                "url":f"{author.host}/firstapp/{author.userid}",
+                "host":author.host,
+                "displayName":author.username,
+                "github":author.github,
+            }
             like_dict = {
                 "type":"like",
-                "author":like.from_user,
+                "author":author_dict,
                 "object":like.object,
             }
             like_object = json.dumps(like_dict)
