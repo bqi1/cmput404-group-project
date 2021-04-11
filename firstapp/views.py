@@ -1222,7 +1222,10 @@ def inbox(request,user_id):
             return HttpResponse(json.dumps(inbox_object))
         # FIX THIS
         elif method == "POST":
+            print("this")
+            print(request.data)
             the_object = json.loads(request.data["data"])
+            print(the_object)
             data_json_type = the_object["type"]
             if data_json_type == "like":
                 print("liking.......")
