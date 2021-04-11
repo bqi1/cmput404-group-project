@@ -1122,20 +1122,35 @@ def check_authentication(request):
 def likeAHomePagePost(request):
     print("ok we liking a homepage post")
     post = json.loads(request.POST.get('thePost', False))
+    author = Author.objects.get(username=request.POST.get('author', False))
     print(post)
     # If it's a local like:
     if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"http://{request.get_host()}/" == f"{post['author']['host']}":
         print("entering.")
         # author/<str:user_id>/posts/<int:post_id>/likepost/
-        print(post)
-        response = requests.get(f"{post['id']}/likepost/")
-        return HttpResponse("Liked!")
+        try: 
+            # Try to unlike
+            like = Like.objects.get(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],object=post["id"])
+            like.delete()
+        except:
+            # Like does not exist. Must like.
+            like = Like.objects.create(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],like_id=rand(2**31-1),object=post["id"])
+            like_dict = {
+                "type":"like",
+                "author":like.from_user,
+                "object":like.object,
+            }
+            like_object = json.dumps(like_dict)
+            headers  = {'Content-type': 'application/json'}
+            url = f"{author.host}/author/{author.consistent_id}/inbox"
+            requests.post(url, data = like_object, headers=headers)
+        return HttpResponse("Like processed")
     # Else, it's a remote like
     try:
         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
     except:
         server = Node.objects.get(hostserver=f"{post['author']['host']}")
-    author = Author.objects.get(username=request.POST.get('author', False))
+    
     auth_dict = {
         "type":"author",
         "id": f"{author.host}/author/{author.consistent_id}",
