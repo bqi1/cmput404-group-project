@@ -569,7 +569,7 @@ def likepost(request, user_id, post_id):
                 host = request.build_absolute_uri('/')
                 url = f"{host}/author/{user_id}/inbox"
                 object = f"{host}/author/{user_id}/posts/{post_id}"
-                like_object = make_like_object(object, user_id, make_json=True)
+                like_object = make_like_object(request, object, user_id, make_json=True)
                 requests.post(url, data = like_object)
                 like = Like(like_id=like_id, from_user = uuid, object = object)
                 like.save()
@@ -600,17 +600,17 @@ def like_comment(request, user_id, post_id, comment_id):
                 host = request.build_absolute_uri('/')
                 url = f"{host}/author/{user_id}/inbox"
                 object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
-                like_object = make_like_object(object, user_id, make_json=True)
+                like_object = make_like_object(request, object, user_id, make_json=True)
                 requests.post(url, data = like_object)
                 like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
                 like.save()
                 break
         HttpResponse("Like object sent to inbox", status=200)
 
-def make_like_object(object, user_id, make_json = True):
+def make_like_object(request, object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    like_dict["author"] = get_our_author_object(user_id)
+    like_dict["author"] = get_our_author_object(request.get_host_name(), user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
@@ -646,14 +646,14 @@ def postlikes(request, user_id, post_id):
             json_post_likes = make_post_likes_object(data, url)
             return HttpResponse(json.dumps(json_post_likes))
 
-def make_post_likes_object(data, url):
+def make_post_likes_object(request, data, url):
     #Get list of likes from other authors on author_ids's post post_id
     post_likes_dict = {}
     json_like_object_list = []
 
     post_likes_dict["type"] = "post likes"
     for like in data:
-        like_object = make_like_object(url, like[0], make_json=False)
+        like_object = make_like_object(request, url, like[0], make_json=False)
         json_like_object_list.append(like_object)
     post_likes_dict["items"] = json_like_object_list
     return post_likes_dict
@@ -682,14 +682,14 @@ def liked(request,user_id):
 
         return HttpResponse(json.dumps(liked_object_list))
 
-def make_liked_object(host,data):
+def make_liked_object(request, host,data):
     liked_dict = {}
     json_like_object_list = []
     liked_dict["type"] = "liked"
 
     for like in data:
         object = like[1]
-        like_object = make_like_object(object,like[0], make_json=False)
+        like_object = make_like_object(request, object,like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
     
