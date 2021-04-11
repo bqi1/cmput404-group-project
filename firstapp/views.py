@@ -1237,13 +1237,13 @@ def inbox(request,user_id):
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
                     print("id is available!!\n\n")
-                    object = the_object["object"]
+                    object = request.data["object"]
                     print(object)
                     #extract to_user uuid
                     to_user = object.split("author/")[1]
                     to_user = to_user.split("/")[0]
                     # extract from_user uuid
-                    author_id = the_object["author"]["id"]
+                    author_id = request.data["author"]["id"]
                     author_id = author_id.split("author/")[1]
                     #remove backslash at end of url if it's there
                     if author_id[-1] == "/":
@@ -1278,7 +1278,7 @@ def inbox(request,user_id):
                         print("saving like object to table")
                         like.save()
                         print("adding object to inbox")
-                        inbox.items.append(the_object)
+                        inbox.items.append(request.data)
                         inbox.save()
                         return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
                 else:
