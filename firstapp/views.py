@@ -906,9 +906,9 @@ def viewComments(request, user_id, post_id):
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
-        print(f"\n\nviewcomments not in browser {post_id}\n\n")
+        print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")
         json_comment_list = []
-        comments = Comment.objects.filter(post_id=post_id)
+        comments = Comment.objects.filter(post_id=f"https://{request.get_host()}/author/{user_id}/posts/{post_id}")
         print(comments)
         for comment in comments:
            # for comment in comments:
