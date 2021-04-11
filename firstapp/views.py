@@ -1202,9 +1202,9 @@ def inbox(request,user_id):
     method = request.META["REQUEST_METHOD"]
     try:
         host = request.build_absolute_uri('/')
-        # print(host)
+        print(host)
         author_id = host + "author/" + user_id
-        # print(author_id)
+        print(author_id)
         inbox = Inbox.objects.get(author=author_id)
         print(inbox)
         print(method)
