@@ -912,7 +912,7 @@ def viewComments(request, user_id, post_id):
         print(comments)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user)
+            author = Author.objects.get(consistent_id = comment_obj.to_user[len(f"http://{request.get_host()}/author/")+1:])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
