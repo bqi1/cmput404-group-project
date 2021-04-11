@@ -571,8 +571,8 @@ def likepost(request, user_id, post_id):
             if len(cursor.fetchall()) == 0:
                 print(f"like doesnt exist:{post_id}")
                 host = request.build_absolute_uri('/')
-                url = f"{host}/author/{user_id}/inbox"
-                object = f"{host}/author/{user_id}/posts/{post_id}"
+                url = f"http://{host}/author/{user_id}/inbox"
+                object = f"http://{host}/author/{user_id}/posts/{post_id}"
                 like_object = make_like_object(request, object, user_id, make_json=True)
                 requests.post(url, data = like_object)
                 like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
@@ -587,7 +587,7 @@ def like_comment(request, user_id, post_id, comment_id):
     conn = connection
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
-    object = f"{host}/author/{user_id}/posts/{post_id}"
+    object = f"http://{host}/author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
     uuid = cursor.fetchall()[0]
     cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
