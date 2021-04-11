@@ -28,7 +28,7 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, Likes, Category, Node, Setting, Inbox, ExternalLike
+from firstapp.models import Author, Post, Author_Privacy, Comment, Like, Category, Node, Setting, Inbox
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
@@ -550,8 +550,12 @@ def likepost(request, user_id, post_id):
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
     object = f"{host}/author/{user_id}/posts/{post_id}"
-    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
+    cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
+    print(data)
     data = cursor.fetchall()
+    print(data)
+    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = '%s' AND object = '%s'"% (data[0], object))
+
     # if post has already been liked
     if len(data) > 0:
         Likes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
@@ -580,6 +584,8 @@ def like_comment(request, user_id, post_id, comment_id):
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
     object = f"{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
+    cursor.fetchall()
     cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
@@ -1093,12 +1099,12 @@ def inbox(request,user_id):
             print(type(request.data["type"]))
             data_json_type = request.data["type"]
             if data_json_type== "like":
-                # save to external like table
+                # save to like table
                 conn = connection
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)
                 print(like_id)
-                cursor.execute("SELECT * FROM firstapp_externallike WHERE like_id = %d"% (like_id))
+                cursor.execute("SELECT * FROM firstapp_like WHERE like_id = %d"% (like_id))
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
                     object = request.data["object"]
@@ -1108,13 +1114,9 @@ def inbox(request,user_id):
                     to_user = to_user.split("/")[0]
                     # extract from_user uuid
                     author_id = request.data["author"]["id"]
-                    author_id = author_id.split("author/")[1]
-                    #remove backslash at end of url if it's there
-                    if author_id[-1] == "/":
-                        author_id = author_id[:-1]
                     try: #if already liked then remove the like from db
                         print("getting like object")
-                        like = ExternalLike.objects.get(from_user = author_id, to_user = to_user, object = object)
+                        like = Like.objects.get(from_user = author_id, to_user = to_user, object = object)
                         print("removing like object from inbox")
                         print(like)
                         print(inbox.items)
@@ -1130,15 +1132,15 @@ def inbox(request,user_id):
                                 print("item deleted from inbox")
                                 break
                         inbox.save()
-                        print("deleting like object from external like table")
+                        print("deleting like object from like table")
                         like.delete()
 
                         return HttpResponse(f"Like object has been removed from database and inbox")
 
                     except Exception as e: #if not liked then add like to database
                         print(e)
-                        print("making like object for external table")
-                        like = ExternalLike(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        print("making like object for table")
+                        like = Like(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
                         print("saving like object to table")
                         like.save()
                         print("adding object to inbox")
