@@ -932,16 +932,21 @@ def search_user(request, *args, **kwargs):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def account(request,user_id):
+    print("Inside account function")
     # This method can GET and POST an author by their UUID
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
     try: 
+        print("trying to get an author")
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
+        print("got an author")
     except:
+        print("uhoh")
         return HttpResponseNotFound("The account you requested does not exist\n")
     if method == "GET": # We want to return a JSON object of the Author requested
+        print("in get")
         author_dict = {
             "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
@@ -949,8 +954,10 @@ def account(request,user_id):
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
         }
+        print(f"here's my thing\n\n{author_dict}\n\n")
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
+        print("Wait, I'm in a post request")
         try: # First see if the user exists
             author = Author.objects.get(consistent_id=user_id)
         except Author.DoesNotExist:
