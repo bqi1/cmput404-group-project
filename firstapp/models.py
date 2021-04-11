@@ -76,11 +76,6 @@ class Like(models.Model):
   to_user = models.TextField(max_length=500,blank=True)
   object = models.TextField()
 
-# class CommentLikes(models.Model):
-#   like_id = models.AutoField(primary_key=True, blank=True, null=False)
-#   from_user = models.IntegerField(blank=True, null=True)
-#   to_user = models.IntegerField(blank=True, null=True)
-#   comment_id = models.ForeignKey('Comment', on_delete=models.CASCADE, blank=True, null=True)
 class Node(models.Model):
   hostserver = models.URLField(null=False)
   authusername = models.TextField(null=False)
