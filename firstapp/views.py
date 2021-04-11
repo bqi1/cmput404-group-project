@@ -72,6 +72,7 @@ def homepage(request):
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
 
