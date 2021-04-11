@@ -551,7 +551,7 @@ def likepost(request, user_id, post_id):
     host = request.build_absolute_uri('/')
     object = f"{host}/author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
-    uuid = cursor.fetchall()[0]
+    uuid = cursor.fetchone()[0]
     print(uuid)
     cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
     data = cursor.fetchall()
