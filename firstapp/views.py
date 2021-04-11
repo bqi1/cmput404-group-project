@@ -551,19 +551,19 @@ def likepost(request, user_id, post_id):
     host = request.build_absolute_uri('/')
     object = f"{host}/author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
-    print(data)
+    uuid = cursor.fetchall()
+    print(uuid)
+    cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
     data = cursor.fetchall()
     print(data)
-    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = '%s' AND object = '%s'"% (data[0], object))
-
     # if post has already been liked
     if len(data) > 0:
-        Likes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
+        Like.objects.filter(from_user = uuid,to_user = user_id,post_id = post_id).delete()
         return HttpResponse("Unliked post")
     else:
         while True:
             like_id = rand(2**31-1)
-            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_like WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
                 host = request.build_absolute_uri('/')
@@ -571,7 +571,7 @@ def likepost(request, user_id, post_id):
                 object = f"{host}/author/{user_id}/posts/{post_id}"
                 like_object = make_like_object(object, user_id, make_json=True)
                 requests.post(url, data = like_object)
-                like = Likes(like_id=like_id, from_user =request.user.id, object = object)
+                like = Like(like_id=like_id, from_user = uuid, object = object)
                 like.save()
                 break
         HttpResponse("Like object sent to inbox", status=200)
@@ -585,8 +585,8 @@ def like_comment(request, user_id, post_id, comment_id):
     host = request.build_absolute_uri('/')
     object = f"{host}/author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
-    cursor.fetchall()
-    cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
+    uuid = cursor.fetchall()
+    cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
@@ -594,7 +594,7 @@ def like_comment(request, user_id, post_id, comment_id):
     else:
         while True:
             like_id = rand(2**31-1)
-            cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_like WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
                 host = request.build_absolute_uri('/')
@@ -602,7 +602,7 @@ def like_comment(request, user_id, post_id, comment_id):
                 object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
                 like_object = make_like_object(object, user_id, make_json=True)
                 requests.post(url, data = like_object)
-                like = Likes(like_id=like_id, from_user = request.user.id, to_user = user_id, object = object)
+                like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
                 like.save()
                 break
         HttpResponse("Like object sent to inbox", status=200)
@@ -625,12 +625,12 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
     is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
     if is_ajax:
-        postlikes = PostLikes.objects.filter(to_user=user_id,post_id=post_id)
+        postlikes = Like.objects.filter(to_user=user_id,post_id=post_id)
         data = serializers.serialize('json', postlikes)
         return HttpResponse(data, content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-            cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
+            cursor.execute("SELECT u.username FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.consistent_id;"%post_id)
             data = cursor.fetchall()
             author_list = []
             for d in data:
@@ -667,7 +667,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_likes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
+        cursor.execute("SELECT * FROM firstapp_like l, WHERE l.from_user = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -676,7 +676,7 @@ def liked(request,user_id):
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
     else:
-        cursor.execute("SELECT a.consistent_id, l.object FROM firstapp_likes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT a.consistent_id, l.object FROM firstapp_like l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
