@@ -71,7 +71,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
+        ourURL = request.META['HTTP_HOST']+"/posts"
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
