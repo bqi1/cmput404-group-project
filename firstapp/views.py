@@ -74,7 +74,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"http://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -1211,22 +1211,25 @@ def makeComment(request,user_id,post_id):
     uname, pword = enc[0], enc[1]
     print(uname,pword)
     print(request.POST)
-    # Check if username is admin
-        # First see if they can log in and if they're super user.
-    # If not, return
-    # Else:
+    # First see if credentials are valid. If not, return
+    user = authenticate(username = uname, password = pword)
+    if user is None:
+        return HttpResponseBadRequest("You are not authenticated!")
+    try:
         # retrieve the text and from_user
         # Create the comment object
-
-
-    # comment = request.POST.get("theComment",False)
-    # post = json.loads(request.POST.get('thePost', False))
-    # print("THE POST IS ")
-    # print(post)
-
-    #     comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
-    #     comment.save()
-
+        post_id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}"
+        comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
+        author_dict = json.loads(request.POST.get("author",False)) # This should be the person commenting, not the creator of the post
+        from_user = author_dict["id"]
+        author = Author.objects.get(consistent_id=user_id)
+        to_user = f"https://{request.get_host()}/author/{user_id}"
+        comment_text = request.POST.get("comment",False)
+        comment = Comment.objects.create(post_id=post_id,comment_id=comment_id,from_user=from_user,to_user=to_user,comment_text=comment_text,published=str(datetime.now()))
+        comment.save()
+    except Exception as e:
+        print(e)
+        return HttpResponseBadRequest("Something went wrong. Make sure to send an author dictionary and a comment")
     return HttpResponse("Commented!")
 
 @api_view(['GET'])

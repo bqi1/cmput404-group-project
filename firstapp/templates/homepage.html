@@ -32,6 +32,7 @@
                 for (let i = 0; i < public_posts_from_our_server.length; i++){
                     var item = public_posts_from_our_server[i];
                     let likes = 0;
+                    // console.log("trying to get "+item["id"]+"/likes");
                     $.ajax({
                             url: item["id"]+"/likes",
                             type: 'GET',
