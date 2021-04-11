@@ -562,9 +562,19 @@ def likepost(request, user_id, post_id):
     cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
     data = cursor.fetchall()
     print(data)
-    # if post has already been liked
+    # if post has already been liked delete from inbox and database
     if len(data) > 0:
         Like.objects.filter(from_user = uuid,to_user = user_id, object = object).delete()
+        host = request.build_absolute_uri('/')
+        author_id = host + "author/" + user_id
+        inbox = Inbox.objects.get(author=author_id)
+        for i in range(len(inbox.items)):
+            item = inbox.items[i]
+            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+                inbox.items.pop(i)
+                print("item deleted from inbox")
+                break
+        inbox.save()
         return HttpResponse("Unliked post")
     else:
         print("not liked. liking....")
