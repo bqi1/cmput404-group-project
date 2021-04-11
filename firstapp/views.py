@@ -755,6 +755,8 @@ def publicposts(request):
                 author_url = str(comment_obj.from_user)
                 if request.get_host() in comment_obj.from_user:
                     # http://c404posties.herokuapp.com/author/
+                    print(f"http://{request.get_host()}/author/")
+                    print(comment_obj.from_user[len(f"http://{request.get_host()}/author/"):])
                     author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/"):])
                     from_author_dict = {
                         "type":"author",
