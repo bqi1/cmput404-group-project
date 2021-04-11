@@ -75,6 +75,8 @@ def homepage(request):
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
+        print(ourRequest)
+        print("\n")
 
 
 
@@ -736,9 +738,11 @@ def publicposts(request):
             i = 0
             for comment_obj in comments:
                 if i >= 5: break
+                author_url = comment_obj.from_user
+                from_author_dict = requests.get(author_url).json()
                 comment_dict = {
                     "type":"comment",
-                    "author":author_dict,
+                    "author":from_author_dict,
                     "comment":comment_obj.comment_text,
                     "contentType":"text/plaintext",
                     "published":comment_obj.published,
