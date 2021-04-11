@@ -76,7 +76,8 @@
                     }, false);
                     document.getElementById("commentButton"+i).addEventListener("click",function(){
                         let post = {{our_server_posts|safe}}[i];
-                        console.log(post);                      
+                        console.log(post);
+                        console.log("{{author}}");                      
                         $.ajax({
                             url: '/comment',
                             type: 'POST',
