@@ -555,13 +555,7 @@ def likepost(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
-    print(host)
     object = f"{host}author/{user_id}/posts/{post_id}"
-    print(request)
-    print(request.user)
-    print(request.user.id)
-    print(object)
-    print("\n")
     cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
