@@ -38,18 +38,31 @@
                                 // console.log("data is "+data);
                                 amount_likes = data.length==0?0:data.length;
                                 document.getElementById("likes"+i).innerHTML = amount_likes+" liked this post";
+
                                 // // console.log(likes);
                             },
                             headers: {
                                 "X-Requested-With":"XMLHttpRequest"
                             }
                         }); 
-                    console.log(item);
+                    // console.log(item);
                     var result = "<div class = 'post'>";
                     result += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4> <p> Description: "+item["description"]+"</p>"+"<p> Content: "+item["content"]+"</p>";
-                    result+= "<p id=likes"+i+">";
-                    result+= likes+" liked this post</p>";
-                    document.getElementById("demo").innerHTML += result + "<input type='button' id ='likeButton"+i+"' value='Like'/> </div>";
+                    result+= "<h4 id=likes"+i+">";
+                    result+= likes+" liked this post</h4>";
+                    result+="<h4>Comments:</h4>";
+                    console.log(item);
+                    for (let c_index = 0; c_index < item["count"]; c_index++){
+                        
+                        console.log("HM."+item["comments"][c_index]);
+                        console.log("I SEE."+item["comments"][c_index]["author"]["displayName"]);
+                        result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                    }
+                    result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
+                    result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
+                    result += "<input id = 'comment"+i+"'/>";
+                    result+= "</div>";
+                    document.getElementById("demo").innerHTML += result;
                     index += 1;
                 }
                 for (let i = 0; i < public_posts_from_our_server.length; i++){
@@ -65,6 +78,24 @@
                             },
                         }); 
                     }, false);
+                    document.getElementById("commentButton"+i).addEventListener("click",function(){
+                        let post = {{our_server_posts|safe}}[i];
+                        // console.log(post);
+                        // console.log("{{author}}");                      
+                        $.ajax({
+                            url: '/comment',
+                            type: 'POST',
+                            data: { 
+                                csrfmiddlewaretoken: "{{ csrf_token }}",
+                                thePost:JSON.stringify(post),
+                                author:"{{ author }}",
+                                theComment:document.getElementById('comment'+i).value,
+                                success:function(){
+                                    document.getElementById('comment'+i).value = "";
+                                },
+                            },
+                        });
+                    }, false);
                 }
 
 
@@ -73,15 +104,22 @@
                 var True = true;
                 var None = null;
                 var public_posts_from_other_server = {{other_server_posts|safe}};
+                console.log("other servers")
                 for (let i = index; i < public_posts_from_other_server.length+index; i++){
                     var item = public_posts_from_other_server[i-index];
                     var result = "<div class = 'post'>";
                     result += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4>"+"<p> Description: "+item["description"]+"</p>"+"<p> Content: "+item["content"]+"</p>";
-                    result += "<p>"+item["like_count"]+" liked this post</p>";
-                    console.log(item);
-                    result += "<input type='button' id ='likeButton"+i+"' value='Like'/> </div>";
+                    result += "<h4>"+item["like_count"]+" liked this post</h4>";
+                    result+="<h4>Comments:</h4>";
+                    for (let c_index = 0; c_index < item["comments"].length; c_index++){
+                        result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                    }
+                    result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
+                    result += "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
+                    result += "<input id = 'comment"+i+"'/>";
+                    result += "</div>";
                     document.getElementById("other_servers").innerHTML += result;
-                    console.log(i);
+                    // console.log(item);
 
                 }
                 for (let i = index; i < public_posts_from_other_server.length+index; i++){            
@@ -94,6 +132,24 @@
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
                                 thePost:JSON.stringify(post),
                                 author:"{{ author }}",
+                            },
+                        }); 
+                    }, false);
+                    document.getElementById("commentButton"+i).addEventListener("click",function(){
+                        let post = {{other_server_posts|safe}}[i-index];
+                        
+                        // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
+                        $.ajax({
+                            url: '/comment',
+                            type: 'POST',
+                            data: { 
+                                csrfmiddlewaretoken: "{{ csrf_token }}",
+                                thePost:JSON.stringify(post),
+                                author:"{{ author }}",
+                                theComment:document.getElementById('comment'+i).value,
+                                success:function(){
+                                    document.getElementById('comment'+i).value = "";
+                                },
                             },
                         }); 
                     }, false);

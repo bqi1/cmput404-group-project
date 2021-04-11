@@ -15,5 +15,5 @@ function commentPost(post_id){
 }
 
 function viewComment(post_id){
-    location.replace(window.location.href + post_id + "/viewComments/")
+    location.replace(window.location.href + post_id + "/comments/")
 }

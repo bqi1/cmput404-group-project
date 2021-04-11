@@ -19,10 +19,12 @@ urlpatterns = [
     path('author/<str:user_id>', views.account, name='account'),
 
     path('author/<str:user_id>/posts/<int:post_id>/commentpost/',views.commentpost,name='commentpost'),
-    path('author/<str:user_id>/posts/<int:post_id>/viewComments/',views.viewComments,name='viewComments'),
+    path('author/<str:user_id>/posts/<int:post_id>/comments/',views.viewComments,name='viewComments'),
 
     path('posts/', views.publicposts,name='publicposts'),
     path('author/<str:user_id>/inbox', views.inbox,name='inbox'),
     path('like',views.likeAHomePagePost,name="likeAPost"),
-    # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
+    path('comment',views.commentAHomePagePost,name="commentAPost"),
+    path('author/<str:user_id>/posts/<int:post_id>/comments/<str:comment_id>',views.viewComment,name='viewComment'),
+    path('author/<str:user_id>/posts/<int:post_id>/comment',views.makeComment,name='makeComment'),
 ]
