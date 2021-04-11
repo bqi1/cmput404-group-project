@@ -1312,8 +1312,10 @@ def inbox(request,user_id):
                     to_user = object.split("author/")[1]
                     to_user = to_user.split("/")[0]
                     # extract from_user uuid
+                    print(request.data["author"])
                     author_id = request.data["author"]["id"]
                     author_id = author_id.split("author/")[1]
+                    print(author_id)
                     #remove backslash at end of url if it's there
                     if author_id[-1] == "/":
                         author_id = author_id[:-1]
