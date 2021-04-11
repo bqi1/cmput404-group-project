@@ -71,23 +71,13 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        try:
-            
-            ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
-            print(f"\n\n\n\n{ourURL}\n\n\n")
-            ourRequest = requests.get(url=ourURL)
-            print(f"\n\n{ourRequest}\n\n")
-            ourData = ourRequest.json()
-            # print(ourRequest)
-            print("\n")
-        except:
-            ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
-            print(f"\n\n\n\n{ourURL}\n\n\n")
-            ourRequest = requests.get(url=ourURL)
-            print(f"\n\n{ourRequest}\n\n")
-            ourData = ourRequest.json()
-            # print(ourRequest)
-            print("\n")
+        ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
+        print(f"\n\n\n\n{ourURL}\n\n\n")
+        ourRequest = requests.get(url=ourURL)
+        print(f"\n\n{ourRequest}\n\n")
+        ourData = ourRequest.json()
+        # print(ourRequest)
+        print("\n")
 
 
 
@@ -750,7 +740,13 @@ def publicposts(request):
             for comment_obj in comments:
                 if i >= 5: break
                 author_url = comment_obj.from_user
-                from_author_dict = requests.get(author_url).json()
+
+                from_author_request = requests.get(author_url)
+                print(f"hmmm,m,m {from_author_request}")
+                
+                from_author_dict = from_author_request.json()
+                print(f"uhhhhhhh,,,{from_author_dict}")
+
                 comment_dict = {
                     "type":"comment",
                     "author":from_author_dict,
