@@ -742,8 +742,10 @@ def publicposts(request):
                 author_url = str(comment_obj.from_user)
                 print(f"\n\nDAB {author_url}\n\n")
                 if request.get_host() in comment_obj.from_user:
+                    print("ONE OF US")
                     # http://c404posties.herokuapp.com/author/
                     author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")-1:])
+                    print(f"GOTEM {author}")
                     from_author_dict = {
                         "type":"author",
                         "id": f"{author.host}/author/{author.consistent_id}",
@@ -752,12 +754,12 @@ def publicposts(request):
                         "displayName": author.username,
                         "github": author.github,
                     }
+                    print(from_author_dict)
                 else:
+                    print("ONE OF THEM")
                     from_author_request = requests.get(url=comment_obj.from_user)
                     from_author_dict = from_author_request.json()
-                print(f"hmmm,m,m {from_author_request}")
-                
-                
+
                 print(f"uhhhhhhh,,,{from_author_dict}")
 
                 comment_dict = {
