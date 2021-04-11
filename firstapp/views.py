@@ -565,11 +565,16 @@ def likepost(request, user_id, post_id):
     # if post has already been liked delete from inbox and database
     if len(data) > 0:
         Like.objects.filter(from_user = uuid,to_user = user_id, object = object).delete()
+        print("like deleted from db, deleting from inbox now...")
         host = request.build_absolute_uri('/')
         author_id = host + "author/" + user_id
         inbox = Inbox.objects.get(author=author_id)
         for i in range(len(inbox.items)):
             item = inbox.items[i]
+            print(item["author"]["id"])
+            print(f"https://{request.get_host()}/author/{author_id}")
+            print(item["object"])
+            print(object)
             if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
                 inbox.items.pop(i)
                 print("item deleted from inbox")
