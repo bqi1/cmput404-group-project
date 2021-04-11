@@ -610,7 +610,7 @@ def like_comment(request, user_id, post_id, comment_id):
 def make_like_object(request, object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    like_dict["author"] = get_our_author_object(request.get_host_name(), user_id)
+    like_dict["author"] = get_our_author_object(request.get_host(), user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
