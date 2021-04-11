@@ -1043,11 +1043,12 @@ def account_view(request, *args, **kwargs):
         return HttpResponse("user doesn't exist") 
 
     if data != None:
-
+        print(data)
         context['id'] = data[8]
         context['username'] = data[3]
         context['email'] = data[9]
         context['host'] = data[6]
+        # context['consistent_id'] 
 
         try:
             friend_list = FriendList.objects.get(user=account)
