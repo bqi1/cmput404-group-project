@@ -55,7 +55,9 @@ def get_our_author_object(host, author_uuid):
     print("entered get_our_author_object")
     try:
         url = "http://"+host+"/author/"+author_uuid
+        print(url)
         r = requests.get(url)
+        print("getting author succesfull")
         return r.json()
     except Exception as e:
         print(e)
@@ -575,7 +577,9 @@ def likepost(request, user_id, post_id):
                 url = f"http://{host}/author/{user_id}/inbox"
                 object = f"http://{host}/author/{user_id}/posts/{post_id}"
                 like_object = make_like_object(request, object, user_id, make_json=True)
+                print("got past make_like_object")
                 requests.post(url, data = like_object)
+                print("like has been posted")
                 like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
                 like.save()
                 break
