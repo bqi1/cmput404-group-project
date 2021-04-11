@@ -559,7 +559,7 @@ def likepost(request, user_id, post_id):
     print(data)
     # if post has already been liked
     if len(data) > 0:
-        Like.objects.filter(from_user = uuid,to_user = user_id,object = object).delete()
+        Like.objects.filter(from_user = uuid,to_user = user_id, object = object).delete()
         return HttpResponse("Unliked post")
     else:
         while True:
