@@ -707,7 +707,7 @@ def liked(request,user_id):
     else:
         cursor.execute("SELECT object FROM firstapp_like WHERE from_user='%s';"%(user_id))
         data = cursor.fetchall()
-        liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
+        liked_object_list = make_liked_object(request, request.META['HTTP_HOST'], data)
 
         return HttpResponse(json.dumps(liked_object_list))
 
