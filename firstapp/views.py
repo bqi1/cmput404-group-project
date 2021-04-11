@@ -741,7 +741,7 @@ def publicposts(request):
                 if i >= 5: break
                 author_url = str(comment_obj.from_user)
                 print(f"\n\nDAB {author_url}\n\n")
-                from_author_request = requests.get(url="http://c404posties.herokuapp.com/author/740cf473819e437dad6afaeb03287e31")
+                from_author_request = requests.get(url="https://iconicity-part2.herokuapp.com/author/4a6d1890-0160-45da-8777-06d0087ea0c2")
                 print(f"hmmm,m,m {from_author_request}")
                 
                 from_author_dict = from_author_request.json()
