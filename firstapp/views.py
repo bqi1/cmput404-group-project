@@ -74,8 +74,9 @@ def homepage(request):
         ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
-        ourData = ourRequest.json()
         print(ourRequest)
+        ourData = ourRequest.json()
+        # print(ourRequest)
         print("\n")
 
 
