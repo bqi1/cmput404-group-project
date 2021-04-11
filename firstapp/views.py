@@ -895,6 +895,7 @@ def viewComments(request, user_id, post_id):
         return HttpResponse(json.dumps(json_comment_list))
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+        print("\n\nviewcomments in browser\n\n")
         data = Comment.objects.filter(post_id=f"https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
         comment_list = []
         print(f"in comments https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
@@ -905,9 +906,10 @@ def viewComments(request, user_id, post_id):
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
-  #      return HttpResponse(comment_list)
+        print(f"\n\nviewcomments not in browser {post_id}\n\n")
         json_comment_list = []
         comments = Comment.objects.filter(post_id=post_id)
+        print(comments)
         for comment in comments:
            # for comment in comments:
             author = Author.objects.get(consistent_id = comment.to_user)
@@ -928,6 +930,7 @@ def viewComments(request, user_id, post_id):
                 "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
             }
             json_comment_list.append(comment_dict)
+        print(json_comment_list)
         return HttpResponse(json.dumps(json_comment_list))
 
 def search_user(request, *args, **kwargs):
