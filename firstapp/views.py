@@ -668,7 +668,7 @@ def postlikes(request, user_id, post_id):
             return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
         else: 
             #return a list of like objects
-            cursor.execute('SELECT a.consistent_id FROM firstapp_likes l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.userid;'%object)
+            cursor.execute("SELECT a.consistent_id FROM firstapp_likes l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.userid;"%object)
             data = cursor.fetchall()
             url = request.get_full_path()
             json_post_likes = make_post_likes_object(data, url)
