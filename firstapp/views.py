@@ -1137,7 +1137,7 @@ def likeAHomePagePost(request):
         except Exception as e:
             print(e)
             # Like does not exist. Must like.
-            like = Like.objects.create(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],like_id=rand(2**31-1),object=post["id"])
+            # like = Like.objects.create(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],like_id=rand(2**31-1),object=post["id"])
             author_dict = {
                 "type":"author",
                 "id":f"{author.host}/author/{author.consistent_id}",
