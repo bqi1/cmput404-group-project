@@ -74,7 +74,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku
+        ourURL = "https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -1157,6 +1157,7 @@ def likeAHomePagePost(request):
             requests.post(url, data = like_object, headers=headers)
         return HttpResponse("Like processed")
     # Else, it's a remote like
+    print("remote post like")
     try:
         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
     except:
@@ -1171,10 +1172,8 @@ def likeAHomePagePost(request):
         "github": author.github,
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
-    headers = headers = {'Content-type': 'application/json'}
-    print("ok")
-    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword), headers=headers)
-    print("posted")
+    # Does not need headers, else it's a 400
+    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
     return HttpResponse("Liked!")
 
 # Comment a post by sending a comment request to the inbox.
