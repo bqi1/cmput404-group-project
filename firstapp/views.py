@@ -1095,7 +1095,8 @@ def likeAHomePagePost(request):
         "github": author.github,
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
-    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
+    headers = headers = {'Content-type': 'application/json'}
+    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword), headers=headers)
     return HttpResponse("Liked!")
 
 # Comment a post by sending a comment request to the inbox.
@@ -1286,12 +1287,12 @@ def inbox(request,user_id):
                     return HttpResponse("already taken.")
             # MUST TEST.
             elif data_json_type == "post":
-                inbox.items.append(the_object["data"])
+                inbox.items.append(request.data)
                 inbox.save()
                 return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
-                to_user = the_object["object"]["id"]
+                to_user = request.data["object"]["id"]
                 inbox.items.append(request.data["data"])
                 inbox.save()
                 return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
