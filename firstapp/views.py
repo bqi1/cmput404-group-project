@@ -658,7 +658,9 @@ def postlikes(request, user_id, post_id):
     object = f"{host}/author/{user_id}/posts/{post_id}"
 
     if is_ajax:
-        postlikes = Like.objects.filter(to_user=user_id,object=object)
+        print("is ajax.")
+        print(object)
+        postlikes = Like.objects.filter(object=object)
         data = serializers.serialize('json', postlikes)
         return HttpResponse(data, content_type="application/json")
     else:
