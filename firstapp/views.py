@@ -77,7 +77,10 @@ def homepage(request):
         ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
+        print(f"\n\n{ourRequest}\n\n")
         ourData = ourRequest.json()
+        # print(ourRequest)
+        print("\n")
 
 
 
@@ -748,9 +751,28 @@ def publicposts(request):
             i = 0
             for comment_obj in comments:
                 if i >= 5: break
+                author_url = str(comment_obj.from_user)
+                print(f"\n\nDAB {author_url}\n\n")
+                if request.get_host() in comment_obj.from_user:
+                    # http://c404posties.herokuapp.com/author/
+
+                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/"):])
+                    from_author_dict = {
+                        "type":"author",
+                        "id": f"{author.host}/author/{author.consistent_id}",
+                        "host": f"{author.host}/",
+                        "url": f"{author.host}/author/{author.consistent_id}",
+                        "displayName": author.username,
+                        "github": author.github,
+                    }
+                else:
+                    from_author_request = requests.get(url=comment_obj.from_user)
+                    from_author_dict = from_author_request.json()
+
+
                 comment_dict = {
                     "type":"comment",
-                    "author":author_dict,
+                    "author":from_author_dict,
                     "comment":comment_obj.comment_text,
                     "contentType":"text/plaintext",
                     "published":comment_obj.published,
@@ -933,16 +955,21 @@ def search_user(request, *args, **kwargs):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def account(request,user_id):
+    print("Inside account function")
     # This method can GET and POST an author by their UUID
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
     try: 
+        print("trying to get an author")
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
+        print("got an author")
     except:
+        print("uhoh")
         return HttpResponseNotFound("The account you requested does not exist\n")
     if method == "GET": # We want to return a JSON object of the Author requested
+        print("in get")
         author_dict = {
             "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
@@ -950,8 +977,10 @@ def account(request,user_id):
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
         }
+        print(f"here's my thing\n\n{author_dict}\n\n")
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
+        print("Wait, I'm in a post request")
         try: # First see if the user exists
             author = Author.objects.get(consistent_id=user_id)
         except Author.DoesNotExist:
@@ -1096,7 +1125,10 @@ def likeAHomePagePost(request):
     # If it's a local like:
     if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}":
         print("entering.")
-        return HttpResponseRedirect(f"{post['id']}/likepost/")
+        # author/<str:user_id>/posts/<int:post_id>/likepost/
+        print(post)
+        response = requests.get(f"{post['id']}/likepost/")
+        return HttpResponse("Liked!")
     # Else, it's a remote like
     try:
         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
