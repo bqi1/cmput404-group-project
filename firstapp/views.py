@@ -1224,10 +1224,8 @@ def inbox(request,user_id):
         # FIX THIS
         elif method == "POST":
             print("this")
-            print(request.data)
-            the_object = json.loads(request.data["data"])
-            print(the_object)
-            data_json_type = the_object["type"]
+            print(request.data["type"])
+            data_json_type = request.data["type"]
             if data_json_type == "like":
                 print("liking.......")
                 # save to like table
