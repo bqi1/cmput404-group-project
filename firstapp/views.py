@@ -578,10 +578,10 @@ def likepost(request, user_id, post_id):
                 object = f"http://{host}/author/{user_id}/posts/{post_id}"
                 like_object = make_like_object(request, object, user_id, make_json=True)
                 print("got past make_like_object")
+                print(url)
+                print(object)
                 requests.post(url, data = like_object)
                 print("like has been posted")
-                like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
-                like.save()
                 break
         return HttpResponse("Like object sent to inbox", status=200)
 
