@@ -68,7 +68,11 @@
                     result+="<h4>Comments:</h4>";
                     // console.log(item);
                     for (let c_index = 0; c_index < item["count"]; c_index++){
+                        if (c_index == 5){
+                            break
+                        }
                         result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                        
                     }
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
                     result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";

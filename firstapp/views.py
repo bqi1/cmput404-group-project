@@ -765,7 +765,10 @@ def publicposts(request):
                 "github": author.github,
             }
             comments = Comment.objects.filter(post_id=post.id)
-            
+            print(post.id)
+            print("i dont see an issue??")
+            # print( Comment.objects.filter(post_id="https://127.0.0.1:8000/author/9d97fc35703a4831803aaa8bacc8a1e2/posts/201255001"))  
+             
             comment_dict_list = []
             i = 0
             for comment_obj in comments:
@@ -799,8 +802,12 @@ def publicposts(request):
                 }
                 comment_dict_list.append(comment_dict)
                 i+=1
-            amount_of_comments = len(comment_dict_list)
+            amount_of_comments = len(comments)
+            print("whats going on")
+            print(comments)
+            print(amount_of_comments)
             post_dict = {
+
                 "type":"post",
                 "title":post.title,
                 "id":post.id,
@@ -822,7 +829,7 @@ def publicposts(request):
                 "image":str(post.image,encoding="utf-8"),
                 "markdown":post.markdown,
                 "privfriends":post.privfriends,
-                "visbility":["PUBLIC"],
+                "visibility":["PUBLIC"],
                 "published":post.published,
                 "author":author_dict,
             }
