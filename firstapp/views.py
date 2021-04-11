@@ -580,6 +580,7 @@ def likepost(request, user_id, post_id):
                 print("got past make_like_object")
                 print(url)
                 print(object)
+                print(like_object)
                 requests.post(url, data = like_object)
                 print("like has been posted")
                 break
@@ -1229,7 +1230,7 @@ def inbox(request,user_id):
             data_json_type = the_object["type"]
             if data_json_type == "like":
                 print("liking.......")
-                # save to external like table
+                # save to like table
                 conn = connection
                 cursor = conn.cursor()
                 like_id = rand(2**31-1)
