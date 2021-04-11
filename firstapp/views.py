@@ -1074,8 +1074,9 @@ def check_authentication(request):
 # Like a post by sending a post request to the inbox.
 @api_view(['POST'])
 def likeAHomePagePost(request):
+    print("ok we liking a homepage post")
     post = json.loads(request.POST.get('thePost', False))
-    # print(post)
+    print(post)
     # If it's a local like:
     if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}":
         print("entering.")
