@@ -633,7 +633,7 @@ def postlikes(request, user_id, post_id):
         return HttpResponse(data, content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-            cursor.execute("SELECT u.username FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.consistent_id;"%post_id)
+            cursor.execute("SELECT u.username FROM firstapp_likes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.consistent_id;"%post_id)
             data = cursor.fetchall()
             author_list = []
             for d in data:
