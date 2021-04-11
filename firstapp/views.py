@@ -1149,7 +1149,7 @@ def likeAHomePagePost(request):
             like_dict = {
                 "type":"like",
                 "author":author_dict,
-                "object":like.object,
+                "object":post['id'],
             }
             like_object = json.dumps(like_dict)
             headers  = {'Content-type': 'application/json'}
