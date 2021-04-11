@@ -37,6 +37,10 @@ Implemented Author API endpoints
 
 View public posts from connected servers
 
+Can now like posts from other server
+
+
+
 
 Hongfang Xu (hongfang)
 

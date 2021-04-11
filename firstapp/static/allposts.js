@@ -41,6 +41,8 @@ function viewPost(post_id) {
 // Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {
+    var token = "%s";
+    console.log("my token in client side is "+token);
     title = document.getElementById("title").value;
     desc = document.getElementById("desc").value;
     markdown = +document.getElementById("md").checked;
@@ -83,7 +85,7 @@ function makePost() {
             {
                 url: URL,
                 method: method,
-                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token %s" },
+                headers: { 'X-CSRFToken': csrftoken, "Authorization": "Token "+token },
                 data: { "title": title, "description": desc, "categories":categories,"markdown": markdown, "content": content, "image": image, "privfriends":privfriends,"priv_author":priv_author,"unlisted":unlisted },
                 success: function () {
                     alert("Successfully created post!");
