@@ -1097,7 +1097,9 @@ def likeAHomePagePost(request):
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
     headers = headers = {'Content-type': 'application/json'}
+    print("ok")
     response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword), headers=headers)
+    print("posted")
     return HttpResponse("Liked!")
 
 # Comment a post by sending a comment request to the inbox.
