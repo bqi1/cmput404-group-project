@@ -1205,37 +1205,27 @@ def commentAHomePagePost(request):
 # Comment a post by sending a comment request to the inbox.
 @api_view(['POST'])
 @authentication_classes([BasicAuthentication])
-def makeComment(request):
-    print(request.META["HTTP_AUTHORIZATION"])
+def makeComment(request,user_id,post_id):
+    enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+    uname, pword = enc[0], enc[1]
+    print(uname,pword)
+    print(request.POST)
+    # Check if username is admin
+        # First see if they can log in and if they're super user.
+    # If not, return
+    # Else:
+        # retrieve the text and from_user
+        # Create the comment object
+
+
     # comment = request.POST.get("theComment",False)
     # post = json.loads(request.POST.get('thePost', False))
     # print("THE POST IS ")
     # print(post)
-    # # If it's a local comment:
-    # author = Author.objects.get(username=request.POST.get('author', False))
 
-    # print(post['author']['host'])
-    # print(request.get_host())
-
-    # if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}":
     #     comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
     #     comment.save()
-    # else:
-    #     try:
-    #         # print(f"gaaaaaa https://{post['author']['host']}")
-    #         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
-    #     except:
-    #         # print(f"aaaaaaaaaaaa {post['author']['host']}")
-    #         server = Node.objects.get(hostserver=f"{post['author']['host']}")
-    #     author_dict = {
-    #         "type":"author",
-    #         "id":f"{author.host}/author/{author.consistent_id}",
-    #         "url":f"{author.host}/firstapp/{author.userid}",
-    #         "host":author.host,
-    #         "displayName":author.username,
-    #         "github":author.github,
-    #     }
-    #     response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+
     return HttpResponse("Commented!")
 
 @api_view(['GET'])
