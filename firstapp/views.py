@@ -626,7 +626,7 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
     is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
     if is_ajax:
-        host = request.build_absolute_uri()
+        host = request.build_absolute_uri('/')
         object = f"{host}/author/{user_id}/posts/{post_id}"
         postlikes = Like.objects.filter(to_user=user_id,object=object)
         data = serializers.serialize('json', postlikes)
