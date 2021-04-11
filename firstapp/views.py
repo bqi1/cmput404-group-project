@@ -705,7 +705,7 @@ def liked(request,user_id):
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
     else:
-        cursor.execute("SELECT a.consistent_id, l.object FROM firstapp_like l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT object FROM firstapp_like WHERE from_user='%s';"%(user_id))
         data = cursor.fetchall()
         liked_object_list = make_liked_object(request.META['HTTP_HOST'], data)
 
