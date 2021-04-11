@@ -4,11 +4,12 @@
         {% include "sub_basic/header.html" %}
 
         {% csrf_token %}</head>
-<body>
-    <p>{{ num_comments}} Comments on the Post</p>
+<body style="background:linear-gradient(to right top, #87CEFA, #ADD8E6, white);">
+    <p style="font-family:comic sans ms;font-size:30px;text-align:center;border:5px solid #0000CD;background:#FFF0F5;height:90px;color:#FF1493;margin-bottom:1px;">{{ num_comments}} Comments on the Post</p>
     {% for comment_text in comment_list %}
-        <li>{{comment_text}}</li>
+        <li style="border:5px solid #FFF5EE;background:#FFFFE0    ;font-family:comic sans ms;margin-top:5px;font-size:40px;text-align:center;margin-top:50px;width:30%;border-image:linear-gradient(45deg,red,orange,yellow,green,cyan,blue,violet) 1;color:#FF4500;">{{comment_text}}</li>
     {% endfor %}
+    <br/><br/><br/><br/><br/><br/><br/><br/>
 </body>
 
 </html>

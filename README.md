@@ -1,5 +1,7 @@
 # cmput404-group-project
-App is not deployed yet on Heroku yet. Only local requirements are met. All work is on the main branch.
+Webserver is deployed on https://c404posties.herokuapp.com/ 
+
+All work is on the main branch.
 
 To run the tests, navigate to the tests folder, then run the .py file for each test normally. For example, "py post_tests.py" for Windows.
 
@@ -33,6 +35,13 @@ Server admin can now host images
 
 Implemented Author API endpoints
 
+View public posts from connected servers
+
+Can now like posts from other server
+
+
+
+
 Hongfang Xu (hongfang)
 
 Contribution:
@@ -40,6 +49,8 @@ Contribution:
 Made Login/Register
 
 Worked on commenting on posts
+
+Created Comments API endpoints
 
 Wenwen Li (wenwen)
 

@@ -20,7 +20,6 @@ import json
 from django.conf import settings
 from markdown import Markdown as Md
 from django.core.mail import send_mail
-
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 #from rest_framework.permissions import IsAuthenticated
 from .permissions import EditPermission
@@ -29,17 +28,19 @@ from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
 from friend.models import FriendList, FriendRequest,FriendShip
 from friend.is_friend import get_friend_request_or_false
-from firstapp.models import Author, Post, Author_Privacy, Comment, PostLikes
+from firstapp.models import Author, Post, Author_Privacy, Comment, Like, Category, Node, Setting, Inbox
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
 from .remote_friend import get_all_remote_user
 from django.contrib.auth.models import User
+from django.core import serializers
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, tstamp=? WHERE post_id=? AND user_id =?;"
+EDIT_QUERY = "UPDATE posts SET post_id=?, user_id=?, title=?, description=?, markdown=?, content=?, image=?, published=? WHERE post_id=? AND user_id =?;"
 
 PRIV_ADD_QUERY = "INSERT INTO author_privacy VALUES (?,?);"
 STR2BOOL = lambda x: bool(int(x))
@@ -49,37 +50,59 @@ def index(request):
     #if request.user.is_authenticated:
     return render(request, 'index.html')
 
+#helper function for getting json author objects from our server's database
+def get_our_author_object(host, author_uuid):
+    print("entered get_our_author_object")
+    try:
+        url = "https://"+host+"/author/"+author_uuid
+        print(url)
+        r = requests.get(url)
+        print("getting author succesfull")
+        return r.json()
+    except Exception as e:
+        print(e)
+        return HttpResponseNotFound("The account you requested does not exist\n")
+
 def homepage(request):
     if request.user.is_authenticated:
-        conn = connection#sqlite3.connect(FILEPATH+"../db.sqlite3")
-        cursor = conn.cursor()
-        cursor.execute("SELECT u.id,t.key,a.consistent_id FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.username = '%s' AND a.userid=u.id;" % request.user)
         try:
             author = Author.objects.get(username=request.user)
+            token = author.api_token
         except Author.DoesNotExist:
             return HttpResponseNotFound(f"In the homepage function, the user you requested does not exist!!{request.user}\n")
         if not author.authorized:
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
+        ourURL = "https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        print(f"\n\n\n\n{ourURL}\n\n\n")
+        ourRequest = requests.get(url=ourURL)
+        print(f"\n\n{ourRequest}\n\n")
+        ourData = ourRequest.json()
+        # print(ourRequest)
+        print("\n")
 
-        URL = "http://"+request.META['HTTP_HOST']+"/posts"
-        r1 = requests.get(url=URL)
-        data1 = r1.json()
+
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         theirData = []
+        auth_user = ""
+        auth_pass = ""
         for server in servers: # Iterate through each server, providing authentication if necessary
             try:
                 postsRequest = requests.get(url=f"{server.hostserver}/posts", auth = (f"{server.authusername}",f"{server.authpassword}"))
+                auth_user = server.authusername
+                auth_pass = server.authpassword
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
+                    #TODO find a way to pass in auth info with post json
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
-
-        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData})
+        # print(ourData)
+        # print(theirData)
+        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData,"author":author})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -92,36 +115,36 @@ def signup(request):
             new_password = form.cleaned_data.get('password1')
             user = authenticate(username = new_username, password=new_password) # Attempt to authenticate user after using checks. Returns User object if succesful, else None
             auth_login(request, user) # Save user ID for further sessions
-            Token(user=user).save()
-            user.save()
+            #Token(user=user).save()
+            #user.save()
             success = True
             # Check if UsersNeedAuthentication is True. If it is, redirect to login and set Authorized to False for that user
             # Else, let the use in the homepage, set Authorized to True
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute('SELECT UsersNeedAuthentication from firstapp_setting;')
             try:
-                needs_authentication = cursor.fetchall()[0][0]
-            except:
-                messages.add_message(request,messages.INFO, 'The server admin needs to implement settings. Please come back later.')
-                return HttpResponseRedirect(reverse('login'))
-            finally:
-                conn.close()
-
+                settings = Setting.objects.get()
+            except Setting.DoesNotExist:
+                print("make a setting")
+                settings = Setting(usersneedauthentication=False)
+            needs_authentication = settings.usersneedauthentication
+            # print(f"AUTHENTICATE ME https://{request.get_host()}")
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
+                user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                            consistent_id=f"{uuid.uuid4().hex}")
+                            consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
+                user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+                user_inbox.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
+            user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
-                        consistent_id=f"{uuid.uuid4().hex}")
+                        consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
+            user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+            
             return HttpResponseRedirect(reverse('home'))
         else:
             context = {'form':form}
@@ -135,23 +158,18 @@ def login(request):
     if request.method == 'POST':
         new_username = request.POST.get('username')
         new_password = request.POST.get('password')
-        print(new_username)
-        print(new_password)
-        print(request)
-        print(request.user)
+
         # print(Author.objects.get(username=request.user))
-        print("whyy")
         user = authenticate(username = new_username, password = new_password)
         if user is not None:
             # Check if Authorized. If so, proceed. Else, display an error message and redirect back to login page.
-            conn = connection
-            cursor = conn.cursor()
-            cursor.execute("SELECT Authorized FROM firstapp_author WHERE username = '%s';"%new_username)
+
             try:
                 author = Author.objects.get(username=new_username)
             except Author.DoesNotExist:
                 messages.add_message(request,messages.INFO, f'This user, {new_username}, does not exist.')
                 return HttpResponseRedirect(reverse('login'))
+            authenticated = author.authorized
             if not authenticated:
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
@@ -183,21 +201,22 @@ def make_post_html(data,user_id,isowner=False):
     with open(FILEPATH+"static/like.js","r") as f: script = f.read()
   #  with open(FILEPATH+"static/comment.js","r") as f1: script1 = f1.read()
     #add javascript likePost function and the jquery library for ajax
-    jscript = '<script>' + script + '</script>' + '<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
-    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br>'
+    jscript = '<script>' + script + '</script>' + '<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
+    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><p class="tags">%s</p></br>'
     endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
     endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
 
     for d in data:
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
+        tags = [c.tag for c in Category.objects.filter(post_id=d.post_id)]
         image = str(d.image,encoding="utf-8")
         content = d.content
         if d.markdown: # use markdown!
             md = Md()
             content = md.convert(content)
         starttag = jscript
-        starttag += start % (d.title,d.description,content)
-        if len(priv) == 0: # post is not private
+        starttag += start % (d.title,d.description,content,",".join(tags))
+        if len(priv) == 0 and d.privfriends == False: # post is not private
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
@@ -219,65 +238,96 @@ def make_post_html(data,user_id,isowner=False):
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                except FriendList.DoesNotExist: friend_ids = []
+                if user_id in friend_ids or isowner: show_post = True
             if show_post and user_id != None: # show post only if this variable is true, and a user is logged in!
-                if image == '0': resp += starttag + endnoimage.format(d.post_id,d.post_id) % (d.markdown,)
-                else: resp += starttag + endimage.format(d.post_id,d.post_id) % (image,d.markdown)
+                if image == '0':
+                    resp += starttag
+                    resp += endnoimage.format(d.post_id) % (d.markdown,)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                else:
+                    resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
+                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
                 resp += "</br>"
     return resp
 
 # This function will return all visible posts, and return them in a list to be displayed to non-browser user agents
 # data - the list of tuples returned from sql
 # user_id - used to check to see if the current user can view the post (is it private to specific authors, or public?)
-def make_post_list(data,user_id,isowner=False):
+def make_post_list(data,user_id,isowner=False,uri=""):
     post_list = []
     for d in data:
 
         # This block assigns the author object to each post object.
         author = Author.objects.get(consistent_id=d.user_id)
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
         }
 
+
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
         post_dict = {
             "type":"post",
             "title":d.title,
             "id":d.id,
-            "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
-            "origin":f"{author.host}/posts",
+            "source":f"{author.host}/author/{author.consistent_id}",
+            "origin":f"{author.host}/author/{author.consistent_id}",
             "description":d.description,
             "contentType":"text/markdown" if d.markdown else "text/plain",
             "content":d.content,
-            "author":author_dict,
-            "categories":["web","tutorial"],
+            "categories":[],
             "count":0,
             "size":0,
-            "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
+            "comments":f"{author.host}/author/{author.consistent_id}/posts/{d.post_id}/viewComments/",
             "comments":[],
-            "published":d.tstamp,
-            "visibility":"PUBLIC" if not d.privfriends else "FRIENDS",
+            "visibility":[],
             "unlisted":False if not d.privfriends else True,
             "post_id":d.post_id,
             "user_id":d.user_id,
             "image":str(d.image,encoding="utf-8"),
             "markdown":d.markdown,
             "privfriends":d.privfriends,
-            "timestamp":d.tstamp,
-            
+            "visibility":[],
+            "unlisted":d.unlisted,
+            "published":d.published,
+            "author":author_dict,
         }
+
+        # retrieve all categories for post
+        categories = Category.objects.filter(post_id=d.post_id)
+        for ca in categories:post_dict["categories"].append(ca.tag)
+
         # post is public or post belongs to user
-        if len(priv) == 0 or user_id == d.user_id: post_list.append(post_dict)
+        if len(priv) == 0 and d.privfriends == False:
+            post_dict["visibility"].append("PUBLIC")
+            post_list.append(post_dict)
         else:
             show_post = False
             # Determine if requesting author is among privacy list
+            if len(priv) > 0: post_dict["visibility"].append("SELECT AUTHOR(S)")
             for p in priv:
                 if p.user_id == user_id or isowner:
                     show_post = True
                     break
+            # If post is set to be private to friends, check to see if the user trying to see the post is the user's friend
+            if d.privfriends == True:
+                post_dict["visibility"].append("FRIENDS")
+                cons_id = Author.objects.get(consistent_id=d.user_id).userid
+                try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=cons_id).friends.all()]
+                except FriendList.DoesNotExist: friend_ids = []
+                if user_id in friend_ids or isowner: show_post = True
+
             if show_post and user_id != None: post_list.append(post_dict)
     return json.dumps(post_list,indent=4)
 
@@ -292,35 +342,31 @@ def make_post_list(data,user_id,isowner=False):
 def post(request,user_id,post_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = connection
-    cursor = conn.cursor()
-    cursor.execute("SELECT t.key FROM authtoken_token t, auth_user u, firstapp_author a WHERE u.id = t.user_id AND u.id = a.userid AND a.consistent_id = '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     data = Author.objects.filter(consistent_id=user_id)
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
+    user_token = data[0].api_token
+    author_id = data[0].userid
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
     if len(data) > 0 and method == 'PUT': return HttpResponse("The post with id %d already exists! Maybe try POST?\n"%post_id,status=409) # check to see if post already exists (for PUT)
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-    except Author.DoesNotExist:
-        messages.add_message(request,messages.INFO, 'This user does not exist.')
-        return HttpResponseRedirect(reverse('login'))
-    author_id = author.userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == 'GET':
-        resp = make_post_list(data,request.user.id,isowner=trueauth)
+        resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
+        if data[0].unlisted and not trueauth: return HttpResponseNotFound("The post you requested does not exist\n") # Unlisted posts will not be returned from this method!
     else:
-        # First see if their username and password in Basic Authentication is valid
-        authenticated = check_authentication(request)
-        if not authenticated:
-            return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
-        # Now check if the user that wants to modify a post is the one that created the post
-        username = authenticated.get_username()
-        if not username == author.username and not request.user.is_superuser:
-            return HttpResponse('{"detail":"You are not the author."}',status=401)
-
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentication
+            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+            uname, pword = enc[0], enc[1]
+            user = User.objects.get(id=author_id)
+            if user.username != uname or not user.check_password(pword):
+                return HttpResponse('{"detail":"Invalid username/password."}',status=401) # A correct uname and pword supplied, but not for this specific user
         if method == 'POST':
             p = request.POST
             if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
@@ -333,11 +379,12 @@ def post(request,user_id,post_id):
                 new_post = Post.objects.get(post_id=post_id,user_id=user_id)
                 new_post.title = p["title"]
                 new_post.description = p["description"]
-                new_post.markdown = p["markdown"]
+                new_post.markdown = STR2BOOL(p["markdown"])
                 new_post.content = p["content"]
                 new_post.image = sqlite3.Binary(bytes(image,encoding="utf-8"))
-                new_post.privfriends = p["privfriends"]
-                new_post.tstamp = str(datetime.now())
+                new_post.privfriends = STR2BOOL(p["privfriends"])
+                new_post.unlisted = STR2BOOL(p["unlisted"])
+                new_post.published = str(datetime.now())
                 resp = "Successfully modified post: %d\n" % post_id
 
             except MultiValueDictKeyError:
@@ -348,14 +395,25 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.") # check if author ids are valid
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
             else:
                 author_privacies = Author_Privacy.objects.filter(post_id=post_id)
                 for ap in author_privacies: ap.delete()
+            # Modify the categories table in the database
+            if "categories" in p.keys() or "categories[]" in p.keys():
+                if "categories" in p.keys(): private_authors = p.getlist("categories")
+                else: categories = p.getlist("categories[]")
+                for ca in categories:
+                    category = Category(post_id=post_id,tag=ca)
+                    category.save()
+            else:
+                categories = Category.objects.filter(post_id=post_id)
+                for ca in categories: ca.delete()
             new_post.save()
 
  
@@ -369,7 +427,7 @@ def post(request,user_id,post_id):
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+                new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -379,28 +437,35 @@ def post(request,user_id,post_id):
                 if "priv_author" in p.keys(): private_authors = p.getlist("priv_author")
                 else: private_authors = p.getlist("priv_author[]")
                 for pa in private_authors:
-                    data = Author.objects.filter(userid=pa)
+                    data = Author.objects.filter(username=pa)
                     if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
                 for pa in private_authors:
-                    new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                    consistent_id = Author.objects.get(username=pa).consistent_id
+                    new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                     new_private_author.save()
+            # Modify the categories table in the database
+            if "categories" in p.keys() or "categories[]" in p.keys():
+                if "categories" in p.keys(): private_authors = p.getlist("categories")
+                else: categories = p.getlist("categories[]")
+                for ca in categories:
+                    category = Category(post_id=post_id,tag=ca)
+                    category.save()
             new_post.save()
 
         elif method == 'DELETE':
             author_privacies = Author_Privacy.objects.filter(post_id=post_id)
             for ap in author_privacies: ap.delete()
+            categories = Category.objects.filter(post_id=post_id)
+            for ca in categories: ca.delete()
             new_post = Post.objects.get(post_id=post_id,user_id=user_id)
             new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
         else:
-            conn.close()
             return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        
-        if method == "GET": resp = make_post_html(data,request.user.id,isowner=trueauth)
-        with open(FILEPATH+"static/post.js","r") as f: script = f.read() % ("adminB", "adminB", "adminB","adminB")
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
+        with open(FILEPATH+"static/post.js","r") as f: script = f.read() % (user_token, user_token)
         # true_auth: is user logged in, and are they viewing their own post? (determines if they can edit /delete the post or not)
         return render(request,'post.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
@@ -415,29 +480,24 @@ def allposts(request,user_id):
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
-    conn = connection
-    cursor = conn.cursor()
     data = Author.objects.filter(consistent_id=user_id)
-
+    viewer_id = "0"
+    if type(request.user) != AnonymousUser:
+        viewer_id = Author.objects.get(username=request.user).consistent_id # consistent id of the user that is viewing the posts
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
-
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-    except Author.DoesNotExist:
-        messages.add_message(request,messages.INFO, 'This user does not exist.')
-        return HttpResponseRedirect(reverse('login'))
-
-    cursor.execute("SELECT t.key FROM firstapp_author a, authtoken_token t WHERE a.userid = t.user_id AND a.consistent_id= '%s';"%user_id)
-    user_token = cursor.fetchall()[0][0]
-
-    author_id = author.userid
-
+    user_token = data[0].api_token
+    author_id = data[0].userid
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
-
     if method == "POST":
-        authenticated = check_authentication(request)
-        if not authenticated:
-            return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        try: # Client is using token authentication
+            token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+            if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+        except IndexError: # Client is using basic authentiation
+            enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+            uname, pword = enc[0], enc[1]
+            user = User.objects.get(id=author_id)
+            if user.username != uname or not user.check_password(pword):
+                return HttpResponse('{"detail":"Invalid username/password."}',status=401) # A correct uname and pword supplied, but not for this specific user
         p = request.POST
         if request.META["CONTENT_TYPE"] == "application/json": # Allows clients to send JSON requests
             p = QueryDict('',mutable=True)
@@ -451,77 +511,136 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(id = f"http://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),tstamp=str(datetime.now()))
+            new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
-
+        print("DEBUG: "+ str(p))
         # Modify the author privacy table in the database
         if "priv_author" in p.keys() or "priv_author[]" in p.keys():
             if"priv_author" in p.keys(): private_authors = p.getlist("priv_author")
             else: private_authors = p.getlist("priv_author[]")
             for pa in private_authors:
-                data = Author.objects.filter(userid=pa)
+                data = Author.objects.filter(username=pa)
                 if len(data) == 0: return HttpResponseNotFound("One or more user ids entered into the author privacy field are not valid user ids.")
             for pa in private_authors:
-                new_private_author = Author_Privacy(post_id=post_id,user_id=pa)
+                consistent_id = Author.objects.get(username=pa).consistent_id
+                new_private_author = Author_Privacy(post_id=post_id,user_id=consistent_id)
                 new_private_author.save()
+
+        # Modify the categories table in the database
+        if "categories" in p.keys() or "categories[]" in p.keys():
+            if "categories" in p.keys(): private_authors = p.getlist("categories")
+            else: categories = p.getlist("categories[]")
+            for ca in categories:
+                category = Category(post_id=post_id,tag=ca)
+                category.save()
         new_post.save()
+
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
-        resp = make_post_list(data,request.user.id,trueauth)
+        resp = make_post_list(data,viewer_id,isowner=trueauth,uri=request.build_absolute_uri())
     else:
-        conn.close()
         return HttpResponseBadRequest("Error: invalid method used\n")
-    conn.close()
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
-        # user = User.objects.get(username = author.username)
-        # print(user.username,user.password)
-        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % ("adminB","adminB")
-        if method == "GET": resp = make_post_html(data,user_id,isowner=trueauth)
+        with open(FILEPATH+"static/allposts.js","r") as f: script = f.read() % (user_token)
+        if method == "GET": resp = make_post_html(data,viewer_id,isowner=trueauth)
         # true_auth: is user logged in, and are they viewing their own posts? (determines if they can create a new post or not)
         return render(request,'allposts.html',{'post_list':resp,'true_auth':trueauth,'postscript':script})
     else: return HttpResponse(resp)
 
 #like a post
-@api_view(['POST'])
+@api_view(['POST','GET'])
 def likepost(request, user_id, post_id):
+    print(f"\n\n\nentered likepost {user_id} {post_id}\n\n\n")
     resp = ""
     conn = connection
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM firstapp_postlikes WHERE from_user = %d AND post_id = %d"% (request.user.id, post_id))
+    host = request.build_absolute_uri('/')
+    object = f"{host}/author/{user_id}/posts/{post_id}"
+    print(f"here we go....{request} {request.user} {request.user.id}")
+    cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
+    uuid = cursor.fetchone()[0]
+    print(uuid)
+    cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
+    data = cursor.fetchall()
+    print(data)
+    # if post has already been liked delete from inbox and database
+    if len(data) > 0:
+        Like.objects.filter(from_user = uuid,to_user = user_id, object = object).delete()
+        print("like deleted from db, deleting from inbox now...")
+        host = request.build_absolute_uri('/')
+        author_id = host + "author/" + user_id
+        inbox = Inbox.objects.get(author=author_id)
+        for i in range(len(inbox.items)):
+            item = inbox.items[i]
+            print(item["author"]["id"])
+            print(f"https://{request.get_host()}/author/{author_id}")
+            print(item["object"])
+            print(object)
+            if item["author"]["id"] == author_id and item["object"] == object:
+                inbox.items.pop(i)
+                print("item deleted from inbox")
+                break
+        inbox.save()
+        return HttpResponse("Unliked post")
+    else:
+        print("not liked. liking....")
+        while True:
+            like_id = rand(2**31-1)
+            cursor.execute('SELECT * FROM firstapp_like WHERE like_id = %d'% (like_id))
+            if len(cursor.fetchall()) == 0:
+                print(f"like doesnt exist:{post_id}")
+                host = request.build_absolute_uri('/')
+                url = f"{host}author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}"
+                like_object = make_like_object(request, object, user_id, make_json=True)
+                print("got past make_like_object")
+                print(url)
+                print(object)
+                print(like_object)
+                headers = headers = {'Content-type': 'application/json'}
+                requests.post(url, data = like_object, headers=headers)
+                print("like has been posted")
+                break
+        return HttpResponse("Like object sent to inbox", status=200)
+
+#like a comment
+@api_view(['POST'])
+def like_comment(request, user_id, post_id, comment_id):
+    resp = ""
+    conn = connection
+    cursor = conn.cursor()
+    host = request.build_absolute_uri('/')
+    object = f"https://{host}/author/{user_id}/posts/{post_id}"
+    cursor.execute("SELECT consistent_id FROM firstapp_author WHERE userid = %d;"% (request.user.id))
+    uuid = cursor.fetchall()[0]
+    cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s' AND object = '%s'"% (uuid, object))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        return HttpResponse("Post already liked", status=409)
+        return HttpResponse("Comment already liked", status=409)
     else:
         while True:
             like_id = rand(2**31-1)
-            cursor.execute('SELECT * FROM firstapp_postlikes WHERE like_id = %d'% (like_id))
+            cursor.execute('SELECT * FROM firstapp_like WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
                 print(post_id)
-
-                like = PostLikes(like_id=like_id, from_user =request.user.id, to_user = user_id, post_id = post_id)
+                host = request.build_absolute_uri('/')
+                url = f"{host}/author/{user_id}/inbox"
+                object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
+                like_object = make_like_object(request, object, user_id, make_json=True)
+                requests.post(url, data = like_object)
+                like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
                 like.save()
                 break
-        # cursor.execute('INSERT INTO postlikes VALUES(%d, %d, %d, %d);'% (like_id, request.user.id, user_id, post_id))
-        # conn.commit()
-        #TODO send like object to author's inbox
-        url = request.get_full_path()
-        # make_like_object(url, author)
-        return HttpResponse("Post liked successfully") # #TODO send to inbox here
+        HttpResponse("Like object sent to inbox", status=200)
 
-def make_like_object(object, user_id, make_json = True):
+def make_like_object(request, object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    try:
-        author = Author.objects.get(consistent_id=user_id)
-        url = 'http://c404-project.herokuapp.com/author/' + author.consistent_id
-        r = requests.get(url)
-        like_dict["author"] = r.json()
-    except:
-        return HttpResponseNotFound("The account you requested does not exist\n")
+    like_dict["author"] = get_our_author_object(request.get_host(), user_id)
     like_dict["object"] = object
     if make_json:
         return json.dumps(like_dict)
@@ -534,33 +653,42 @@ def postlikes(request, user_id, post_id):
     conn = connection
     cursor = conn.cursor()
     agent = request.META["HTTP_USER_AGENT"]
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    host = request.build_absolute_uri('/')
+    object = f"{host}author/{user_id}/posts/{post_id}"
 
-    if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT u.username FROM firstapp_postlikes l, auth_user u WHERE l.post_id=%d AND l.from_user = u.id;"%post_id)
-        data = cursor.fetchall()
-        author_list = []
-        for d in data:
-            author = d[0]
-            author_list.append(author)
-        num_likes = len(author_list)
-    
-        return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
-    else: 
-        #return a list of like objects
-        cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
-        data = cursor.fetchall()
-        url = request.get_full_path()
-        json_post_likes = make_post_likes_object(data, url)
-        return HttpResponse(json.dumps(json_post_likes))
+    if is_ajax:
+        print("is ajax.")
+        print(object)
+        postlikes = Like.objects.filter(object=object)
+        data = serializers.serialize('json', postlikes)
+        return HttpResponse(data, content_type="application/json")
+    else:
+        if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
+            cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
+            data = cursor.fetchall()
+            author_list = []
+            for d in data:
+                author = d[0]
+                author_list.append(author)
+            num_likes = len(author_list)
+            return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+        else: 
+            #return a list of like objects
+            cursor.execute("SELECT a.consistent_id FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
+            data = cursor.fetchall()
+            url = request.get_full_path()
+            json_post_likes = make_post_likes_object(request, data, url)
+            return HttpResponse(json.dumps(json_post_likes))
 
-def make_post_likes_object(data, url):
+def make_post_likes_object(request, data, url):
     #Get list of likes from other authors on author_ids's post post_id
     post_likes_dict = {}
     json_like_object_list = []
 
     post_likes_dict["type"] = "post likes"
     for like in data:
-        like_object = make_like_object(url, like[0], make_json=False)
+        like_object = make_like_object(request, url, like[0], make_json=False)
         json_like_object_list.append(like_object)
     post_likes_dict["items"] = json_like_object_list
     return post_likes_dict
@@ -574,7 +702,7 @@ def liked(request,user_id):
     agent = request.META["HTTP_USER_AGENT"]
 
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-        cursor.execute("SELECT * FROM firstapp_postlikes l, firstapp_author a WHERE l.from_user = a.userid AND a.consistent_id = '%s';"%(user_id))
+        cursor.execute("SELECT * FROM firstapp_like WHERE from_user = '%s';"%(user_id))
         data = cursor.fetchall()
         liked_posts_list = []
         for id in data:
@@ -582,25 +710,21 @@ def liked(request,user_id):
             liked_posts_list.append(post_id)
         return render(request, "liked.html", {"liked_posts_list":liked_posts_list})
 
-    #TODO get comments that author has liked
-    # cursor.execute('SELECT * FROM commentlikes WHERE from_id=%d;'%user_id)
-    # data = cursor.fetchall()
-    
     else:
-        cursor.execute("SELECT a.consistent_id, l.post_id, l.to_user FROM firstapp_postlikes l, firstapp_author a WHERE a.consistent_id='%s' AND l.from_user=a.userid;"%(user_id))
+        cursor.execute("SELECT from_user, object FROM firstapp_like WHERE from_user='%s';"%(user_id))
         data = cursor.fetchall()
-        liked_object_list = make_liked_object(data)
+        liked_object_list = make_liked_object(request, request.META['HTTP_HOST'], data)
 
         return HttpResponse(json.dumps(liked_object_list))
 
-def make_liked_object(data):
+def make_liked_object(request, host,data):
     liked_dict = {}
     json_like_object_list = []
     liked_dict["type"] = "liked"
-
+    
     for like in data:
-        url = "http://c404-project.herokuapp.com/author/" + like[2] + "/posts/" + str(like[1])
-        like_object = make_like_object(url,like[0], make_json=False)
+        object = like[1]
+        like_object = make_like_object(request, object, like[0], make_json=False)
         json_like_object_list.append(like_object)
     liked_dict["items"] = json_like_object_list
     
@@ -624,39 +748,74 @@ def publicposts(request):
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
             }
+            comments = Comment.objects.filter(post_id=post.id)
+            
+            comment_dict_list = []
+            i = 0
+            for comment_obj in comments:
+                if i >= 5: break
+                author_url = str(comment_obj.from_user)
+                if request.get_host() in comment_obj.from_user:
+                    # http://c404posties.herokuapp.com/author/
+                    print(f"http://{request.get_host()}/author/")
+                    print(comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
+                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
+                    from_author_dict = {
+                        "type":"author",
+                        "id": f"{author.host}/author/{author.consistent_id}",
+                        "host": f"{author.host}/",
+                        "url": f"{author.host}/author/{author.consistent_id}",
+                        "displayName": author.username,
+                        "github": author.github,
+                    }
+                else:
+                    from_author_request = requests.get(url=comment_obj.from_user)
+                    from_author_dict = from_author_request.json()
 
+
+                comment_dict = {
+                    "type":"comment",
+                    "author":from_author_dict,
+                    "comment":comment_obj.comment_text,
+                    "contentType":"text/plaintext",
+                    "published":comment_obj.published,
+                    "id":comment_obj.comment_id,
+                }
+                comment_dict_list.append(comment_dict)
+                i+=1
+            amount_of_comments = len(comment_dict_list)
             post_dict = {
                 "type":"post",
                 "title":post.title,
                 "id":post.id,
-                "source":"http://lastplaceigotthisfrom.com/posts/yyyyy",
-                "origin":f"{author.host}/posts",
+                "source":f"{author.host}/author/{author.consistent_id}",
+                "origin":f"{author.host}/author/{author.consistent_id}",
                 "description":post.description,
                 "contentType":"text/markdown" if post.markdown else "text/plain",
                 "content":post.content,
                 "author":author_dict,
-                "categories":["web","tutorial"],
-                "count":0,
+                "categories":[],
+                "count":amount_of_comments,
                 "size":0,
-                "comments":f"{author.host}/author/{author.consistent_id}/posts/post.id/viewComments/",
-                "comments":[],
-                "published":post.tstamp,
-                "visibility":"PUBLIC" if not post.privfriends else "FRIENDS",
+                "comments_url":f"{author.host}/author/{author.consistent_id}/posts/{post.post_id}/comments",
+                "comments":comment_dict_list,
+                "published":post.published,
                 "unlisted":False if not post.privfriends else True,
                 "post_id":post.post_id,
                 "user_id":post.user_id,
                 "image":str(post.image,encoding="utf-8"),
                 "markdown":post.markdown,
                 "privfriends":post.privfriends,
-                "timestamp":post.tstamp,
-                
+                "visbility":["PUBLIC"],
+                "published":post.published,
+                "author":author_dict,
             }
+            # retrieve all categories for post
+            categories = Category.objects.filter(post_id=post.post_id)
+            for ca in categories:post_dict["categories"].append(ca.tag)
             post_list.append(post_dict)
     return HttpResponse(json.dumps(post_list))
     
-
-
-
 @api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):
     resp = ""
@@ -667,22 +826,16 @@ def commentpost(request, user_id, post_id):
         request.user.id = int(request.user.id)
     except:
         request.user.id = 0
-    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %d;'% (request.user.id, post_id))
+    cursor.execute('SELECT * FROM firstapp_comment WHERE from_user = %s AND post_id = %s;'% (request.user.id, post_id))
     data = cursor.fetchall()
     if request.method == "POST":
         while True:
             
-            comment_id = rand(2**31)
+            comment_id = f"{uuid.uuid4().hex}"
             byte_data = request.data
-         #   data = byte_data.decode("utf-8")
-           # json_object = json.loads(request.data)
-          #  print(json_object)
-          #  comment = byte_data.split("&comment=")[1]
             comment = byte_data.get('comment')
-          #  comment = request.POST.get('comment_text')
-         #   new_comment = Comment.objects.create(comment_text=comment, comment_id=comment_id)
             
-            cursor.execute('SELECT comment_text FROM firstapp_comment WHERE comment_id=%d'%(comment_id))
+            cursor.execute("SELECT comment_text FROM firstapp_comment WHERE comment_id='%s'"%(comment_id))
             data1 = cursor.fetchall()
             if len(data1)==0:
                 new_comment = Comment(post_id=post_id, comment_id=comment_id, from_user=request.user.id, to_user=user_id, comment_text=comment)
@@ -697,23 +850,70 @@ def commentpost(request, user_id, post_id):
 
 @api_view(['GET'])
 def viewComments(request, user_id, post_id):
-   # conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     conn = connection
     cursor = conn.cursor()
+    is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    if is_ajax:
+        json_comment_list = []
+        comments = Comment.objects.filter(post_id=post_id)
+        for comment in comments:
+           # for comment in comments:
+            author = Author.objects.get(consistent_id = comment.to_user)
+            author_dict = {
+                "type":"author",
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "url": f"{author.host}/author/{author.consistent_id}",
+                "displayName": author.username,
+                "github": author.github,
+            }
+            comment_dict = {
+                "type":"comment",
+                "author":author_dict,
+                "comment":comment.comment_text,
+                "contentType":"text/markdown",
+                "published":str(datetime.now()),
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
+            }
+            json_comment_list.append(comment_dict)
+        return HttpResponse(json.dumps(json_comment_list))
     agent = request.META["HTTP_USER_AGENT"]
-    
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
-     #   cursor.execute('SELECT comment_id FROM firstapp_comment WHERE to_user = ? AND post_id = ?;',(user_id,post_id))
-        cursor.execute("SELECT comment_text FROM firstapp_comment WHERE to_user = '%s' AND post_id = '%d';" %(user_id,post_id))
-        data = cursor.fetchall()
+        data = Comment.objects.filter(post_id=f"https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
         comment_list = []
+        print(f"in comments https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
+        print(data)
         for d in data:
-            comment_text = d[0]
+            comment_text = d.comment_text
             comment_list.append(comment_text)
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
+    else:
+  #      return HttpResponse(comment_list)
+        json_comment_list = []
+        comments = Comment.objects.filter(post_id=post_id)
+        for comment in comments:
+           # for comment in comments:
+            author = Author.objects.get(consistent_id = comment.to_user)
+            author_dict = {
+                "type":"author",
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "url": f"{author.host}/author/{author.consistent_id}",
+                "displayName": author.username,
+                "github": author.github,
+            }
+            comment_dict = {
+                "type":"comment",
+                "author":author_dict,
+                "comment":comment.comment_text,
+                "contentType":"text/markdown",
+                "published":str(datetime.now()),
+                "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
+            }
+            json_comment_list.append(comment_dict)
+        return HttpResponse(json.dumps(json_comment_list))
 
-    
 def search_user(request, *args, **kwargs):
     context = {}
     noresult = False
@@ -758,26 +958,32 @@ def search_user(request, *args, **kwargs):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def account(request,user_id):
+    print("Inside account function")
     # This method can GET and POST an author by their UUID
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
     method = request.META["REQUEST_METHOD"]
-    conn = connection
-    cursor = conn.cursor()
+
     try: 
+        print("trying to get an author")
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
+        print("got an author")
     except:
+        print("uhoh")
         return HttpResponseNotFound("The account you requested does not exist\n")
     if method == "GET": # We want to return a JSON object of the Author requested
+        print("in get")
         author_dict = {
-            "id": f"http://{author.host}/author/{author.consistent_id}",
+            "id": f"{author.host}/author/{author.consistent_id}",
             "host": f"{author.host}/",
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
         }
+        print(f"here's my thing\n\n{author_dict}\n\n")
         return HttpResponse(json.dumps(author_dict))
     else: # It's a POST request
+        print("Wait, I'm in a post request")
         try: # First see if the user exists
             author = Author.objects.get(consistent_id=user_id)
         except Author.DoesNotExist:
@@ -793,7 +999,7 @@ def account(request,user_id):
             return HttpResponse('{"detail":"You are not the author."}',status=401)
         p = request.POST
         try: # You can only edit your github and display name.
-            
+            user = User.objects.get(username=author.username)
             user.username = p["displayName"]
             user.save()
             author = Author.objects.get(consistent_id=user_id)
@@ -913,9 +1119,260 @@ def check_authentication(request):
     authenticated = authenticate(username=username, password=password)
     return authenticated
     ########################
-        
 
+# Like a post by sending a post request to the inbox.
+@api_view(['POST'])
+def likeAHomePagePost(request):
+    print("ok we liking a homepage post")
+    post = json.loads(request.POST.get('thePost', False))
+    author = Author.objects.get(username=request.POST.get('author', False))
+    print(post)
+    # If it's a local like:
+    if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+        print("entering.")
+        # author/<str:user_id>/posts/<int:post_id>/likepost/
+        try: 
+            # Try to unlike
+            like = Like.objects.get(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],object=post["id"])
+            like.delete()
+        except Exception as e:
+            print(e)
+            # Like does not exist. Must like.
+            # like = Like.objects.create(from_user=f"{author.host}/author/{author.consistent_id}",to_user=post['author']['id'],like_id=rand(2**31-1),object=post["id"])
+            author_dict = {
+                "type":"author",
+                "id":f"{author.host}/author/{author.consistent_id}",
+                "url":f"{author.host}/firstapp/{author.userid}",
+                "host":author.host,
+                "displayName":author.username,
+                "github":author.github,
+            }
+            like_dict = {
+                "type":"like",
+                "author":author_dict,
+                "object":post['id'],
+            }
+            like_object = json.dumps(like_dict)
+            headers  = {'Content-type': 'application/json'}
+            url = f"{author.host}/author/{author.consistent_id}/inbox"
+            requests.post(url, data = like_object, headers=headers)
+        return HttpResponse("Like processed")
+    # Else, it's a remote like
+    print("remote post like")
+    try:
+        server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+    except:
+        server = Node.objects.get(hostserver=f"{post['author']['host']}")
     
-    
-    
-    
+    auth_dict = {
+        "type":"author",
+        "id": f"{author.host}/author/{author.consistent_id}",
+        "host": f"{author.host}/",
+        "displayName": author.username,
+        "url": f"{author.host}/firstapp/{author.userid}",
+        "github": author.github,
+    }
+    like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
+    # Does not need headers, else it's a 400
+    response = requests.post(f"{post['author']['id']}/inbox/",data={"obj":json.dumps(like_serializer)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Liked!")
+
+# Comment a post by sending a comment request to the inbox.
+@api_view(['POST'])
+def commentAHomePagePost(request):
+    comment = request.POST.get("theComment",False)
+    post = json.loads(request.POST.get('thePost', False))
+    # If it's a local comment:
+    author = Author.objects.get(username=request.POST.get('author', False))
+    if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
+        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+        comment.save()
+    else:
+        try:
+            server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+        except:
+            server = Node.objects.get(hostserver=f"{post['author']['host']}")
+        author_dict = {
+            "type":"author",
+            "id":f"{author.host}/author/{author.consistent_id}",
+            "url":f"{author.host}/firstapp/{author.userid}",
+            "host":author.host,
+            "displayName":author.username,
+            "github":author.github,
+        }
+        response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Commented!")
+
+# Comment a post by sending a comment request to the inbox.
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+def makeComment(request):
+    print(request.META["HTTP_AUTHORIZATION"])
+    # comment = request.POST.get("theComment",False)
+    # post = json.loads(request.POST.get('thePost', False))
+    # print("THE POST IS ")
+    # print(post)
+    # # If it's a local comment:
+    # author = Author.objects.get(username=request.POST.get('author', False))
+
+    # print(post['author']['host'])
+    # print(request.get_host())
+
+    # if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}":
+    #     comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+    #     comment.save()
+    # else:
+    #     try:
+    #         # print(f"gaaaaaa https://{post['author']['host']}")
+    #         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+    #     except:
+    #         # print(f"aaaaaaaaaaaa {post['author']['host']}")
+    #         server = Node.objects.get(hostserver=f"{post['author']['host']}")
+    #     author_dict = {
+    #         "type":"author",
+    #         "id":f"{author.host}/author/{author.consistent_id}",
+    #         "url":f"{author.host}/firstapp/{author.userid}",
+    #         "host":author.host,
+    #         "displayName":author.username,
+    #         "github":author.github,
+    #     }
+    #     response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Commented!")
+
+@api_view(['GET'])
+def viewComment(request,user_id,post_id,comment_id):
+    try:
+        comment = Comment.objects.get(comment_id=f"https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}/comments/{comment_id}")
+    except:
+        return HttpResponseBadRequest("Comment does not exist.")
+    author = Author.objects.get(consistent_id=user_id)
+    author = {
+        "type":"author",
+        "id":f"{author.host}/author/{author.consistent_id}",
+        "url":f"{author.host}/firstapp/{author.userid}",
+        "host":author.host,
+        "displayName":author.username,
+        "github":author.github,
+
+    }
+    comment_dict = {
+        "type":"comment",
+        "author":author,
+        "comment":comment.comment_text,
+        "contentType":"text/plaintext",
+        "published":comment.published,
+        "id":comment.comment_id,
+    }
+    return HttpResponse(json.dumps(comment_dict))
+
+        
+@api_view(['GET','POST', 'DELETE'])
+@authentication_classes([BasicAuthentication])
+def inbox(request,user_id):
+    print("In Inbox function.\n")
+    method = request.META["REQUEST_METHOD"]
+    try:
+        host = request.build_absolute_uri('/')
+        print(host)
+        author_id = host + "author/" + user_id
+        print(author_id)
+        inbox = Inbox.objects.get(author=author_id)
+        print(inbox)
+        print(method)
+        if method == "GET":
+            inbox_object = {}
+            inbox_object["type"]= "inbox"
+            inbox_object["author"]= author_id
+            inbox_post_items = []
+            for item in inbox.items:
+                if item["type"] == "post":
+                    inbox_post_items.append(item)
+                print("6")
+            inbox_object["items"] = inbox_post_items
+            print(inbox_object)
+            return HttpResponse(json.dumps(inbox_object))
+        # FIX THIS
+        elif method == "POST":
+            print("this")
+            print(request.data["type"])
+            data_json_type = request.data["type"]
+            if data_json_type == "like":
+                print("liking.......")
+                # save to like table
+                conn = connection
+                cursor = conn.cursor()
+                like_id = rand(2**31-1)
+                print(like_id)
+                cursor.execute("SELECT * FROM firstapp_like WHERE like_id = %d"% (like_id))
+                #if id is not used (enforcing unique ids)
+                if len(cursor.fetchall()) == 0:
+                    print("id is available!!\n\n")
+                    object = request.data["object"]
+                    print(object)
+                    #extract to_user uuid
+                    to_user = object.split("author/")[1]
+                    to_user = to_user.split("/")[0]
+                    # extract from_user uuid
+                    print(request.data["author"])
+                    author_id = request.data["author"]["id"]
+                    author_id = author_id.split("author/")[1]
+                    print(author_id)
+                    #remove backslash at end of url if it's there
+                    if author_id[-1] == "/":
+                        author_id = author_id[:-1]
+                    try: #if already liked then remove the like from db
+                        print("getting like object")
+                        like = Like.objects.get(from_user = author_id, to_user = to_user, object = object)
+                        print("removing like object from inbox")
+                        print(like)
+                        print(inbox.items)
+                        print(author_id)
+                        for i in range(len(inbox.items)):
+                            item = inbox.items[i]
+                            print(item["author"]["id"])
+                            print(f"https://{request.get_host()}/author/{author_id}")
+                            print(item["object"])
+                            print(object)
+                            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+                                inbox.items.pop(i)
+                                print("item deleted from inbox")
+                                break
+                        inbox.save()
+                        print("deleting like object from like table")
+                        like.delete()
+
+                        return HttpResponse(f"Like object has been removed from database and inbox")
+
+                    except Exception as e: #if not liked then add like to database
+                        print(e)
+                        print("making like object for table")
+                        like = Like(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        print("saving like object to table")
+                        like.save()
+                        print("adding object to inbox")
+                        inbox.items.append(request.data)
+                        inbox.save()
+                        return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
+                else:
+                    return HttpResponse("already taken.")
+            # MUST TEST.
+            elif data_json_type == "post":
+                inbox.items.append(request.data)
+                inbox.save()
+                return HttpResponse(f"Post object has been added to author's inbox")
+
+            elif data_json_type == "follow":
+                to_user = request.data["object"]["id"]
+                inbox.items.append(request.data["data"])
+                inbox.save()
+                return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
+
+
+        elif method == "DELETE":
+            inbox.items = []
+            inbox.save()
+
+            return HttpResponse(f"{author_id}'s inbox has been cleared")
+
+    except Exception as e:
+        print("ERROR in inbox in views.py" + str(e))
