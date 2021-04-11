@@ -575,7 +575,7 @@ def likepost(request, user_id, post_id):
             print(f"https://{request.get_host()}/author/{author_id}")
             print(item["object"])
             print(object)
-            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+            if item["author"]["id"] == author_id and item["object"] == object:
                 inbox.items.pop(i)
                 print("item deleted from inbox")
                 break
