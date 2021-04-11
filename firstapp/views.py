@@ -546,32 +546,43 @@ def allposts(request,user_id):
 #like a post
 @api_view(['POST','GET'])
 def likepost(request, user_id, post_id):
+    print(f"\n\n\nentered likepost {user_id} {post_id}\n\n\n")
     resp = ""
     conn = connection
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
-    object = f"{host}/author/{user_id}/posts/{post_id}"
+    print(host)
+    object = f"{host}author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
     if len(data) > 0:
-        Likes.objects.filter(from_user = request.user.id,to_user = user_id,post_id = post_id).delete()
+        try:
+            Likes.objects.filter(from_user=int(request.user.id),object=object).delete()
+        except:
+            pass
+        finally:
+            ExternalLike.objects.filter(from_user=str(user_id),object=object).delete()
         return HttpResponse("Unliked post")
     else:
+        print("not liked. liking....")
         while True:
             like_id = rand(2**31-1)
             cursor.execute('SELECT * FROM firstapp_likes WHERE like_id = %d'% (like_id))
             if len(cursor.fetchall()) == 0:
-                print(post_id)
+                print(f"like doesnt exist:{post_id}")
                 host = request.build_absolute_uri('/')
-                url = f"{host}/author/{user_id}/inbox"
-                object = f"{host}/author/{user_id}/posts/{post_id}"
+                url = f"{host}author/{user_id}/inbox"
+                object = f"{host}author/{user_id}/posts/{post_id}"
                 like_object = make_like_object(object, user_id, make_json=True)
-                requests.post(url, data = like_object)
+                print(f"test!{like_object} {type(like_object)}")
+                # HEEEEEEEEEEEERE
+                response = requests.post(url, data = {"data":like_object})
+                print(f"response is {response}")
                 like = Likes(like_id=like_id, from_user =request.user.id, object = object)
                 like.save()
                 break
-        HttpResponse("Like object sent to inbox", status=200)
+        return HttpResponse("Like object sent to inbox", status=200)
 
 #like a comment
 @api_view(['POST'])
@@ -580,7 +591,7 @@ def like_comment(request, user_id, post_id, comment_id):
     conn = connection
     cursor = conn.cursor()
     host = request.build_absolute_uri('/')
-    object = f"{host}/author/{user_id}/posts/{post_id}"
+    object = f"{host}author/{user_id}/posts/{post_id}"
     cursor.execute("SELECT * FROM firstapp_likes WHERE from_user = %d AND object = '%s'"% (request.user.id, object))
     data = cursor.fetchall()
     # if post has already been liked
@@ -593,10 +604,10 @@ def like_comment(request, user_id, post_id, comment_id):
             if len(cursor.fetchall()) == 0:
                 print(post_id)
                 host = request.build_absolute_uri('/')
-                url = f"{host}/author/{user_id}/inbox"
-                object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
+                url = f"{host}author/{user_id}/inbox"
+                object = f"{host}author/{user_id}/posts/{post_id}/comments/{comment_id}"
                 like_object = make_like_object(object, user_id, make_json=True)
-                requests.post(url, data = like_object)
+                requests.post(url, data = {"data":like_object})
                 like = Likes(like_id=like_id, from_user = request.user.id, to_user = user_id, object = object)
                 like.save()
                 break
@@ -605,6 +616,7 @@ def like_comment(request, user_id, post_id, comment_id):
 def make_like_object(object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
+    print(f"in make like. user_id is {user_id}")
     author = Author.objects.get(consistent_id=user_id)
     like_dict["author"] = get_our_author_object(author.host,user_id)
     like_dict["object"] = object
@@ -621,7 +633,15 @@ def postlikes(request, user_id, post_id):
     agent = request.META["HTTP_USER_AGENT"]
     is_ajax = request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
     if is_ajax:
-        postlikes = ??????.objects.filter(to_user=user_id,post_id=post_id)
+        # print("hmm")
+        # print(user_id)
+        # print(post_id)
+        # print(request.META['HTTP_HOST'])
+        postlikes = Likes.objects.filter(object = f"http://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
+        # print(postlikes)
+        # data = make_post_likes_object(user_id,post_id)
+        # print(data)
+        # postlikes = ??????.objects.filter(to_user=user_id,post_id=post_id)
         data = serializers.serialize('json', postlikes)
         return HttpResponse(data, content_type="application/json")
     else:
@@ -639,9 +659,7 @@ def postlikes(request, user_id, post_id):
             cursor.execute('SELECT a.consistent_id FROM firstapp_postlikes l, firstapp_author a WHERE l.post_id=%d AND l.from_user = a.userid;'%post_id)
             data = cursor.fetchall()
             url = request.get_full_path()
-            print("IN I GO")
             json_post_likes = make_post_likes_object(data, url)
-            print("SUP")
             return HttpResponse(json.dumps(json_post_likes))
 
 def make_post_likes_object(data, url):
@@ -1063,6 +1081,7 @@ def likeAHomePagePost(request):
     # print(post)
     # If it's a local like:
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+        print("entering.")
         return HttpResponseRedirect(f"{post['id']}/likepost/")
     # Else, it's a remote like
     try:
@@ -1116,6 +1135,42 @@ def commentAHomePagePost(request):
         response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
     return HttpResponse("Commented!")
 
+# Comment a post by sending a comment request to the inbox.
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+def makeComment(request):
+    print(request.META["HTTP_AUTHORIZATION"])
+    # comment = request.POST.get("theComment",False)
+    # post = json.loads(request.POST.get('thePost', False))
+    # print("THE POST IS ")
+    # print(post)
+    # # If it's a local comment:
+    # author = Author.objects.get(username=request.POST.get('author', False))
+
+    # print(post['author']['host'])
+    # print(request.get_host())
+
+    # if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+    #     comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+    #     comment.save()
+    # else:
+    #     try:
+    #         # print(f"gaaaaaa http://{post['author']['host']}")
+    #         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+    #     except:
+    #         # print(f"aaaaaaaaaaaa {post['author']['host']}")
+    #         server = Node.objects.get(hostserver=f"{post['author']['host']}")
+    #     author_dict = {
+    #         "type":"author",
+    #         "id":f"{author.host}/author/{author.consistent_id}",
+    #         "url":f"{author.host}/firstapp/{author.userid}",
+    #         "host":author.host,
+    #         "displayName":author.username,
+    #         "github":author.github,
+    #     }
+    #     response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+    return HttpResponse("Commented!")
+
 @api_view(['GET'])
 def viewComment(request,user_id,post_id,comment_id):
     try:
@@ -1146,16 +1201,17 @@ def viewComment(request,user_id,post_id,comment_id):
 @api_view(['GET','POST', 'DELETE'])
 @authentication_classes([BasicAuthentication])
 def inbox(request,user_id):
+    print("In Inbox function.\n")
     method = request.META["REQUEST_METHOD"]
     try:
         host = request.build_absolute_uri('/')
-        print(host)
+        # print(host)
         author_id = host + "author/" + user_id
-        print(author_id)
+        # print(author_id)
         inbox = Inbox.objects.get(author=author_id)
         print(inbox)
+        print(method)
         if method == "GET":
-            
             inbox_object = {}
             inbox_object["type"]= "inbox"
             inbox_object["author"]= author_id
@@ -1167,13 +1223,12 @@ def inbox(request,user_id):
             inbox_object["items"] = inbox_post_items
             print(inbox_object)
             return HttpResponse(json.dumps(inbox_object))
-
+        # FIX THIS
         elif method == "POST":
-            print(request.data)
-            print(request.data["type"])
-            print(type(request.data["type"]))
-            data_json_type = request.data["type"]
-            if data_json_type== "like":
+            the_object = json.loads(request.data["data"])
+            data_json_type = the_object["type"]
+            if data_json_type == "like":
+                print("liking.......")
                 # save to external like table
                 conn = connection
                 cursor = conn.cursor()
@@ -1182,13 +1237,14 @@ def inbox(request,user_id):
                 cursor.execute("SELECT * FROM firstapp_externallike WHERE like_id = %d"% (like_id))
                 #if id is not used (enforcing unique ids)
                 if len(cursor.fetchall()) == 0:
-                    object = request.data["object"]
+                    print("id is available!!\n\n")
+                    object = the_object["object"]
                     print(object)
                     #extract to_user uuid
                     to_user = object.split("author/")[1]
                     to_user = to_user.split("/")[0]
                     # extract from_user uuid
-                    author_id = request.data["author"]["id"]
+                    author_id = the_object["author"]["id"]
                     author_id = author_id.split("author/")[1]
                     #remove backslash at end of url if it's there
                     if author_id[-1] == "/":
@@ -1223,20 +1279,20 @@ def inbox(request,user_id):
                         print("saving like object to table")
                         like.save()
                         print("adding object to inbox")
-                        inbox.items.append(request.data)
+                        inbox.items.append(the_object)
                         inbox.save()
                         return HttpResponse(f"Like object has been added to author {to_user}'s inbox")
-
-                
-
+                else:
+                    return HttpResponse("already taken.")
+            # MUST TEST.
             elif data_json_type == "post":
-                inbox.items.append(request.data)
+                inbox.items.append(the_object["data"])
                 inbox.save()
                 return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
-                to_user = request.data["object"]["id"]
-                inbox.items.append(request.data)
+                to_user = the_object["object"]["id"]
+                inbox.items.append(request.data["data"])
                 inbox.save()
                 return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
 
