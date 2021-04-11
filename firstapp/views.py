@@ -581,7 +581,8 @@ def likepost(request, user_id, post_id):
                 print(url)
                 print(object)
                 print(like_object)
-                requests.post(url, data = like_object)
+                headers = headers = {'Content-type': 'application/json'}
+                requests.post(url, data = like_object, headers=headers)
                 print("like has been posted")
                 break
         return HttpResponse("Like object sent to inbox", status=200)
