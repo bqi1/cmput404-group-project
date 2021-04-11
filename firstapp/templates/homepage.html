@@ -35,7 +35,7 @@
                             url: item["id"]+"/likes",
                             type: 'GET',
                             success: function(data){
-                                console.log("data is "+data);
+                                // console.log("data is "+data);
                                 amount_likes = data.length==0?0:data.length;
                                 document.getElementById("likes"+i).innerHTML = amount_likes+" liked this post";
 
@@ -51,7 +51,11 @@
                     result+= "<h4 id=likes"+i+">";
                     result+= likes+" liked this post</h4>";
                     result+="<h4>Comments:</h4>";
+                    console.log(item);
                     for (let c_index = 0; c_index < item["count"]; c_index++){
+                        
+                        console.log("HM."+item["comments"][c_index]);
+                        console.log("I SEE."+item["comments"][c_index]["author"]["displayName"]);
                         result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
                     }
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
@@ -76,8 +80,8 @@
                     }, false);
                     document.getElementById("commentButton"+i).addEventListener("click",function(){
                         let post = {{our_server_posts|safe}}[i];
-                        console.log(post);
-                        console.log("{{author}}");                      
+                        // console.log(post);
+                        // console.log("{{author}}");                      
                         $.ajax({
                             url: '/comment',
                             type: 'POST',
@@ -115,7 +119,7 @@
                     result += "<input id = 'comment"+i+"'/>";
                     result += "</div>";
                     document.getElementById("other_servers").innerHTML += result;
-                    console.log(item);
+                    // console.log(item);
 
                 }
                 for (let i = index; i < public_posts_from_other_server.length+index; i++){            
