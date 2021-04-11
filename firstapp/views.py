@@ -53,7 +53,7 @@ def index(request):
 #helper function for getting json author objects from our server's database
 def get_our_author_object(host, author_uuid):
     try:
-        url = "https://"+host+"author/"+author_uuid
+        url = "http://"+host+"author/"+author_uuid
         print(url)
         r = requests.get(url)
         return r.json()
@@ -72,7 +72,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "https://"+request.META['HTTP_HOST']+"/posts"
+        ourURL = "http://"+request.META['HTTP_HOST']+"/posts"
         ourRequest = requests.get(url=ourURL)
         ourData = ourRequest.json()
 
@@ -121,22 +121,22 @@ def signup(request):
                 settings = Setting(usersneedauthentication=False)
             needs_authentication = settings.usersneedauthentication
             if needs_authentication: # If users need an OK from server admin, create the user, but set authorized to False, preventing them from logging in.
-                user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,userid=request.user.id,\
+                user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,userid=request.user.id,\
                     authorized=False,email=form.cleaned_data['email'],\
                         name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                             consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
                 # If the flag, UsersNeedAuthentication is True, redirect to Login Page with message
                 user.save()
-                user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+                user_inbox = Inbox.objects.create(type="inbox", author=f"http://{request.get_host()}/author/{user.consistent_id}", items=[])
                 user_inbox.save()
                 messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
                 return HttpResponseRedirect(reverse('login'))
             # Else, let them in homepage.
-            user = Author.objects.create(host=f"https://{request.get_host()}",username=new_username,\
+            user = Author.objects.create(host=f"http://{request.get_host()}",username=new_username,\
                 userid=request.user.id, authorized=True,email=form.cleaned_data['email'],\
                     name=f"{form.cleaned_data['first_name']} {form.cleaned_data['last_name']}",\
                         consistent_id=f"{uuid.uuid4().hex}",api_token = Token.objects.create(user=user))
-            user_inbox = Inbox.objects.create(type="inbox", author=f"https://{request.get_host()}/author/{user.consistent_id}", items=[])
+            user_inbox = Inbox.objects.create(type="inbox", author=f"http://{request.get_host()}/author/{user.consistent_id}", items=[])
             
             return HttpResponseRedirect(reverse('home'))
         else:
@@ -1034,7 +1034,7 @@ def getAuthor(userid):
     return my_user
         
 def check_authentication(request):
-    # From turtlefranklin at 2021-03-31 at https://stackoverflow.com/questions/38016684/accessing-username-and-password-in-django-request-header-returns-none
+    # From turtlefranklin at 2021-03-31 at http://stackoverflow.com/questions/38016684/accessing-username-and-password-in-django-request-header-returns-none
     auth_header = request.META['HTTP_AUTHORIZATION']
     encoded_credentials = auth_header.split(' ')[1]  # Removes "Basic " to isolate credentials
     decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8").split(':')
@@ -1127,10 +1127,10 @@ def inbox(request,user_id):
                         for i in range(len(inbox.items)):
                             item = inbox.items[i]
                             print(item["author"]["id"])
-                            print(f"https://{request.get_host()}/author/{author_id}")
+                            print(f"http://{request.get_host()}/author/{author_id}")
                             print(item["object"])
                             print(object)
-                            if item["author"]["id"] == f"https://{request.get_host()}/author/{author_id}" and item["object"] == object:
+                            if item["author"]["id"] == f"http://{request.get_host()}/author/{author_id}" and item["object"] == object:
                                 inbox.items.pop(i)
                                 print("item deleted from inbox")
                                 break
