@@ -30,7 +30,7 @@ from friend.follow_status import FollowStatus
 from friend.models import FriendList, FriendRequest,FriendShip,FollowingList,Follow
 from friend.is_friend import get_friend_request_or_false
 from friend.is_following import Following_Or_Not
-from firstapp.models import Author, Post, Author_Privacy, Comment, Like, Category, Node, Setting, Inbox
+from firstapp.models import Author, Author_Privacy, Category, Comment, Inbox, Like, Node, Post, Setting
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
@@ -1375,17 +1375,9 @@ def sharePublicPost(request):
     post.save()
     return HttpResponse("Shared")
     
-
-
 @api_view(['GET','POST', 'DELETE'])
 def inbox(request,user_id):
     print("In Inbox function.\n")
-    # enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
-
-    # uname, pword = enc[0], enc[1]
-    # user = authenticate(username = uname, password = pword)
-    #     if user is None:
-    #         return HttpResponseBadRequest("You are not authenticated!")
     print(request.user)
     method = request.META["REQUEST_METHOD"]
     try:
