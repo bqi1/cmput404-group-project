@@ -728,7 +728,6 @@ def postlikes(request, user_id, post_id):
             except:
                 # It's another author
                 author_dict = json.loads(requests.get(f"{like.from_user}"))
-            # HEEEEEEEEEEEEEEEEEEEEEEEERE
             like_dict = {
                 "@context":"",
                 "summary":f"{author_dict['displayName']} Likes your post",
@@ -834,7 +833,6 @@ def publicposts(request):
                 if i >= 5: break
                 author_url = str(comment_obj.from_user)
                 if request.get_host() in comment_obj.from_user:
-                    # http://c404posties.herokuapp.com/author/
                     print(f"http://{request.get_host()}/author/")
                     print(comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
                     author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
