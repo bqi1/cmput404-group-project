@@ -76,7 +76,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = f"https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"http://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -97,6 +97,8 @@ def homepage(request):
                 if postsRequest.status_code == 200:
                     theirData.extend(postsRequest.json())
                     #TODO find a way to pass in auth info with post json
+                else:
+                    print("huh")
             except Exception as e:
                 print(f"Could not connect to {server.hostserver} becuase: {e} :(")
                 continue
@@ -1292,7 +1294,9 @@ def commentAHomePagePost(request):
             "displayName":author.username,
             "github":author.github,
         }
-        response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+        print(f" ok {post['author']['id']}/inbox")
+        response = requests.post(f"{post['author']['id']}/inbox",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+        print(f"send a comment with response{response}")
     return HttpResponse("Commented!")
 
 # Comment a post by sending a comment request to the inbox.
