@@ -1182,14 +1182,15 @@ def account_view(request, *args, **kwargs):
             is_self = False
         cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % request.user.id)
         try:
-            data = cursor.fetchall()[0]
+            data2 = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             return HttpResponse("user doesn't exist") 
         print("^^^^^^^^^^^^^^^")
         print(data)
         # print(new_account.github)
-        context['username2'] = data[3]
-        context['githubLink2'] = data[4]
+        context['username2'] = data2[3]
+        context['githubLink2'] = data2[4]
+        context['receiver_Cid'] = data2[11]
 
         context['is_self'] =is_self
         context['friends'] = friends
