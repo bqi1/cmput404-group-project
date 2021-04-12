@@ -1369,7 +1369,6 @@ def sharePublicPost(request):
 
 
 @api_view(['GET','POST', 'DELETE'])
-@authentication_classes([BasicAuthentication, TokenAuthentication])
 def inbox(request,user_id):
     print("In Inbox function.\n")
     print(request.user)
