@@ -20,6 +20,7 @@ urlpatterns = [
 
     path('author/<str:user_id>/posts/<int:post_id>/commentpost/',views.commentpost,name='commentpost'),
     path('author/<str:user_id>/posts/<int:post_id>/comments/',views.viewComments,name='viewComments'),
+    path('author/<str:user_id>/posts/<int:post_id>/comments',views.viewComments,name='viewComments'),
 
     path('posts/', views.publicposts,name='publicposts'),
     path('author/<str:user_id>/inbox', views.inbox,name='inbox'),

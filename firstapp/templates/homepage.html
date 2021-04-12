@@ -19,6 +19,7 @@
                     Your UUID is {{author_uuid}}.
                     Your API token is {{token}}.</p>
                 <a href= "/author/{{author_uuid}}/posts">My Stream</a> <!--Link to making a post/view your post-->
+                <a href= "/author/{{author_uuid}}/inbox">Inbox</a> <!--Link to the inbox-->
             {% endif %}
             <!-- <p> {{other_server_posts}}</p> -->
             <h3 style="color:rgb(0, 162, 255)">Public Posts from our server:</h3>
@@ -95,7 +96,7 @@
                                 author:"{{ author }}",
                             },
                             success:function(){
-                                alert("Like updated!")
+                                location.reload();
                             }
 
                         }); 
@@ -116,7 +117,7 @@
                             },
                             success:function(){
                                     document.getElementById('comment'+i).value = "";
-                                    alert("Commented on post!")
+                                    location.reload();
                                 },
                         });
                     }, false);
@@ -134,7 +135,7 @@
                                 
                             },
                             success:function(){
-                                    alert("Post shared!");
+                                    location.reload();
                                 }
                         }); 
                     }, false);
@@ -192,7 +193,7 @@
                                 
                             },
                             success:function(){
-                                    alert("Like updating!")
+                                    location.reload();
                                 }
                         }); 
                     }, false);
@@ -212,7 +213,7 @@
                             },
                             success:function(){
                                     document.getElementById('comment'+i).value = "";
-                                    alert("Commented on post!")
+                                    location.reload();
                                 },
                         }); 
                     }, false);
@@ -230,7 +231,7 @@
                                 
                             },
                             success:function(){
-                                    alert("Post shared!");
+                                    location.reload();
                                 }
                         }); 
                     }, false);
