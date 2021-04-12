@@ -1069,6 +1069,8 @@ def account_view(request, *args, **kwargs):
         account = Author.objects.get(id = user_id)
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
+    cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % user_id)
+
 
     if data != None:
         print(data)
@@ -1076,7 +1078,8 @@ def account_view(request, *args, **kwargs):
         context['username'] = data[3]
         context['email'] = data[9]
         context['host'] = data[6]
-        # context['consistent_id'] 
+        context['me_Cid'] = data[11]
+        context['githubLink']=data[5]
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -1467,6 +1470,8 @@ def inbox(request,user_id):
                 return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
+                receive_id = request.data["id"]
+                remot_consist_id = receive_id.split('/')
                 to_user = request.data["object"]["id"]
                 inbox.items.append(request.data["data"])
                 inbox.save()
