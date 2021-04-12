@@ -88,7 +88,7 @@
                     document.getElementById("likeButton"+i).addEventListener("click",function(){
                         let post = {{our_server_posts|safe}}[i];
                         $.ajax({
-                            url: '/like',
+                            url: '/like/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
@@ -184,7 +184,7 @@
                     document.getElementById("likeButton"+i).addEventListener("click",function(){
                         let post = {{other_server_posts|safe}}[i-index];
                         $.ajax({
-                            url: '/like',
+                            url: '/like/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
