@@ -77,7 +77,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = f"https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"http://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -686,9 +686,11 @@ def postlikes(request, user_id, post_id):
     if is_ajax:
         print("is ajax.")
         print(object)
-        postlikes = Like.objects.filter(object=object)
-        data = serializers.serialize('json', postlikes)
-        return HttpResponse(data, content_type="application/json")
+        cursor.execute("SELECT a.consistent_id FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
+        data = cursor.fetchall()
+        url = request.get_full_path()
+        json_post_likes = make_post_likes_object(request, data, url)
+        return HttpResponse(json.dumps(json_post_likes), content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
             cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
