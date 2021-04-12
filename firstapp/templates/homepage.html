@@ -76,8 +76,9 @@
                     }
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
                     result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
-                    result += "<input id = 'comment"+i+"'/>";
-                    result += "<input type='button' id ='shareButton"+i+"' value = 'Share'/>";
+                    result += "<input type='text' id = 'comment"+i+"'/>";
+                    console.log("what");
+                    result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                     result+= "</div>";
                     document.getElementById("demo").innerHTML += result;
                     index += 1;
@@ -119,7 +120,7 @@
                                 },
                         });
                     }, false);
-                    document.getElementById("shareButton"+i).addEventListener("click",function(){
+                    document.getElementById("shareButton-"+i).addEventListener("click",function(){
                         let post = {{our_server_posts|safe}}[i];
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
@@ -172,7 +173,7 @@
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
                     result += "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
                     result += "<input id = 'comment"+i+"'/>";
-                    result += "<input type='button' id ='shareButton"+i+"' value = 'Share'/>";
+                    result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                     result += "</div>";
                     document.getElementById("other_servers").innerHTML += result;
                     // console.log(item);
@@ -215,7 +216,7 @@
                                 },
                         }); 
                     }, false);
-                    document.getElementById("shareButton"+i).addEventListener("click",function(){
+                    document.getElementById("shareButton-"+i).addEventListener("click",function(){
                         let post = {{other_server_posts|safe}}[i-index];
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
