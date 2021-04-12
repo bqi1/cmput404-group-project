@@ -655,6 +655,7 @@ def likepost(request, user_id, post_id):
                 print(object)
                 print(like_object)
                 headers = headers = {'Content-type': 'application/json'}
+                print(f"sending to.{url}")
                 requests.post(url, data = like_object, headers=headers)
                 print("like has been posted")
                 break
@@ -685,6 +686,7 @@ def like_comment(request, user_id, post_id, comment_id):
                 url = f"{host}/author/{user_id}/inbox"
                 object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
                 like_object = make_like_object(request, object, user_id, make_json=True)
+                print(f"sending to..{url}")
                 requests.post(url, data = like_object)
                 like = Like(like_id=like_id, from_user = f"https://{request.get_host()}/author/{uuid}", to_user = f"https://{request.get_host()}/author/{user_id}", object = object)
                 like.save()
@@ -1345,7 +1347,8 @@ def likeAHomePagePost(request):
             }
             like_object = json.dumps(like_dict)
             headers  = {'Content-type': 'application/json'}
-            url = f"{author.host}/author/{author.consistent_id}/inbox/"
+            url = f"{author.host}/author/{author.consistent_id}/inbox"
+            print(f"\n\nsending to...{url}\n\n")
             requests.post(url, data = like_object, headers=headers, auth=("adminB","adminB"))
         return HttpResponse("Like processed")
     # Else, it's a remote like
@@ -1365,6 +1368,7 @@ def likeAHomePagePost(request):
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
     # Does not need headers, else it's a 400
+    print(f"sending to....{url}")
     response = requests.post(f"{post['author']['id']}/inbox/",json=like_serializer,auth=(server.authusername,server.authpassword))
     return HttpResponse("Liked!")
 
