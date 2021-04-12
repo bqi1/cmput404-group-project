@@ -785,7 +785,6 @@ def publicposts(request):
                 if i >= 5: break
                 author_url = str(comment_obj.from_user)
                 if request.get_host() in comment_obj.from_user:
-                    # http://c404posties.herokuapp.com/author/
                     print(f"http://{request.get_host()}/author/")
                     print(comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
                     author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
@@ -933,6 +932,7 @@ def viewComments(request, user_id, post_id):
             print(e)
             if str(e) == "That page contains no results":
                 comment_list = []
+            
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
         print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")

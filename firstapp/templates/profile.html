@@ -361,7 +361,7 @@
 
 	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
 	if (sendRemoteFriendRequestBtn != null){
-		const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
+		const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}';
 			var data = {
 				"type":"author",
 				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
@@ -383,10 +383,9 @@
 	            error: function(XMLHttpRequest, textStatus, errorThrown) {
 	              console.log(errorThrown);
 	            }
-          })
+          	})
 
 			
-		})
 	}
 
 
@@ -435,7 +434,7 @@
 
 	function displayActivity(parsedXML,username){
 		var i;
-		var output = "<ul>";
+		var output = "<h4>Most recent Github Activity:</h4><ul>";
 		for (i = 0; i < parsedXML.length; i++){
 			if (i > 4){
 				break
