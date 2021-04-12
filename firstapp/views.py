@@ -1365,18 +1365,18 @@ def likeAHomePagePost(request):
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
     # Does not need headers, else it's a 400
-    response = requests.post(f"{post['author']['id']}/inbox/",json=json.dumps(like_serializer),auth=(server.authusername,server.authpassword))
+    response = requests.post(f"{post['author']['id']}/inbox/",json=like_serializer,auth=(server.authusername,server.authpassword))
     return HttpResponse("Liked!")
 
 # Comment a post by sending a comment request to the inbox.
 @api_view(['POST'])
 def commentAHomePagePost(request):
-    comment = request.POST.get("theComment",False)
+    theComment = request.POST.get("theComment",False)
     post = json.loads(request.POST.get('thePost', False))
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
-        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=theComment,published=str(datetime.now()))
         comment.save()
     else:
         try:
@@ -1391,7 +1391,17 @@ def commentAHomePagePost(request):
             "displayName":author.username,
             "github":author.github,
         }
-        response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+        c_id= f"{uuid.uuid4().hex}"
+        comment_dict = {
+            "type":"comment",
+            "author":author_dict,
+            "comment":theComment,
+            "contentType":"text/plaintext",
+            "published":str(datetime.now()),
+            "id":f"{post['id']}/comments/{c_id}"
+        }
+        response = requests.post(f"{post['id']}/comments",json=comment_dict,auth=(server.authusername,server.authpassword))
+        response = requests.post(f"{post['author']['id']}/inbox",json=comment_dict,auth=(server.authusername,server.authpassword))
     return HttpResponse("Commented!")
 
 # Comment a post by sending a comment request to the inbox.
