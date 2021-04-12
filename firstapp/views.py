@@ -39,6 +39,7 @@ import base64
 from .remote_friend import get_all_remote_user
 from django.contrib.auth.models import User
 from django.core import serializers
+from django.core.paginator import Paginator
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -828,7 +829,7 @@ def publicposts(request):
                 "author":author_dict,
                 "categories":[],
                 "count":amount_of_comments,
-                "size":0,
+                "size":amount_of_comments,
                 "comments_url":f"{author.host}/author/{author.consistent_id}/posts/{post.post_id}/comments",
                 "comments":comment_dict_list,
                 "published":post.published,
@@ -920,6 +921,18 @@ def viewComments(request, user_id, post_id):
             comment_text = d.comment_text
             comment_list.append(comment_text)
         num_comments = len(comment_list)
+        try:
+            paginator = Paginator(comment_list,request.GET.get('size'))
+        except TypeError:
+            paginator = Paginator(comment_list,num_comments)
+        try:
+            page_number = request.GET.get('page')
+            page_obj = paginator.page(page_number)
+            comment_list = page_obj.object_list
+        except Exception as e:
+            print(e)
+            if str(e) == "That page contains no results":
+                comment_list = []
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
         print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")
@@ -947,6 +960,18 @@ def viewComments(request, user_id, post_id):
             }
             json_comment_list.append(comment_dict)
         print(json_comment_list)
+        try:
+            paginator = Paginator(json_comment_list,request.GET.get('size'))
+        except:
+            paginator = Paginator(json_comment_list,len(json_comment_list))
+        try:
+            page_number = request.GET.get('page')
+            page_obj = paginator.page(page_number)
+            json_comment_list = page_obj.object_list
+        except Exception as e:
+            print(e)
+            if str(e) == "That page contains no results":
+                json_comment_list = []
         return HttpResponse(json.dumps(json_comment_list))
 
 def search_user(request, *args, **kwargs):
