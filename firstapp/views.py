@@ -223,15 +223,11 @@ def make_post_html(data,user_id,isowner=False):
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
-                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
                 resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
             else: 
                 resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
-                resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
                 resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
-                resp += '<button onclick="commentPost(\'{}\')">Comment</button>'.format(d.post_id)
                 resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
 
             resp += "</br>"
