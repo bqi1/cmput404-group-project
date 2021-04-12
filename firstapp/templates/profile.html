@@ -208,11 +208,23 @@
 						{% if follow_request == 0 %}
 							
 							<div class="d-flex flex-column align-items-center pt-4">
-								<a href="{% url 'friend:send_following_request' following_request_id=id %}">
-									<button class="btn btn-primary" id="id_follow_btn">
+								
+								{% if id < 1000 %}
+									<a href="{% url 'friend:send_following_request' following_request_id=id %}">
+										<button class="btn btn-primary" id="id_follow_btn">
+											Follow
+										</button>
+									</a>
+								{% endif %}
+								{% if id >= 1000 %}
+									<a href="{% url 'friend:send_following_request' following_request_id=id %}">
+									<button class="btn btn-primary" id="id_remote_follow_btn">
 										Follow
 									</button>
-								</a>
+									</a>
+								{% endif %}
+
+
 							</div>
 							
 						{% endif %}
@@ -311,6 +323,30 @@
 	var FollowRequestBtn = document.getElementById("id_remote_follow_btn")
 	if(FollowRequestBtn !=  null){
 		FollowRequestBtn.addEventListener("click", function(){
+			const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
+			var data = {
+				"type":"author",
+				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"host":"c404posties.herokuapp.com",
+				"displayName":"{{username}}",
+				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"github": "{{githubLink}}"
+
+        	};
+        	var jsonData = JSON.stringify(data);
+			$.ajax({
+	            url: Url,
+	            type: "follow",
+	            data: jsonData,
+	            // dataType: "jsonp",
+	            contentType: "application/json",
+	            success: function(result){
+	            },
+	            error: function(XMLHttpRequest, textStatus, errorThrown) {
+	              console.log(errorThrown);
+	            }
+          })
+
 			
 		})
 	}
@@ -325,26 +361,34 @@
 
 	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
 	if (sendRemoteFriendRequestBtn != null){
-		sendRemoteFriendRequestBtn.addEventListener("click", function(){
+		const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
+			var data = {
+				"type":"author",
+				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"host":"c404posties.herokuapp.com",
+				"displayName":"{{username}}",
+				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"github": "{{githubLink}}"
+
+        	};
+        	var jsonData = JSON.stringify(data);
 			$.ajax({
-				type: "POST",
-				url: "../sen_remote_friend_request.py",
-				data: { param: "{{host}}"}
-			}).done(function( o ) {
-			   // do something
-			});
+	            url: Url,
+	            type: "follow",
+	            data: jsonData,
+	            // dataType: "jsonp",
+	            contentType: "application/json",
+	            success: function(result){
+	            },
+	            error: function(XMLHttpRequest, textStatus, errorThrown) {
+	              console.log(errorThrown);
+	            }
+          })
+
+			
 		})
 	}
 
-
-	var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
-	if(cancelFriendRequestBtn != null){
-		cancelFriendRequestBtn.addEventListener("click", function(){
-			const url = "{{host}}" + "{{id}}";
-			alert(url);
-
-		})
-	}
 
 	var removeFriendBtn = document.getElementById("id_unfriend_btn")
 	if (removeFriendBtn != null){

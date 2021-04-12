@@ -1077,13 +1077,15 @@ def account_view(request, *args, **kwargs):
     except IndexError: # No token exists, must create a new one!
         return HttpResponse("user doesn't exist") 
 
+
     if data != None:
         print(data)
         context['id'] = data[8]
         context['username'] = data[3]
         context['email'] = data[9]
         context['host'] = data[6]
-        # context['consistent_id'] 
+        context['me_Cid'] = data[11]
+        context['githubLink']=data[5]
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -1497,7 +1499,27 @@ def inbox(request,user_id):
                 return HttpResponse(f"Post object has been added to author's inbox")
 
             elif data_json_type == "follow":
-                to_user = request.data["object"]["id"]
+                receive_id = request.data["id"]
+                remote_sender = request.data["actor"]["id"].split('/')
+                local_receiver = request.data["object"]["id"].split('/')
+                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                try:
+                    data1 = cursor.fetchall()[0]
+                    Author = get_user_model()
+                    sender = Author.objects.get(id = data1[8])
+                except IndexError: # No token exists, must create a new one!
+                    return HttpResponse("user doesn't exist") 
+
+                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % local_receiver)
+                try:
+                    data2 = cursor.fetchall()[0]
+                    Author = get_user_model()
+                    receiver = Author.objects.get(id = data1[8])
+                except IndexError: # No token exists, must create a new one!
+                    return HttpResponse("user doesn't exist")
+
+                follow = Follow(follower = sender,receiver = receiver)
+                follow.save()
                 inbox.items.append(request.data["data"])
                 inbox.save()
                 return HttpResponse(f"Follow object has been added to author {to_user}'s inbox")
