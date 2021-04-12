@@ -1502,7 +1502,7 @@ def inbox(request,user_id):
                 receive_id = request.data["id"]
                 remote_sender = request.data["actor"]["id"].split('/')
                 local_receiver = request.data["object"]["id"].split('/')
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
@@ -1510,7 +1510,7 @@ def inbox(request,user_id):
                 except IndexError: # No token exists, must create a new one!
                     return HttpResponse("user doesn't exist") 
 
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % local_receiver)
+                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % local_receiver)
                 try:
                     data2 = cursor.fetchall()[0]
                     Author = get_user_model()
