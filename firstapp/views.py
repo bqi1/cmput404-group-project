@@ -972,12 +972,14 @@ def viewComments(request, user_id, post_id):
 
         try:
             page_number = request.GET.get('page')
-            if page_number < 1:
+            if page_number is None or page_number < 1:
                 page_number = 1
         except:
             page_number = 1
         try:
             size = request.GET.get('size')
+            if size is None:
+                size = len(comment_list)
         except:
             size = len(comment_list)
         paginator = Paginator(comment_list,size)
@@ -1014,12 +1016,14 @@ def viewComments(request, user_id, post_id):
         print(json_comment_list)
         try:
             page_number = request.GET.get('page')
-            if page_number < 1:
+            if page_number is None or page_number < 1:
                 page_number = 1
         except:
             page_number = 1
         try:
             size = request.GET.get('size')
+            if size is None:
+                size = len(json_comment_list)
         except:
             size = len(json_comment_list)
         paginator = Paginator(json_comment_list,size)
