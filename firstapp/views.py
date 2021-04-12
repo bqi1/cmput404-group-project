@@ -76,7 +76,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = "https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -283,8 +283,8 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             "type":"post",
             "title":d.title,
             "id":d.id,
-            "source":f"{author.host}/author/{author.consistent_id}",
-            "origin":f"{author.host}/author/{author.consistent_id}",
+            "source":d.source,
+            "origin":d.origin,
             "description":d.description,
             "contentType":"text/markdown" if d.markdown else "text/plain",
             "content":d.content,
@@ -351,6 +351,8 @@ def post(request,user_id,post_id):
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     user_token = data[0].api_token
     author_id = data[0].userid
+    try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author_id).friends.all()]
+    except FriendList.DoesNotExist: friend_ids = []
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
@@ -417,6 +419,9 @@ def post(request,user_id,post_id):
                 categories = Category.objects.filter(post_id=post_id)
                 for ca in categories: ca.delete()
             new_post.save()
+            payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            for f in friend_ids:
+                r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
 
  
         elif method == 'PUT':
@@ -429,7 +434,7 @@ def post(request,user_id,post_id):
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
+                new_post = Post(source=f"https://{request.get_host()}/posts",origin=f"https://{request.get_host()}/posts",id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -453,6 +458,9 @@ def post(request,user_id,post_id):
                     category = Category(post_id=post_id,tag=ca)
                     category.save()
             new_post.save()
+            payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            for f in friend_ids:
+                r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
 
         elif method == 'DELETE':
             author_privacies = Author_Privacy.objects.filter(post_id=post_id)
@@ -462,6 +470,7 @@ def post(request,user_id,post_id):
             new_post = Post.objects.get(post_id=post_id,user_id=user_id)
             new_post.delete()
             resp = "Successfully deleted post: %d\n" %post_id
+
         else:
             return HttpResponseBadRequest("Error: invalid method used\n")
     agent = request.META["HTTP_USER_AGENT"]
@@ -479,6 +488,7 @@ def post(request,user_id,post_id):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def allposts(request,user_id):
+
     resp = ""
     method = request.META["REQUEST_METHOD"]
 
@@ -489,6 +499,8 @@ def allposts(request,user_id):
     if len(data)==0: return HttpResponseNotFound("The user you requested does not exist\n")
     user_token = data[0].api_token
     author_id = data[0].userid
+    try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author_id).friends.all()]
+    except FriendList.DoesNotExist: friend_ids = []
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == "POST":
         try: # Client is using token authentication
@@ -513,7 +525,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
+            new_post = Post(source=f"https://{request.get_host()}/posts",origin=f"https://{request.get_host()}/posts",id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=bytes(image,encoding="utf-8"),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -538,6 +550,10 @@ def allposts(request,user_id):
                 category = Category(post_id=post_id,tag=ca)
                 category.save()
         new_post.save()
+        # Send the newly created posts to friend's inboxes
+        payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+        for f in friend_ids:
+            r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
 
     elif method == "GET":
         data = Post.objects.filter(user_id=user_id)
@@ -751,7 +767,10 @@ def publicposts(request):
                 "github": author.github,
             }
             comments = Comment.objects.filter(post_id=post.id)
-            
+            print(post.id)
+            print("i dont see an issue??")
+            # print( Comment.objects.filter(post_id="https://127.0.0.1:8000/author/9d97fc35703a4831803aaa8bacc8a1e2/posts/201255001"))  
+             
             comment_dict_list = []
             i = 0
             for comment_obj in comments:
@@ -785,13 +804,17 @@ def publicposts(request):
                 }
                 comment_dict_list.append(comment_dict)
                 i+=1
-            amount_of_comments = len(comment_dict_list)
+            amount_of_comments = len(comments)
+            print("whats going on")
+            print(comments)
+            print(amount_of_comments)
             post_dict = {
+
                 "type":"post",
                 "title":post.title,
                 "id":post.id,
-                "source":f"{author.host}/author/{author.consistent_id}",
-                "origin":f"{author.host}/author/{author.consistent_id}",
+                "source":post.source,
+                "origin":post.origin,
                 "description":post.description,
                 "contentType":"text/markdown" if post.markdown else "text/plain",
                 "content":post.content,
@@ -808,7 +831,7 @@ def publicposts(request):
                 "image":str(post.image,encoding="utf-8"),
                 "markdown":post.markdown,
                 "privfriends":post.privfriends,
-                "visbility":["PUBLIC"],
+                "visibility":["PUBLIC"],
                 "published":post.published,
                 "author":author_dict,
             }
@@ -860,7 +883,7 @@ def viewComments(request, user_id, post_id):
         comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user)
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"http://{request.get_host()}/author/")+1:])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
@@ -881,6 +904,7 @@ def viewComments(request, user_id, post_id):
         return HttpResponse(json.dumps(json_comment_list))
     agent = request.META["HTTP_USER_AGENT"]
     if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent:
+        print("\n\nviewcomments in browser\n\n")
         data = Comment.objects.filter(post_id=f"https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
         comment_list = []
         print(f"in comments https://{request.META['HTTP_HOST']}/author/{user_id}/posts/{post_id}")
@@ -891,12 +915,13 @@ def viewComments(request, user_id, post_id):
         num_comments = len(comment_list)
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
-  #      return HttpResponse(comment_list)
+        print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")
         json_comment_list = []
-        comments = Comment.objects.filter(post_id=post_id)
+        comments = Comment.objects.filter(post_id=f"https://{request.get_host()}/author/{user_id}/posts/{post_id}")
+        print(comments)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user)
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"http://{request.get_host()}/author/")+1:])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
@@ -914,6 +939,7 @@ def viewComments(request, user_id, post_id):
                 "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
             }
             json_comment_list.append(comment_dict)
+        print(json_comment_list)
         return HttpResponse(json.dumps(json_comment_list))
 
 def search_user(request, *args, **kwargs):
@@ -1235,37 +1261,30 @@ def commentAHomePagePost(request):
 # Comment a post by sending a comment request to the inbox.
 @api_view(['POST'])
 @authentication_classes([BasicAuthentication])
-def makeComment(request):
-    print(request.META["HTTP_AUTHORIZATION"])
-    # comment = request.POST.get("theComment",False)
-    # post = json.loads(request.POST.get('thePost', False))
-    # print("THE POST IS ")
-    # print(post)
-    # # If it's a local comment:
-    # author = Author.objects.get(username=request.POST.get('author', False))
-
-    # print(post['author']['host'])
-    # print(request.get_host())
-
-    # if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}":
-    #     comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
-    #     comment.save()
-    # else:
-    #     try:
-    #         # print(f"gaaaaaa https://{post['author']['host']}")
-    #         server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
-    #     except:
-    #         # print(f"aaaaaaaaaaaa {post['author']['host']}")
-    #         server = Node.objects.get(hostserver=f"{post['author']['host']}")
-    #     author_dict = {
-    #         "type":"author",
-    #         "id":f"{author.host}/author/{author.consistent_id}",
-    #         "url":f"{author.host}/firstapp/{author.userid}",
-    #         "host":author.host,
-    #         "displayName":author.username,
-    #         "github":author.github,
-    #     }
-    #     response = requests.post(f"{post['id']}/comments",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+def makeComment(request,user_id,post_id):
+    enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+    uname, pword = enc[0], enc[1]
+    print(uname,pword)
+    print(request.POST)
+    # First see if credentials are valid. If not, return
+    user = authenticate(username = uname, password = pword)
+    if user is None:
+        return HttpResponseBadRequest("You are not authenticated!")
+    try:
+        # retrieve the text and from_user
+        # Create the comment object
+        post_id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}"
+        comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
+        author_dict = json.loads(request.POST.get("author",False)) # This should be the person commenting, not the creator of the post
+        from_user = author_dict["id"]
+        author = Author.objects.get(consistent_id=user_id)
+        to_user = f"https://{request.get_host()}/author/{user_id}"
+        comment_text = request.POST.get("comment",False)
+        comment = Comment.objects.create(post_id=post_id,comment_id=comment_id,from_user=from_user,to_user=to_user,comment_text=comment_text,published=str(datetime.now()))
+        comment.save()
+    except Exception as e:
+        print(e)
+        return HttpResponseBadRequest("Something went wrong. Make sure to send an author dictionary and a comment")
     return HttpResponse("Commented!")
 
 @api_view(['GET'])
@@ -1293,10 +1312,34 @@ def viewComment(request,user_id,post_id,comment_id):
         "id":comment.comment_id,
     }
     return HttpResponse(json.dumps(comment_dict))
-
-        
-@api_view(['GET','POST', 'DELETE'])
+@api_view(['POST'])
 @authentication_classes([BasicAuthentication])
+def sharePublicPost(request):
+    # Takes post object and author.
+    post = json.loads(request.POST.get('thePost', False))
+    author = Author.objects.get(username=request.POST.get('author', False))
+    print("in sharePublicPost")
+    print(post)
+    print(author)
+    author_dict = {
+        "id":f"{author.host}/author/{author.consistent_id}",
+        "host":f"{author.host}/",
+        "displayName":author.username,
+        "url":f"{author.host}/firstapp/{author.userid}",
+        "github":author.github,
+    }
+    post_id = rand(2**28)
+    print(post["image"])
+    for item in (f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"],published=str(datetime.now())):
+        print(item)
+    post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
+    post.save()
+    return HttpResponse("Shared")
+    
+
+
+@api_view(['GET','POST', 'DELETE'])
+@authentication_classes([BasicAuthentication, TokenAuthentication])
 def inbox(request,user_id):
     print("In Inbox function.\n")
     method = request.META["REQUEST_METHOD"]
@@ -1305,7 +1348,10 @@ def inbox(request,user_id):
         print(host)
         author_id = host + "author/" + user_id
         print(author_id)
-        inbox = Inbox.objects.get(author=author_id)
+        try:
+            inbox = Inbox.objects.get(author=author_id)
+        except Inbox.DoesNotExist:
+            inbox = Inbox.objects.get(author=author_id.replace("http","https"))
         print(inbox)
         print(method)
         if method == "GET":
@@ -1400,6 +1446,8 @@ def inbox(request,user_id):
         elif method == "DELETE":
             inbox.items = []
             inbox.save()
+
+
 
             return HttpResponse(f"{author_id}'s inbox has been cleared")
 

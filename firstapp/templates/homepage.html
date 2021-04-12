@@ -32,6 +32,7 @@
                 for (let i = 0; i < public_posts_from_our_server.length; i++){
                     var item = public_posts_from_our_server[i];
                     let likes = 0;
+                    // console.log("trying to get "+item["id"]+"/likes");
                     $.ajax({
                             url: item["id"]+"/likes",
                             type: 'GET',
@@ -67,11 +68,17 @@
                     result+="<h4>Comments:</h4>";
                     // console.log(item);
                     for (let c_index = 0; c_index < item["count"]; c_index++){
+                        if (c_index == 5){
+                            break
+                        }
                         result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                        
                     }
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
                     result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
-                    result += "<input id = 'comment"+i+"'/>";
+                    result += "<input type='text' id = 'comment"+i+"'/>";
+                    console.log("what");
+                    result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                     result+= "</div>";
                     document.getElementById("demo").innerHTML += result;
                     index += 1;
@@ -87,6 +94,10 @@
                                 thePost:JSON.stringify(post),
                                 author:"{{ author }}",
                             },
+                            success:function(){
+                                alert("Like updated!")
+                            }
+
                         }); 
                     }, false);
                     document.getElementById("commentButton"+i).addEventListener("click",function(){
@@ -101,11 +112,31 @@
                                 thePost:JSON.stringify(post),
                                 author:"{{ author }}",
                                 theComment:document.getElementById('comment'+i).value,
-                                success:function(){
-                                    document.getElementById('comment'+i).value = "";
-                                },
+
                             },
+                            success:function(){
+                                    document.getElementById('comment'+i).value = "";
+                                    alert("Commented on post!")
+                                },
                         });
+                    }, false);
+                    document.getElementById("shareButton-"+i).addEventListener("click",function(){
+                        let post = {{our_server_posts|safe}}[i];
+                        
+                        // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
+                        $.ajax({
+                            url: '/publicshare',
+                            type: 'POST',
+                            data: { 
+                                csrfmiddlewaretoken: "{{ csrf_token }}",
+                                thePost:JSON.stringify(post),
+                                author:"{{ author }}",
+                                
+                            },
+                            success:function(){
+                                    alert("Post shared!");
+                                }
+                        }); 
                     }, false);
                 }
 
@@ -142,6 +173,7 @@
                     result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
                     result += "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
                     result += "<input id = 'comment"+i+"'/>";
+                    result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                     result += "</div>";
                     document.getElementById("other_servers").innerHTML += result;
                     // console.log(item);
@@ -157,7 +189,11 @@
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
                                 thePost:JSON.stringify(post),
                                 author:"{{ author }}",
+                                
                             },
+                            success:function(){
+                                    alert("Like updating!")
+                                }
                         }); 
                     }, false);
                     document.getElementById("commentButton"+i).addEventListener("click",function(){
@@ -172,10 +208,30 @@
                                 thePost:JSON.stringify(post),
                                 author:"{{ author }}",
                                 theComment:document.getElementById('comment'+i).value,
-                                success:function(){
-                                    document.getElementById('comment'+i).value = "";
-                                },
+                                
                             },
+                            success:function(){
+                                    document.getElementById('comment'+i).value = "";
+                                    alert("Commented on post!")
+                                },
+                        }); 
+                    }, false);
+                    document.getElementById("shareButton-"+i).addEventListener("click",function(){
+                        let post = {{other_server_posts|safe}}[i-index];
+                        
+                        // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
+                        $.ajax({
+                            url: '/publicshare',
+                            type: 'POST',
+                            data: { 
+                                csrfmiddlewaretoken: "{{ csrf_token }}",
+                                thePost:JSON.stringify(post),
+                                author:"{{ author }}",
+                                
+                            },
+                            success:function(){
+                                    alert("Post shared!");
+                                }
                         }); 
                     }, false);
                 }
