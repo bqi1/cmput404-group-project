@@ -1086,7 +1086,7 @@ def account_view(request, *args, **kwargs):
 
         
         friends = friend_list.friends.all()
-        context['friends'] = friends
+        
         is_self = True 
         is_friend = False
         request_sent = RequestStatus.NO_REQUEST_SENT.value # range: ENUM -> friend/friend_request_status.FriendRequestStatus
@@ -1134,9 +1134,27 @@ def account_view(request, *args, **kwargs):
                 follow_sent = 1
 
             context['followings'] = followings
-            print("I am in first app")
-            print(followings)
             
+        if user.is_authenticated:
+            try:
+                followers_list = Follow.objects.filter(receiver=user)
+            except FollowingList.DoesNotExist:
+                return HttpResponse(f"Could not find a following list for {this_user.username}")
+            # Must be friends to view a friends list
+            followers = [] # [(friend1, True), (friend2, False), ...]
+
+            # get the authenticated users friend list
+            for follower in followers_list:
+                if follower.follower not in followers:
+                    followers.append(follower.follower)
+            if account not in followers:
+                is_follower = False
+               
+            else:
+                is_follower = True
+
+            context['followers'] = followers
+                        
         elif not user.is_authenticated:
             is_self = False
         else:
@@ -1144,12 +1162,16 @@ def account_view(request, *args, **kwargs):
                 friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
             except:
                 pass
+        for follower in followers:
+            for follwing in followings:
+                if follower == following
 
         user = request.user
         if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
             is_self = False
 
         context['is_self'] =is_self
+        context['friends'] = friends
         context['is_following'] = is_following
         context['is_friend'] = is_friend
         context['follow_request'] = follow_sent

@@ -66,10 +66,40 @@ def following_list_view(request, *args, **kwargs):
 			for following in following_list:
 				if (following.receiver,True) not in followings:
 					followings.append((following.receiver, True))
-					print(following.receiver.username)
 			context['followings'] = followings
-			print(followings)
+			
 	return render(request, "following_list.html", context)
+
+
+
+def follower_list_view(request, *args, **kwargs):
+	context = {}
+	user = request.user
+	if user.is_authenticated:
+		user_id = kwargs.get("user_id")
+		if user_id:
+			try:
+				Author = get_user_model()
+				this_user = Author.objects.get(id = user_id)
+				context['this_user'] = this_user
+			except Account.DoesNotExist:
+				return HttpResponse("That user does not exist.")
+
+			try:
+				followers_list = Follow.objects.filter(receiver=this_user)
+				print("&&&&&&&&&&&&&&&&&&&&&&&")
+				print(followers_list)
+			except FollowingList.DoesNotExist:
+				return HttpResponse(f"Could not find a following list for {this_user.username}")
+			
+			# Must be friends to view a friends list
+			followers = [] # [(friend1, True), (friend2, False), ...]
+			# get the authenticated users friend list
+			for follower in followers_list:
+				if (follower.follower,True) not in followers:
+					followers.append((follower.follower, True))
+			context['followers'] = followers
+	return render(request, "follower_list.html", context)
 
 
 def request_view(request, *args, **kwargs):
