@@ -80,7 +80,7 @@
 				<h3>Email</h3>
 		  		<p class="mt-4 mb-1 field-heading">{{email}}</p>
 		  		<h3>Username</h3>
-		  		<p class="mt-4 mb-1 field-heading">{{username}}</p>
+		  		<p class="mt-4 mb-1 field-heading">{{username1}}</p>
 		  		
 
 				<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -325,14 +325,25 @@
 		FollowRequestBtn.addEventListener("click", function(){
 			const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
 			var data = {
-				"type":"author",
-				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
-				"host":"c404posties.herokuapp.com",
-				"displayName":"{{username}}",
-				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
-				"github": "{{githubLink}}"
-
-        	};
+	          "type": "Follow",      
+	          "summary":"follow request",
+	          "actor":{
+	              "type":"author",
+	              "id":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+	              "url":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+	              "host":"iconicity-test-a.herokuapp.com",
+	              "displayName":"{{username1}}",
+	              "github": "{{githubLink}}"
+	          },
+	          "object":{
+	              "type":"author",
+					"id":"https://c404posties.herokuapp.com/author/"+"{{request.user.consistent_id}}",
+					"host":"c404posties.herokuapp.com",
+					"displayName":"{{username2}}",
+					"url":"https://c404posties.herokuapp.com/author/"+"{{request.user.consistent_id}}",
+					"github": "{{githubLink2}}"
+	          }
+	      	};
         	var jsonData = JSON.stringify(data);
 			$.ajax({
 	            url: Url,
@@ -345,7 +356,6 @@
 	            error: function(XMLHttpRequest, textStatus, errorThrown) {
 	              console.log(errorThrown);
 	            }
-          })
 
 			
 		})
@@ -362,32 +372,45 @@
 	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
 	if (sendRemoteFriendRequestBtn != null){
 		const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
-			var data = {
-				"type":"author",
-				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+		var data = {
+          "type": "Follow",      
+          "summary":"follow request",
+          "actor":{
+              "type":"author",
+              "id":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+              "url":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+              "host":"iconicity-test-a.herokuapp.com",
+              "displayName":"{{username1}}",
+              "github": "{{githubLink}}"
+          },
+          "object":{
+              "type":"author",
+				"id":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
 				"host":"c404posties.herokuapp.com",
-				"displayName":"{{username}}",
-				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
-				"github": "{{githubLink}}"
+				"displayName":"{{username2}}",
+				"url":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
+				"github": "{{githubLink2}}"
+          }
+      	};
 
-        	};
-        	var jsonData = JSON.stringify(data);
-			$.ajax({
-	            url: Url,
-	            type: "follow",
-	            data: jsonData,
-	            // dataType: "jsonp",
-	            contentType: "application/json",
-	            success: function(result){
-	            },
-	            error: function(XMLHttpRequest, textStatus, errorThrown) {
-	              console.log(errorThrown);
-	            }
-          })
+    	var jsonData = JSON.stringify(data);
+		$.ajax({
+            url: Url,
+            type: "follow",
+            data: jsonData,
+            // dataType: "jsonp",
+            contentType: "application/json",
+            success: function(result){
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+              console.log(errorThrown);
+            
+          }
 
 			
 		})
 	}
+
 
 
 	var removeFriendBtn = document.getElementById("id_unfriend_btn")
@@ -435,7 +458,7 @@
 
 	function displayActivity(parsedXML,username){
 		var i;
-		var output = "<ul>";
+		var output = "<h4>Latest Github activity: </h4><ul>";
 		for (i = 0; i < parsedXML.length; i++){
 			if (i > 4){
 				break
