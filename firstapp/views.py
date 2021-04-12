@@ -39,6 +39,7 @@ import base64
 from .remote_friend import get_all_remote_user,get_all_remote_user_2
 from django.contrib.auth.models import User
 from django.core import serializers
+from django.core.paginator import Paginator
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -968,6 +969,22 @@ def viewComments(request, user_id, post_id):
             comment_text = d.comment_text
             comment_list.append(comment_text)
         num_comments = len(comment_list)
+
+        try:
+            page_number = request.GET.get('page')
+            if page_number < 1:
+                page_number = 1
+        except:
+            page_number = 1
+        try:
+            size = request.GET.get('size')
+        except:
+            size = len(comment_list)
+        paginator = Paginator(comment_list,size)
+        try:
+            comment_list = paginator.page(page_number).object_list
+        except:
+            comment_list = []
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
         print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")
@@ -995,6 +1012,21 @@ def viewComments(request, user_id, post_id):
             }
             json_comment_list.append(comment_dict)
         print(json_comment_list)
+        try:
+            page_number = request.GET.get('page')
+            if page_number < 1:
+                page_number = 1
+        except:
+            page_number = 1
+        try:
+            size = request.GET.get('size')
+        except:
+            size = len(json_comment_list)
+        paginator = Paginator(json_comment_list,size)
+        try:
+            json_comment_list = paginator.page(page_number).object_list
+        except:
+            json_comment_list = []
         return HttpResponse(json.dumps(json_comment_list))
 
 def search_user(request, *args, **kwargs):
