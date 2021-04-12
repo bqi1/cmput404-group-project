@@ -1301,7 +1301,7 @@ def sharePublicPost(request):
     }
     post_id = rand(2**28)
     print(post["image"])
-    for item in (f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"],published=str(datetime.now())):
+    for item in [f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"]]:
         print(item)
     post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
     post.save()
