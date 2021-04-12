@@ -8,7 +8,7 @@ from random import randrange
 
 
 
-def get_all_remote_user(request_url):
+def get_all_remote_user():
 	base_id = randrange(1020,30000)
 	#for group seven url only 
 	request_url = 'https://iconicity-test-a.herokuapp.com/author/'
@@ -48,7 +48,7 @@ def get_all_remote_user(request_url):
 
 
 
-def get_all_remote_user_2(request_url):
+def get_all_remote_user_2():
 	base_id = randrange(1020,30000)
 	#for group seven url only 
 	request_url = 'https://social-distribution-t1.herokuapp.com/all-authors/'
