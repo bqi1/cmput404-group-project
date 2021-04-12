@@ -586,7 +586,7 @@ def likepost(request, user_id, post_id):
     print(data)
     # if post has already been liked delete from inbox and database
     if len(data) > 0:
-        Like.objects.filter(from_user = uuid,to_user = user_id, object = object).delete()
+        Like.objects.filter(from_user = f"https://{request.get_host()}/author/{uuid}",to_user = f"https://{request.get_host()}/author/{user_id}", object = object).delete()
         print("like deleted from db, deleting from inbox now...")
         host = request.build_absolute_uri('/')
         author_id = host + "author/" + user_id
@@ -650,7 +650,7 @@ def like_comment(request, user_id, post_id, comment_id):
                 object = f"{host}/author/{user_id}/posts/{post_id}/comments/{comment_id}"
                 like_object = make_like_object(request, object, user_id, make_json=True)
                 requests.post(url, data = like_object)
-                like = Like(like_id=like_id, from_user = uuid, to_user = user_id, object = object)
+                like = Like(like_id=like_id, from_user = f"https://{request.get_host()}/author/{uuid}", to_user = f"https://{request.get_host()}/author/{user_id}", object = object)
                 like.save()
                 break
         HttpResponse("Like object sent to inbox", status=200)
@@ -679,8 +679,30 @@ def postlikes(request, user_id, post_id):
         print("is ajax.")
         print(object)
         postlikes = Like.objects.filter(object=object)
-        data = serializers.serialize('json', postlikes)
-        return HttpResponse(data, content_type="application/json")
+        like_dict_list = []
+        for like in postlikes:
+            try:
+                author = Author.objects.get(consistent_id=like.from_user.split('/')[-1] if like.from_user[-1] != "/" else like.from_user.split('/')[-2])
+                author_dict = {
+                    "id": f"{author.host}/author/{author.consistent_id}",
+                    "host": f"{author.host}/",
+                    "displayName": author.username,
+                    "url": f"{author.host}/firstapp/{author.userid}",
+                    "github": author.github,
+                }
+            except:
+                # It's another author
+                author_dict = json.loads(requests.get(f"{like.from_user}"))
+            # HEEEEEEEEEEEEEEEEEEEEEEEERE
+            like_dict = {
+                "@context":"",
+                "summary":f"{author_dict['displayName']} Likes your post",
+                "type":"Like",
+                "author":author_dict,
+                "object":like.object,
+            }
+            like_dict_list.append(like_dict)
+        return HttpResponse(json.dumps(like_dict_list), content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
             cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
@@ -704,7 +726,7 @@ def make_post_likes_object(request, data, url):
     post_likes_dict = {}
     json_like_object_list = []
 
-    post_likes_dict["type"] = "post likes"
+    # post_likes_dict["type"] = "post likes"
     for like in data:
         like_object = make_like_object(request, url, like[0], make_json=False)
         json_like_object_list.append(like_object)
@@ -1441,7 +1463,7 @@ def inbox(request,user_id):
                         author_id = author_id[:-1]
                     try: #if already liked then remove the like from db
                         print("getting like object")
-                        like = Like.objects.get(from_user = author_id, to_user = to_user, object = object)
+                        like = Like.objects.get(from_user = f"https://{request.get_host()}/author/{author_id}", to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
                         print("removing like object from inbox")
                         print(like)
                         print(inbox.items)
@@ -1465,7 +1487,7 @@ def inbox(request,user_id):
                     except Exception as e: #if not liked then add like to database
                         print(e)
                         print("making like object for table")
-                        like = Like(like_id=like_id, from_user = author_id, to_user = to_user, object = object)
+                        like = Like(like_id=like_id, from_user =f"https://{request.get_host()}/author/{author_id}", to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
                         print("saving like object to table")
                         like.save()
                         print("adding object to inbox")
