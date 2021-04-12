@@ -86,6 +86,7 @@
                 else{
                     var result = "<div class = 'likeOrFollow'>";
                     result += "<p>"+item["summary"] + "</p>"
+                    document.getElementById("Inbox").innerHTML += result;
                 }
                 for (let i = 0; i < stuff_to_display.length; i++){
                     document.getElementById("likeButton"+i).addEventListener("click",function(){
