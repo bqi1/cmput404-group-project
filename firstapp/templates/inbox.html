@@ -27,8 +27,10 @@
             console.log("we in the inbox.html now")
             var index = 0;
             var stuff_to_display = {{stuff_to_display|safe}};
+            console.log(stuff_to_display)
             for (let i = 0; i < stuff_to_display.length; i++){
                 var item = stuff_to_display[i];
+                console.log(item)
                 if (item["type"] == "post"){
                     let likes = 0;
                     // console.log("trying to get "+item["id"]+"/likes");
@@ -84,6 +86,7 @@
                 }
                 // object is a follow or like
                 else{
+                    console.log("this is a like or follow")
                     var result = "<div class = 'likeOrFollow'>";
                     result += "<p>"+item["summary"] + "</p>"
                     document.getElementById("Inbox").innerHTML += result;
