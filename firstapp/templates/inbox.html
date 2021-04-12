@@ -14,10 +14,7 @@
     {% extends "index.html" %}
     {% block content %}
         {% if user.is_authenticated %}
-            <p>Welcome, {{ user.username }}!.
-                Your unique userid is {{user_id}}.
-                Your UUID is {{author_uuid}}.
-                Your API token is {{token}}.</p>
+            <p>This is {{ user.username }}'s Inbox!.</p>
             <a href= "/author/{{author_uuid}}/posts">My Stream</a> <!--Link to making a post/view your post-->
         {% endif %}
         <!-- <p> {{other_server_posts}}</p> -->
