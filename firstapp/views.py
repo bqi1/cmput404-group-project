@@ -1109,6 +1109,13 @@ def account_view(request, *args, **kwargs):
                 # CASE3: No request sent from YOU or THEM: FriendRequestStatus.NO_REQUEST_SENT
                 else:
                     request_sent = RequestStatus.NO_REQUEST_SENT.value
+        elif not user.is_authenticated:
+            is_self = False
+        else:
+            try:
+                friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
+            except:
+                pass
 
 
         is_following = False
@@ -1126,6 +1133,7 @@ def account_view(request, *args, **kwargs):
             for following in following_list:
                 if following.receiver not in followings:
                     followings.append(following.receiver)
+
             if account not in followings:
                 is_following = False
                 follow_sent = 0
@@ -1135,7 +1143,6 @@ def account_view(request, *args, **kwargs):
 
             context['followings'] = followings
             
-        if user.is_authenticated:
             try:
                 followers_list = Follow.objects.filter(receiver=user)
             except FollowingList.DoesNotExist:
@@ -1154,17 +1161,18 @@ def account_view(request, *args, **kwargs):
                 is_follower = True
 
             context['followers'] = followers
+            print("####################?")
                         
-        elif not user.is_authenticated:
-            is_self = False
-        else:
-            try:
-                friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
-            except:
-                pass
-        for follower in followers:
-            for follwing in followings:
-                if follower == following
+            print(followers)
+            print(followings)
+            for follower in followers:
+                for follwing in followings:
+                    if follower == following.receiver:
+                        print("hereeeee")
+                        FL = FriendList.objects.get(user = user)
+                        FL.FriendAdd(account = follower)
+
+
 
         user = request.user
         if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
@@ -1352,9 +1360,9 @@ def sharePublicPost(request):
     }
     post_id = rand(2**28)
     print(post["image"])
-    for item in [f"https://{request.get_host()}/posts",post["origin"],post["title"],bytes(str(post["image"]),encoding="utf-8"),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"]]:
+    for item in [f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"]]:
         print(item)
-    post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=bytes(str(post["image"]),encoding="utf-8"),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
+    post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
     post.save()
     return HttpResponse("Shared")
     

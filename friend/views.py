@@ -191,14 +191,6 @@ def send_following_request(request, *args, **kwargs):
 		if following_request_id:
 			follow = Follow(follower = user,receiver = receiver)
 			follow.save()
-			try:
-				FL = FollowingList.objects.get(follower = user)
-			except FollowingList.DoesNotExist:
-				FL = FollowingList(follower=user)
-				FL.save()
-			FL.following.set(receiver)
-
-			FL.save()
 
 	return HttpResponse("follow request sent")
 
