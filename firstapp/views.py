@@ -1504,10 +1504,12 @@ def inbox(request,user_id):
 
             elif data_json_type == "follow":
                 receive_id = request.data["id"]
-                remote_sender = request.data["actor"]["id"].split('/')
-                local_receiver = request.data["object"]["id"].split('/')
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                remote_sender = request.data["actor"]["id"].split('/')[-1]
+                local_receiver = request.data["object"]["id"].split('/')[-1]
+                print(remote_sender)
+                print(local_receiver)
                 get_all_remote_user_2()
+                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
