@@ -30,7 +30,7 @@ from friend.follow_status import FollowStatus
 from friend.models import FriendList, FriendRequest,FriendShip,FollowingList,Follow
 from friend.is_friend import get_friend_request_or_false
 from friend.is_following import Following_Or_Not
-from firstapp.models import Author, Post, Author_Privacy, Comment, Like, Category, Node, Setting, Inbox
+from firstapp.models import Author, Author_Privacy, Category, Comment, Inbox, Like, Node, Post, Setting
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 import uuid
@@ -83,8 +83,6 @@ def homepage(request):
         ourData = ourRequest.json()
         # print(ourRequest)
         print("\n")
-
-
 
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
@@ -658,8 +656,15 @@ def like_comment(request, user_id, post_id, comment_id):
 def make_like_object(request, object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    like_dict["author"] = get_our_author_object(request.get_host(), user_id)
+    author = get_our_author_object(request.get_host(), user_id)
+    print(author)
+    like_dict["author"] = author
     like_dict["object"] = object
+    print(object)
+    if object[:-1] == "/":
+        object = object[:-1]
+    like_dict["summary"] = author["displayName"] + " liked your " + object.split("/")[-2]
+    like_dict["context"] = "https://www.w3.org/ns/activitystreams"
     if make_json:
         return json.dumps(like_dict)
     else:
@@ -1368,12 +1373,10 @@ def sharePublicPost(request):
     post.save()
     return HttpResponse("Shared")
     
-
-
 @api_view(['GET','POST', 'DELETE'])
-@authentication_classes([BasicAuthentication, TokenAuthentication])
 def inbox(request,user_id):
     print("In Inbox function.\n")
+    print(request.user)
     method = request.META["REQUEST_METHOD"]
     try:
         host = request.build_absolute_uri('/')
@@ -1387,17 +1390,36 @@ def inbox(request,user_id):
         print(inbox)
         print(method)
         if method == "GET":
-            inbox_object = {}
-            inbox_object["type"]= "inbox"
-            inbox_object["author"]= author_id
-            inbox_post_items = []
-            for item in inbox.items:
-                if item["type"] == "post":
-                    inbox_post_items.append(item)
-                print("6")
-            inbox_object["items"] = inbox_post_items
-            print(inbox_object)
-            return HttpResponse(json.dumps(inbox_object))
+            if request.user.is_authenticated:
+                inbox_object = {}
+                inbox_object["type"]= "inbox"
+                inbox_object["author"] = author_id
+                inbox_post_items = []
+                print(request.user)
+                try:
+                    #Why does the code not work without importing this again????
+                    from firstapp.models import Author
+                    author = Author.objects.get(username=request.user)
+                    token = author.api_token
+                except Author.DoesNotExist:
+                    return HttpResponseNotFound(f"In the homepage function, the user you requested does not exist!!{request.user}\n")
+                token = author.api_token
+                agent = request.META["HTTP_USER_AGENT"]
+                if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
+                    print("we using a browser ok")
+                    json_to_display = []
+                    for item in inbox.items:
+                        json_to_display.append(item)
+                        print("appended item")
+                    return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
+                else:
+                    for item in inbox.items:
+                        if item["type"] == "post":
+                            inbox_post_items.append(item)
+                        print("6")
+                    inbox_object["items"] = inbox_post_items
+                    print(inbox_object)
+                    return HttpResponse(json.dumps(inbox_object))
         # FIX THIS
         elif method == "POST":
             print("this")
@@ -1472,7 +1494,7 @@ def inbox(request,user_id):
                 receive_id = request.data["id"]
                 remote_sender = request.data["actor"]["id"].split('/')
                 local_receiver = request.data["object"]["id"].split('/')
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
@@ -1480,7 +1502,7 @@ def inbox(request,user_id):
                 except IndexError: # No token exists, must create a new one!
                     return HttpResponse("user doesn't exist") 
 
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % local_receiver)
+                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % local_receiver)
                 try:
                     data2 = cursor.fetchall()[0]
                     Author = get_user_model()
