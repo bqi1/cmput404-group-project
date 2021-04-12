@@ -1368,7 +1368,6 @@ def likeAHomePagePost(request):
     }
     like_serializer = {"type":"like","context":"","summary":f"{author.username} liked your post","author":auth_dict,"object":post["id"]}
     # Does not need headers, else it's a 400
-    print(f"sending to....{url}")
     response = requests.post(f"{post['author']['id']}/inbox/",json=like_serializer,auth=(server.authusername,server.authpassword))
     return HttpResponse("Liked!")
 
