@@ -662,10 +662,10 @@ def make_like_object(request, object, user_id, make_json = True):
     print(author)
     like_dict["author"] = author
     like_dict["object"] = object
-    dict_author = json.loads(author)
-    print(dict_author)
-    print(json.loads(object))
-    like_dict["summary"] = dict_author["displayName"] + " liked your "
+    print(object)
+    if object[:-1] == "/":
+        object = object[:-1]
+    like_dict["summary"] = author["displayName"] + " liked your " + object.split("/")[-2]
     like_dict["context"] = "https://www.w3.org/ns/activitystreams"
     if make_json:
         return json.dumps(like_dict)
