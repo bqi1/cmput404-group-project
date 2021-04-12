@@ -660,6 +660,8 @@ def make_like_object(request, object, user_id, make_json = True):
     like_dict["type"] = "like"
     like_dict["author"] = get_our_author_object(request.get_host(), user_id)
     like_dict["object"] = object
+    like_dict["summary"] = 
+    like_dict["context"] = 
     if make_json:
         return json.dumps(like_dict)
     else:
