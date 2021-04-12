@@ -4,7 +4,8 @@ from django.shortcuts import render, redirect
 from firstapp.models import Author
 from friend.models import FriendRequest
 from django.contrib.auth import get_user_model
-from friend.models import FriendRequest, FriendList
+from friend.models import FriendRequest, FriendList,FollowingList,Follow
+
 
 def friends_list_view(request, *args, **kwargs):
 	context = {}
@@ -32,10 +33,73 @@ def friends_list_view(request, *args, **kwargs):
 			auth_user_friend_list = FriendList.objects.get(user=user)
 			for friend in friend_list.friends.all():
 				friends.append((friend, auth_user_friend_list.is_mutual_friend(friend)))
+			print(friends)
 			context['friends'] = friends
 	else:		
 		return HttpResponse("You must be friends to view their friends list.")
 	return render(request, "friend_list.html", context)
+
+
+
+def following_list_view(request, *args, **kwargs):
+	context = {}
+	user = request.user
+	if user.is_authenticated:
+		user_id = kwargs.get("user_id")
+		if user_id:
+			try:
+				Author = get_user_model()
+				this_user = Author.objects.get(id = user_id)
+				context['this_user'] = this_user
+			except Account.DoesNotExist:
+				return HttpResponse("That user does not exist.")
+
+			try:
+				following_list = Follow.objects.filter(follower=this_user)
+			except FollowingList.DoesNotExist:
+				return HttpResponse(f"Could not find a following list for {this_user.username}")
+			
+			# Must be friends to view a friends list
+			followings = [] # [(friend1, True), (friend2, False), ...]
+			# get the authenticated users friend list
+			auth_user_following_list = Follow.objects.filter(follower=user)
+			for following in following_list:
+				if (following.receiver,True) not in followings:
+					followings.append((following.receiver, True))
+			context['followings'] = followings
+			
+	return render(request, "following_list.html", context)
+
+
+
+def follower_list_view(request, *args, **kwargs):
+	context = {}
+	user = request.user
+	if user.is_authenticated:
+		user_id = kwargs.get("user_id")
+		if user_id:
+			try:
+				Author = get_user_model()
+				this_user = Author.objects.get(id = user_id)
+				context['this_user'] = this_user
+			except Account.DoesNotExist:
+				return HttpResponse("That user does not exist.")
+
+			try:
+				followers_list = Follow.objects.filter(receiver=this_user)
+				print("&&&&&&&&&&&&&&&&&&&&&&&")
+				print(followers_list)
+			except FollowingList.DoesNotExist:
+				return HttpResponse(f"Could not find a following list for {this_user.username}")
+			
+			# Must be friends to view a friends list
+			followers = [] # [(friend1, True), (friend2, False), ...]
+			# get the authenticated users friend list
+			for follower in followers_list:
+				if (follower.follower,True) not in followers:
+					followers.append((follower.follower, True))
+			context['followers'] = followers
+	return render(request, "follower_list.html", context)
 
 
 def request_view(request, *args, **kwargs):
@@ -114,7 +178,25 @@ def accept_friend_request(request, *args, **kwargs):
 		# should never happen
 		payload['response'] = "You must be authenticated to accept a friend request."
 	return HttpResponse(json.dumps(payload), content_type="application/json")
- 
+
+def send_following_request(request, *args, **kwargs):
+	user = request.user
+	payload = {}
+	if user.is_authenticated:
+		following_request_id = kwargs.get("following_request_id")
+		Author = get_user_model()
+		receiver = Author.objects.get(id = following_request_id)
+		print("********************")
+		print(following_request_id)
+		if following_request_id:
+			follow = Follow(follower = user,receiver = receiver)
+			follow.save()
+
+	return HttpResponse("follow request sent")
+
+
+
+
 
     
 

@@ -170,7 +170,7 @@
 						{% if request_sent == 1 %}
 						<div >
 							<button  id = "id_cancel_friend_request_btn">
-								Cancel Friend Request
+								 Friend Request Send
 							</button>
 						</div>
 						{% endif %}
@@ -192,6 +192,43 @@
 								</div>
 							{% endif %}
 						{% endif %}
+
+				{% endif %}
+				{% if is_following == False and is_self == False %}
+						<!-- You sent them a request -->
+						{% if follow_request == 1 %}
+						<div >
+							<button  id = "id_cancel_friend_request_btn">
+								Unfollow
+							</button>
+						</div>
+						{% endif %}
+
+						<!-- No requests have been sent -->
+						{% if follow_request == 0 %}
+							
+							<div class="d-flex flex-column align-items-center pt-4">
+								
+								{% if id < 1000 %}
+									<a href="{% url 'friend:send_following_request' following_request_id=id %}">
+										<button class="btn btn-primary" id="id_follow_btn">
+											Follow
+										</button>
+									</a>
+								{% endif %}
+								{% if id >= 1000 %}
+									<a href="{% url 'friend:send_following_request' following_request_id=id %}">
+									<button class="btn btn-primary" id="id_remote_follow_btn">
+										Follow
+									</button>
+									</a>
+								{% endif %}
+
+
+							</div>
+							
+						{% endif %}
+
 				{% endif %}
 					
 					
@@ -214,6 +251,20 @@
 						<a href="{% url 'friend:list' user_id=id %}">
 							<div class="d-flex flex-row align-items-center justify-content-center icon-container">
 								<span class="material-icons mr-2 friends-icon"></span><span class="friend-text">Friends ({{friends|length}})</span>
+							</div>
+						</a>
+					</div>
+					<div class="d-flex flex-column pt-4">
+						<a href="{% url 'friend:followinglist' user_id=id %}">
+							<div class="d-flex flex-row align-items-center justify-content-center icon-container">
+								<span class="material-icons mr-2 friends-icon"></span><span class="friend-text">Following ({{followings|length}})</span>
+							</div>
+						</a>
+					</div>
+					<div class="d-flex flex-column pt-4">
+						<a href="{% url 'friend:followerlist' user_id=id %}">
+							<div class="d-flex flex-row align-items-center justify-content-center icon-container">
+								<span class="material-icons mr-2 friends-icon"></span><span class="friend-text">Followers ({{followers|length}})</span>
 							</div>
 						</a>
 					</div>
@@ -269,6 +320,37 @@
 		location.reload();
 	}
 
+	var FollowRequestBtn = document.getElementById("id_remote_follow_btn")
+	if(FollowRequestBtn !=  null){
+		FollowRequestBtn.addEventListener("click", function(){
+			const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
+			var data = {
+				"type":"author",
+				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"host":"c404posties.herokuapp.com",
+				"displayName":"{{username}}",
+				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"github": "{{githubLink}}"
+
+        	};
+        	var jsonData = JSON.stringify(data);
+			$.ajax({
+	            url: Url,
+	            type: "follow",
+	            data: jsonData,
+	            // dataType: "jsonp",
+	            contentType: "application/json",
+	            success: function(result){
+	            },
+	            error: function(XMLHttpRequest, textStatus, errorThrown) {
+	              console.log(errorThrown);
+	            }
+          })
+
+			
+		})
+	}
+
 
 	var sendFriendRequestBtn = document.getElementById("id_send_friend_request_btn")
 	if (sendFriendRequestBtn != null){
@@ -279,26 +361,34 @@
 
 	var sendRemoteFriendRequestBtn = document.getElementById("id_send_remote_friend_request_btn")
 	if (sendRemoteFriendRequestBtn != null){
-		sendRemoteFriendRequestBtn.addEventListener("click", function(){
+		const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
+			var data = {
+				"type":"author",
+				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"host":"c404posties.herokuapp.com",
+				"displayName":"{{username}}",
+				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
+				"github": "{{githubLink}}"
+
+        	};
+        	var jsonData = JSON.stringify(data);
 			$.ajax({
-				type: "POST",
-				url: "../sen_remote_friend_request.py",
-				data: { param: "{{host}}"}
-			}).done(function( o ) {
-			   // do something
-			});
+	            url: Url,
+	            type: "follow",
+	            data: jsonData,
+	            // dataType: "jsonp",
+	            contentType: "application/json",
+	            success: function(result){
+	            },
+	            error: function(XMLHttpRequest, textStatus, errorThrown) {
+	              console.log(errorThrown);
+	            }
+          })
+
+			
 		})
 	}
 
-
-	var cancelFriendRequestBtn = document.getElementById("id_cancel_friend_request_btn")
-	if(cancelFriendRequestBtn != null){
-		cancelFriendRequestBtn.addEventListener("click", function(){
-			const url = "{{host}}" + "{{id}}";
-			alert(url);
-
-		})
-	}
 
 	var removeFriendBtn = document.getElementById("id_unfriend_btn")
 	if (removeFriendBtn != null){

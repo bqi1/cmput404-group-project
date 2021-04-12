@@ -40,14 +40,16 @@ class Post(models.Model):
   id = models.TextField(blank=True)
   post_id = models.PositiveIntegerField(primary_key=True, default=0)
   user_id = models.TextField(blank=True)
-  title = models.CharField(max_length=20,default="")
-  description = models.CharField(max_length=30,default="")
+  title = models.CharField(max_length=40,default="")
+  description = models.CharField(max_length=40,default="")
   markdown = models.BooleanField(default=False)
   content = models.TextField(max_length=500,blank=True)
   image = models.BinaryField(default=b"")
   privfriends = models.BooleanField(default = False)
   unlisted = models.BooleanField(default = False)
   published = models.CharField(max_length=50,default="")
+  source = models.TextField(blank=True)
+  origin = models.TextField(blank=True)
 
 class Author_Privacy(models.Model):
   type = "author_privacy"

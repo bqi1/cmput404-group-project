@@ -1,0 +1,158 @@
+    
+<!DOCTYPE html>
+<head>
+
+    <style>
+        .post, .followOrLike{
+            background-color: rgb(89, 201, 79);
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.rawgit.com/showdownjs/showdown/1.9.1/dist/showdown.min.js"></script>
+</head>
+<body>
+    {% extends "index.html" %}
+    {% block content %}
+        {% if user.is_authenticated %}
+            <p>This is {{ user.username }}'s Inbox!.</p>
+            <a href= "/author/{{author_uuid}}/posts">My Stream</a> <!--Link to making a post/view your post-->
+        {% endif %}
+        <!-- <p> {{other_server_posts}}</p> -->
+        <h3 style="color:rgb(0, 162, 255)">Inbox:</h3>
+        <div id = "Inbox"></div>
+        <script>
+            console.log("we in the inbox.html now")
+            var index = 0;
+            var stuff_to_display = {{stuff_to_display|safe}};
+            console.log(stuff_to_display)
+            for (let i = 0; i < stuff_to_display.length; i++){
+                var item = JSON.parse(stuff_to_display[i]);
+                console.log(item)
+                if (item["type"] == "post"){
+                    let likes = 0;
+                    // console.log("trying to get "+item["id"]+"/likes");
+                    $.ajax({
+                            url: item["id"]+"/likes",
+                            type: 'GET',
+                            success: function(data){
+                                // console.log("data is "+data);
+                                amount_likes = data.length==0?0:data.length;
+                                document.getElementById("likes"+i).innerHTML = amount_likes+" liked this post";
+
+                                // // console.log(likes);
+                            },
+                            headers: {
+                                "X-Requested-With":"XMLHttpRequest"
+                            }
+                        }); 
+                    // console.log(item);
+                    var result = "<div class = 'post'>";
+                    result += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4>"+"<p> Description: "+item["description"]+"</p>";
+                    if (item["image"] != "0"){
+                        result +="<img src='"+item["image"]+"'/>";
+                    }
+                    result +="<p> Content: ";
+
+                    if (item["contentType"] == "text/markdown"){
+                        var converter = new showdown.Converter();
+                        var html = converter.makeHtml(item["content"]) 
+                        result+=html;
+                    } else{
+                        result+=item["content"];
+                    }
+                    result += "</p>";
+                    result+= "<h4 id=likes"+i+">";
+                    result+= likes+" liked this post</h4>";
+                    result+="<h4>Comments:</h4>";
+                    // console.log(item);
+                    for (let c_index = 0; c_index < item["count"]; c_index++){
+                        if (c_index == 5){
+                            break
+                        }
+                        result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                        
+                    }
+                    if (item["type"] == "post"){
+                        result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
+                        result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
+                        result += "<input type='text' id = 'comment"+i+"'/>";
+                        console.log("what");
+                        result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
+                    }
+                    result+= "</div>";
+                    document.getElementById("Inbox").innerHTML += result;
+                    index += 1;
+                }
+                // object is a follow or like
+                else{
+                    console.log("this is a like or follow")
+                    var result = "<div class = 'followOrLike'>";
+                    result += "<p>"+item["summary"] + "</p>"
+                    document.getElementById("Inbox").innerHTML += result;
+                }
+                for (let i = 0; i < stuff_to_display.length; i++){
+                    if (stuff_to_display[i]["type"] == "post"){
+                        document.getElementById("likeButton"+i).addEventListener("click",function(){
+                            let post = {{stuff_to_display|safe}}[i];
+                            $.ajax({
+                                url: '/like',
+                                type: 'POST',
+                                data: { 
+                                    csrfmiddlewaretoken: "{{ csrf_token }}",
+                                    thePost:JSON.stringify(post),
+                                    author:"{{ author }}",
+                                },
+                                success:function(){
+                                    alert("Like updated!")
+                                }
+
+                            }); 
+                        }, false);
+                        document.getElementById("commentButton"+i).addEventListener("click",function(){
+                            let post = {{stuff_to_display|safe}}[i];
+                            // console.log(post);
+                            // console.log("{{author}}");                      
+                            $.ajax({
+                                url: '/comment',
+                                type: 'POST',
+                                data: { 
+                                    csrfmiddlewaretoken: "{{ csrf_token }}",
+                                    thePost:JSON.stringify(post),
+                                    author:"{{ author }}",
+                                    theComment:document.getElementById('comment'+i).value,
+
+                                },
+                                success:function(){
+                                        document.getElementById('comment'+i).value = "";
+                                        alert("Commented on post!")
+                                    },
+                            });
+                        }, false);
+                        document.getElementById("shareButton-"+i).addEventListener("click",function(){
+                            let post = {{stuff_to_display|safe}}[i];
+                            
+                            // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
+                            $.ajax({
+                                url: '/publicshare',
+                                type: 'POST',
+                                data: { 
+                                    csrfmiddlewaretoken: "{{ csrf_token }}",
+                                    thePost:JSON.stringify(post),
+                                    author:"{{ author }}",
+                                    
+                                },
+                                success:function(){
+                                        alert("Post shared!");
+                                    }
+                            }); 
+                        }, false);
+                    }
+                }
+            }
+            
+
+        </script>
+    {% endblock %}
+</body>
+</html>
+
