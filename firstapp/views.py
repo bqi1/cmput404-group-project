@@ -614,6 +614,7 @@ def likepost(request, user_id, post_id):
                 host = request.build_absolute_uri('/')
                 url = f"{host}author/{user_id}/inbox"
                 object = f"{host}/author/{user_id}/posts/{post_id}"
+                # ***
                 like_object = make_like_object(request, object, user_id, make_json=True)
                 print("got past make_like_object")
                 print(url)
