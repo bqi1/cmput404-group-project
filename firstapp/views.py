@@ -84,8 +84,6 @@ def homepage(request):
         # print(ourRequest)
         print("\n")
 
-
-
         # Get all public posts from another server, from the admin panel
         servers = Node.objects.all()
         theirData = []
@@ -1395,14 +1393,16 @@ def inbox(request,user_id):
             if request.user.is_authenticated:
                 inbox_object = {}
                 inbox_object["type"]= "inbox"
-                inbox_object["author"]= author_id
+                inbox_object["author"] = author_id
                 inbox_post_items = []
                 print(request.user)
                 try:
+                    #Why does the code not work without importing this again????
+                    from firstapp.models import Author
                     author = Author.objects.get(username=request.user)
                     token = author.api_token
                 except Author.DoesNotExist:
-                    return HttpResponseNotFound(f"In the inbox function, the user you requested does not exist!!{request.user}\n")
+                    return HttpResponseNotFound(f"In the homepage function, the user you requested does not exist!!{request.user}\n")
                 token = author.api_token
                 agent = request.META["HTTP_USER_AGENT"]
                 if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
