@@ -1402,17 +1402,15 @@ def inbox(request,user_id):
                     for item in inbox.items:
                         if item["type"] == "follow" or item["type"] == "like":
                             json_to_display.append(item)
-                return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
-
-                    
-            else:
-                for item in inbox.items:
-                    if item["type"] == "post":
-                        inbox_post_items.append(item)
-                    print("6")
-                inbox_object["items"] = inbox_post_items
-                print(inbox_object)
-                return HttpResponse(json.dumps(inbox_object))
+                    return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
+                else:
+                    for item in inbox.items:
+                        if item["type"] == "post":
+                            inbox_post_items.append(item)
+                        print("6")
+                    inbox_object["items"] = inbox_post_items
+                    print(inbox_object)
+                    return HttpResponse(json.dumps(inbox_object))
         # FIX THIS
         elif method == "POST":
             print("this")
