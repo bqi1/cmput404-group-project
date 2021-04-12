@@ -21,7 +21,7 @@ from django.conf import settings
 from markdown import Markdown as Md
 from django.core.mail import send_mail
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-#from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
@@ -354,6 +354,8 @@ def post(request,user_id,post_id):
     author_id = data[0].userid
     try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author_id).friends.all()]
     except FriendList.DoesNotExist: friend_ids = []
+    try: follow_ids = [Author.objects.get(userid=f.follower.id).consistent_id for f in Follow.objects.filter(receiver=author_id)]
+    except Follow.DoesNotExist: follow_ids = []
     data = Post.objects.filter(post_id=post_id,user_id=user_id)
     if len(data)==0 and method != 'PUT': return HttpResponseNotFound("The post you requested does not exist\n") # Check to see if post in url exists (not for PUT)
     data = Post.objects.filter(post_id=post_id)
@@ -420,10 +422,19 @@ def post(request,user_id,post_id):
                 categories = Category.objects.filter(post_id=post_id)
                 for ca in categories: ca.delete()
             new_post.save()
-            payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            author = Author.objects.get(consistent_id=user_id)
+            author_dict = {
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "displayName": author.username,
+                "url": f"{author.host}/firstapp/{author.userid}",
+                "github": author.github,
+            }
+            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
                 r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
-
+            for f in follow_ids:
+                r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
  
         elif method == 'PUT':
 
@@ -459,8 +470,18 @@ def post(request,user_id,post_id):
                     category = Category(post_id=post_id,tag=ca)
                     category.save()
             new_post.save()
-            payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            author = Author.objects.get(consistent_id=user_id)
+            author_dict = {
+                "id": f"{author.host}/author/{author.consistent_id}",
+                "host": f"{author.host}/",
+                "displayName": author.username,
+                "url": f"{author.host}/firstapp/{author.userid}",
+                "github": author.github,
+            }
+            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
+                r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
+            for f in follow_ids:
                 r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
 
         elif method == 'DELETE':
@@ -502,6 +523,10 @@ def allposts(request,user_id):
     author_id = data[0].userid
     try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author_id).friends.all()]
     except FriendList.DoesNotExist: friend_ids = []
+    try: follow_ids = [Author.objects.get(userid=f.follower.id).consistent_id for f in Follow.objects.filter(receiver=author_id)]
+    except Follow.DoesNotExist: follow_ids = []
+    
+    print(follow_ids)
     trueauth = (request.user.is_authenticated and author_id == request.user.id) # Check if the user is authenticated AND their id is the same as the author they are viewing posts of. If all true, then they can edit
     if method == "POST":
         try: # Client is using token authentication
@@ -552,8 +577,18 @@ def allposts(request,user_id):
                 category.save()
         new_post.save()
         # Send the newly created posts to friend's inboxes
-        payload = {"type":"post","id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+        author = Author.objects.get(consistent_id=user_id)
+        author_dict = {
+            "id": f"{author.host}/author/{author.consistent_id}",
+            "host": f"{author.host}/",
+            "displayName": author.username,
+            "url": f"{author.host}/firstapp/{author.userid}",
+            "github": author.github,
+        }
+        payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
         for f in friend_ids:
+            r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
+        for f in follow_ids:
             r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
 
     elif method == "GET":
@@ -687,11 +722,30 @@ def postlikes(request, user_id, post_id):
     if is_ajax:
         print("is ajax.")
         print(object)
-        cursor.execute("SELECT a.consistent_id FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
-        data = cursor.fetchall()
-        url = request.get_full_path()
-        json_post_likes = make_post_likes_object(request, data, url)
-        return HttpResponse(json.dumps(json_post_likes), content_type="application/json")
+        postlikes = Like.objects.filter(object=object)
+        like_dict_list = []
+        for like in postlikes:
+            try:
+                author = Author.objects.get(consistent_id=like.from_user.split('/')[-1] if like.from_user[-1] != "/" else like.from_user.split('/')[-2])
+                author_dict = {
+                    "id": f"{author.host}/author/{author.consistent_id}",
+                    "host": f"{author.host}/",
+                    "displayName": author.username,
+                    "url": f"{author.host}/firstapp/{author.userid}",
+                    "github": author.github,
+                }
+            except:
+                # It's another author
+                author_dict = json.loads(requests.get(f"{like.from_user}"))
+            like_dict = {
+                "@context":"",
+                "summary":f"{author_dict['displayName']} Likes your post",
+                "type":"Like",
+                "author":author_dict,
+                "object":like.object,
+            }
+            like_dict_list.append(like_dict)
+        return HttpResponse(json.dumps(like_dict_list), content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
             cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
@@ -1417,6 +1471,8 @@ def sharePublicPost(request):
     return HttpResponse("Shared")
     
 @api_view(['GET','POST', 'DELETE'])
+@authentication_classes([BasicAuthentication,SessionAuthentication,TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def inbox(request,user_id):
     print("In Inbox function.\n")
     print(request.user)
@@ -1452,7 +1508,7 @@ def inbox(request,user_id):
                     print("we using a browser ok")
                     json_to_display = []
                     for item in inbox.items:
-                        json_to_display.append(item)
+                        json_to_display.append(json.dumps(item))
                         print("appended item")
                     return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
                 else:
@@ -1535,9 +1591,12 @@ def inbox(request,user_id):
 
             elif data_json_type == "follow":
                 receive_id = request.data["id"]
-                remote_sender = request.data["actor"]["id"].split('/')
-                local_receiver = request.data["object"]["id"].split('/')
-                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                remote_sender = request.data["actor"]["id"].split('/')[-1]
+                local_receiver = request.data["object"]["id"].split('/')[-1]
+                print(remote_sender)
+                print(local_receiver)
+                get_all_remote_user_2()
+                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
@@ -1561,6 +1620,19 @@ def inbox(request,user_id):
 
 
         elif method == "DELETE":
+            from firstapp.models import Author
+            data = Author.objects.filter(consistent_id=user_id)[0]
+            user_token = data.api_token
+            author_id = data.userid
+            try: # Client is using token authentication
+                token = request.META["HTTP_AUTHORIZATION"].split("Token ")[1]
+                if token != user_token: return HttpResponse('{"detail":"Authentication credentials were not provided."}',status=401) # Incorrect or missing token
+            except IndexError: # Client is using basic authentiation
+                enc = base64.b64decode(request.META["HTTP_AUTHORIZATION"].split(" ")[1]).decode("utf-8").split(":")
+                uname, pword = enc[0], enc[1]
+                user = User.objects.get(id=author_id)
+                if user.username != uname or not user.check_password(pword):
+                    return HttpResponse('{"detail":"Invalid username/password."}',status=401) # A correct uname and pword supplied, but not for this specific user
             inbox.items = []
             inbox.save()
 

@@ -26,7 +26,7 @@
             var stuff_to_display = {{stuff_to_display|safe}};
             console.log(stuff_to_display)
             for (let i = 0; i < stuff_to_display.length; i++){
-                var item = stuff_to_display[i];
+                var item = JSON.parse(stuff_to_display[i]);
                 console.log(item)
                 if (item["type"] == "post"){
                     let likes = 0;
