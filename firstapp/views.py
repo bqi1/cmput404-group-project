@@ -77,7 +77,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = f"https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"http://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -971,10 +971,11 @@ def viewComments(request, user_id, post_id):
         num_comments = len(comment_list)
 
         try:
-            page_number = request.GET.get('page')
+            page_number = int(request.GET.get('page'))
             if page_number is None or page_number < 1:
                 page_number = 1
-        except:
+        except Exception as e:
+            print(e)
             page_number = 1
         try:
             size = request.GET.get('size')
@@ -1015,7 +1016,7 @@ def viewComments(request, user_id, post_id):
             json_comment_list.append(comment_dict)
         print(json_comment_list)
         try:
-            page_number = request.GET.get('page')
+            page_number = int(request.GET.get('page'))
             if page_number is None or page_number < 1:
                 page_number = 1
         except:
