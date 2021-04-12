@@ -1386,6 +1386,7 @@ def inbox(request,user_id):
         print(method)
         if method == "GET":
             if request.user.is_authenticated:
+                print("user is authenticated")
                 inbox_object = {}
                 inbox_object["type"]= "inbox"
                 inbox_object["author"]= author_id
@@ -1398,10 +1399,11 @@ def inbox(request,user_id):
                 token = author.api_token
                 agent = request.META["HTTP_USER_AGENT"]
                 if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
+                    print("we using a browser ok")
                     json_to_display = []
                     for item in inbox.items:
-                        if item["type"] == "follow" or item["type"] == "like":
-                            json_to_display.append(item)
+                        json_to_display.append(item)
+                        print("appended item")
                     return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
                 else:
                     for item in inbox.items:

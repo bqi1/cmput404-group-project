@@ -24,7 +24,7 @@
         <h3 style="color:rgb(0, 162, 255)">Inbox:</h3>
         <div id = "Inbox"></div>
         <script>
-            
+            console.log("we in the inbox.html now")
             var index = 0;
             var stuff_to_display = {{stuff_to_display|safe}};
             for (let i = 0; i < stuff_to_display.length; i++){
@@ -87,9 +87,9 @@
                     var result = "<div class = 'likeOrFollow'>";
                     result += "<p>"+item["summary"] + "</p>"
                 }
-                for (let i = 0; i < public_posts_from_our_server.length; i++){
+                for (let i = 0; i < stuff_to_display.length; i++){
                     document.getElementById("likeButton"+i).addEventListener("click",function(){
-                        let post = {{our_server_posts|safe}}[i];
+                        let post = {{stuff_to_display|safe}}[i];
                         $.ajax({
                             url: '/like',
                             type: 'POST',
@@ -105,7 +105,7 @@
                         }); 
                     }, false);
                     document.getElementById("commentButton"+i).addEventListener("click",function(){
-                        let post = {{our_server_posts|safe}}[i];
+                        let post = {{stuff_to_display|safe}}[i];
                         // console.log(post);
                         // console.log("{{author}}");                      
                         $.ajax({
@@ -125,7 +125,7 @@
                         });
                     }, false);
                     document.getElementById("shareButton-"+i).addEventListener("click",function(){
-                        let post = {{our_server_posts|safe}}[i];
+                        let post = {{stuff_to_display|safe}}[i];
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                         $.ajax({
