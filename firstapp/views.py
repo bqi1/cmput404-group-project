@@ -76,7 +76,7 @@ def homepage(request):
             messages.add_message(request,messages.INFO, 'Please wait to be authenticated by a server admin.')
             return HttpResponseRedirect(reverse('login'))
         user_id,author_uuid = author.userid,author.consistent_id
-        ourURL = f"http://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
+        ourURL = f"https://"+request.META['HTTP_HOST']+"/posts" # change this to https in heroku, http in local server
         print(f"\n\n\n\n{ourURL}\n\n\n")
         ourRequest = requests.get(url=ourURL)
         print(f"\n\n{ourRequest}\n\n")
@@ -1279,8 +1279,8 @@ def commentAHomePagePost(request):
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
-        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
-        comment.save()
+        comment_obj = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
+        comment_obj.save()
     else:
         try:
             server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
@@ -1294,8 +1294,16 @@ def commentAHomePagePost(request):
             "displayName":author.username,
             "github":author.github,
         }
+        comment_dict={
+            "type": "comment",
+            "author":author_dict,
+            "comment":comment,
+            "contentType":"text/plaintext",
+            "published":str(datetime.now()),
+            "id":f"{post['id']}/comments/{uuid.uuid4().hex}",
+        }
         print(f" ok {post['author']['id']}/inbox")
-        response = requests.post(f"{post['author']['id']}/inbox",data={"comment":comment,"author":json.dumps(author_dict)},auth=(server.authusername,server.authpassword))
+        response = requests.post(f"{post['author']['id']}/inbox",json=comment_dict,auth=(server.authusername,server.authpassword))
         print(f"send a comment with response{response}")
     return HttpResponse("Commented!")
 
