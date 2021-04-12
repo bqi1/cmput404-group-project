@@ -430,7 +430,7 @@ def post(request,user_id,post_id):
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
             }
-            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
                 r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
             for f in follow_ids:
@@ -478,7 +478,7 @@ def post(request,user_id,post_id):
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
             }
-            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+            payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
                 r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
             for f in follow_ids:
@@ -585,7 +585,7 @@ def allposts(request,user_id):
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
         }
-        payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":bytes(image,encoding="utf-8"),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
+        payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
         for f in friend_ids:
             r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
         for f in follow_ids:
