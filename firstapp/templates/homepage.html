@@ -106,7 +106,7 @@
                         // console.log(post);
                         // console.log("{{author}}");                      
                         $.ajax({
-                            url: '/comment',
+                            url: '/comment/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
@@ -126,7 +126,7 @@
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                         $.ajax({
-                            url: '/publicshare',
+                            url: '/publicshare/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
@@ -202,7 +202,7 @@
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                         $.ajax({
-                            url: '/comment',
+                            url: '/comment/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
@@ -222,7 +222,7 @@
                         
                         // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                         $.ajax({
-                            url: '/publicshare',
+                            url: '/publicshare/',
                             type: 'POST',
                             data: { 
                                 csrfmiddlewaretoken: "{{ csrf_token }}",
