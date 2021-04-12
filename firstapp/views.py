@@ -977,19 +977,25 @@ def viewComments(request, user_id, post_id):
             comment_text = d.comment_text
             comment_list.append(comment_text)
         num_comments = len(comment_list)
+
         try:
-            paginator = Paginator(comment_list,request.GET.get('size'))
-        except TypeError:
-            paginator = Paginator(comment_list,num_comments)
-        try:
-            page_number = request.GET.get('page')
-            page_obj = paginator.page(page_number)
-            comment_list = page_obj.object_list
+            page_number = int(request.GET.get('page'))
+            if page_number is None or page_number < 1:
+                page_number = 1
         except Exception as e:
             print(e)
-            if str(e) == "That page contains no results":
-                comment_list = []
-            
+            page_number = 1
+        try:
+            size = request.GET.get('size')
+            if size is None:
+                size = len(comment_list)
+        except:
+            size = len(comment_list)
+        paginator = Paginator(comment_list,size)
+        try:
+            comment_list = paginator.page(page_number).object_list
+        except:
+            comment_list = []
         return render(request, "comment_list.html", {"comment_list":comment_list, "num_comments":num_comments})
     else:
         print(f"\n\nviewcomments not in browser https://{request.get_host()}/author/{user_id}/posts/{post_id}\n\n")
@@ -1018,17 +1024,22 @@ def viewComments(request, user_id, post_id):
             json_comment_list.append(comment_dict)
         print(json_comment_list)
         try:
-            paginator = Paginator(json_comment_list,request.GET.get('size'))
+            page_number = int(request.GET.get('page'))
+            if page_number is None or page_number < 1:
+                page_number = 1
         except:
-            paginator = Paginator(json_comment_list,len(json_comment_list))
+            page_number = 1
         try:
-            page_number = request.GET.get('page')
-            page_obj = paginator.page(page_number)
-            json_comment_list = page_obj.object_list
-        except Exception as e:
-            print(e)
-            if str(e) == "That page contains no results":
-                json_comment_list = []
+            size = request.GET.get('size')
+            if size is None:
+                size = len(json_comment_list)
+        except:
+            size = len(json_comment_list)
+        paginator = Paginator(json_comment_list,size)
+        try:
+            json_comment_list = paginator.page(page_number).object_list
+        except:
+            json_comment_list = []
         return HttpResponse(json.dumps(json_comment_list))
 
 def search_user(request, *args, **kwargs):
@@ -1356,13 +1367,13 @@ def likeAHomePagePost(request):
 # Comment a post by sending a comment request to the inbox.
 @api_view(['POST'])
 def commentAHomePagePost(request):
-    comment = request.POST.get("theComment",False)
+    theComment = request.POST.get("theComment",False)
     post = json.loads(request.POST.get('thePost', False))
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
     if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
-        comment_obj = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=comment,published=str(datetime.now()))
-        comment_obj.save()
+        comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=theComment,published=str(datetime.now()))
+        comment.save()
     else:
         try:
             server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
@@ -1376,20 +1387,17 @@ def commentAHomePagePost(request):
             "displayName":author.username,
             "github":author.github,
         }
-        comment_dict={
-            "type": "comment",
+        c_id= f"{uuid.uuid4().hex}"
+        comment_dict = {
+            "type":"comment",
             "author":author_dict,
-            "comment":comment,
+            "comment":theComment,
             "contentType":"text/plaintext",
             "published":str(datetime.now()),
-            "id":f"{post['id']}/comments/{uuid.uuid4().hex}",
+            "id":f"{post['id']}/comments/{c_id}"
         }
-        print(f" ok {post['author']['id']}/inbox")
-        print(f" uhh {post['id']}/comments")
         response = requests.post(f"{post['id']}/comments",json=comment_dict,auth=(server.authusername,server.authpassword))
-        print(f"send a comment with response from comments {response}")
         response = requests.post(f"{post['author']['id']}/inbox",json=comment_dict,auth=(server.authusername,server.authpassword))
-        print(f"send a comment with response from inbox {response}")
     return HttpResponse("Commented!")
 
 # Comment a post by sending a comment request to the inbox.
