@@ -325,14 +325,25 @@
 		FollowRequestBtn.addEventListener("click", function(){
 			const URL = 'https://iconicity-test-a.herokuapp.com/author/' + '{{request.user.consistent_id}}'
 			var data = {
-				"type":"author",
-				"id":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
-				"host":"c404posties.herokuapp.com",
-				"displayName":"{{username}}",
-				"url":"https://c404posties.herokuapp.com/author/"+"{{me_Cid}}",
-				"github": "{{githubLink}}"
-
-        	};
+	          "type": "Follow",      
+	          "summary":"follow request",
+	          "actor":{
+	              "type":"author",
+	              "id":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+	              "url":'https://iconicity-test-a.herokuapp.com/author/' + '{{me_Cid}}',
+	              "host":"iconicity-test-a.herokuapp.com",
+	              "displayName":"{{username1}}",
+	              "github": "{{githubLink}}"
+	          },
+	          "object":{
+	              "type":"author",
+					"id":"https://c404posties.herokuapp.com/author/"+"{{request.user.consistent_id}}",
+					"host":"c404posties.herokuapp.com",
+					"displayName":"{{username2}}",
+					"url":"https://c404posties.herokuapp.com/author/"+"{{request.user.consistent_id}}",
+					"github": "{{githubLink2}}"
+	          }
+	      	};
         	var jsonData = JSON.stringify(data);
 			$.ajax({
 	            url: Url,
@@ -345,7 +356,6 @@
 	            error: function(XMLHttpRequest, textStatus, errorThrown) {
 	              console.log(errorThrown);
 	            }
-          })
 
 			
 		})
@@ -381,12 +391,8 @@
 				"url":"https://c404posties.herokuapp.com/author/"+"{{request.user.consistent_id}}",
 				"github": "{{githubLink2}}"
           }
-      }
+      	};
 
-		var data = {
-			
-
-    	};
     	var jsonData = JSON.stringify(data);
 		$.ajax({
             url: Url,
@@ -398,12 +404,13 @@
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
               console.log(errorThrown);
-            }
-      })
+            
+          }
 
 			
 		})
 	}
+
 
 
 	var removeFriendBtn = document.getElementById("id_unfriend_btn")
