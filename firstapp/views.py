@@ -658,10 +658,12 @@ def like_comment(request, user_id, post_id, comment_id):
 def make_like_object(request, object, user_id, make_json = True):
     like_dict = {}
     like_dict["type"] = "like"
-    like_dict["author"] = get_our_author_object(request.get_host(), user_id)
+    author = get_our_author_object(request.get_host(), user_id)
+    like_dict["author"] = author
     like_dict["object"] = object
-    like_dict["summary"] = 
-    like_dict["context"] = 
+    dict_author = json.loads(author)
+    like_dict["summary"] = dict_author["displayName"]
+    like_dict["context"] = "https://www.w3.org/ns/activitystreams"
     if make_json:
         return json.dumps(like_dict)
     else:
