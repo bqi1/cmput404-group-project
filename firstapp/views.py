@@ -1595,8 +1595,8 @@ def inbox(request,user_id):
                 local_receiver = request.data["object"]["id"].split('/')[-1]
                 print(remote_sender)
                 print(local_receiver)
-                get_all_remote_user_2()
-                ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                get_all_remote_user()
+                cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
