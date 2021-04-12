@@ -1303,8 +1303,10 @@ def commentAHomePagePost(request):
             "id":f"{post['id']}/comments/{uuid.uuid4().hex}",
         }
         print(f" ok {post['author']['id']}/inbox")
+        response = requests.post(f"{post['author']['id']}/comments",json=comment_dict,auth=(server.authusername,server.authpassword))
+        print(f"send a comment with response from comments {response}")
         response = requests.post(f"{post['author']['id']}/inbox",json=comment_dict,auth=(server.authusername,server.authpassword))
-        print(f"send a comment with response{response}")
+        print(f"send a comment with response from inbox {response}")
     return HttpResponse("Commented!")
 
 # Comment a post by sending a comment request to the inbox.
