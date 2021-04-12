@@ -48,6 +48,8 @@ class Post(models.Model):
   privfriends = models.BooleanField(default = False)
   unlisted = models.BooleanField(default = False)
   published = models.CharField(max_length=50,default="")
+  source = models.TextField(blank=True)
+  origin = models.TextField(blank=True)
 
 class Author_Privacy(models.Model):
   type = "author_privacy"

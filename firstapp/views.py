@@ -281,8 +281,8 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             "type":"post",
             "title":d.title,
             "id":d.id,
-            "source":f"{author.host}/author/{author.consistent_id}",
-            "origin":f"{author.host}/author/{author.consistent_id}",
+            "source":d.source,
+            "origin":d.origin,
             "description":d.description,
             "contentType":"text/markdown" if d.markdown else "text/plain",
             "content":d.content,
@@ -432,7 +432,7 @@ def post(request,user_id,post_id):
             except MultiValueDictKeyError: image = '0'
             try: # if all mandatory fields are passed
                 if not validate_int(p,[post_id]): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.") # non integer markdown field (0-1)
-                new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
+                new_post = Post(source=f"https://{request.get_host()}/posts",origin=f"https://{request.get_host()}/posts",id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=sqlite3.Binary(bytes(image,encoding="utf-8")),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
                 resp = "Successfully created post: %d\n" % post_id
             except MultiValueDictKeyError:
                 return HttpResponseBadRequest("Failed to modify post:\nInvalid parameters\n")
@@ -523,7 +523,7 @@ def allposts(request,user_id):
 
         try: # if all mandatory fields are passed
             if not validate_int(p): return HttpResponseBadRequest("Error: you have submitted non integer values to integer fields.")
-            new_post = Post(id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=bytes(image,encoding="utf-8"),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
+            new_post = Post(source=f"https://{request.get_host()}/posts",origin=f"https://{request.get_host()}/posts",id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}",post_id=post_id,user_id=user_id,title=p["title"],description=p["description"],markdown=STR2BOOL(p["markdown"]),content=p["content"],image=bytes(image,encoding="utf-8"),privfriends=STR2BOOL(p["privfriends"]),unlisted=STR2BOOL(p["unlisted"]),published=str(datetime.now()))
             resp = "Successfully created post: %d\n" % post_id
         except MultiValueDictKeyError:
             return HttpResponseBadRequest("Failed to create post:\nInvalid parameters\n")
@@ -811,8 +811,8 @@ def publicposts(request):
                 "type":"post",
                 "title":post.title,
                 "id":post.id,
-                "source":f"{author.host}/author/{author.consistent_id}",
-                "origin":f"{author.host}/author/{author.consistent_id}",
+                "source":post.source,
+                "origin":post.origin,
                 "description":post.description,
                 "contentType":"text/markdown" if post.markdown else "text/plain",
                 "content":post.content,
@@ -1283,8 +1283,30 @@ def viewComment(request,user_id,post_id,comment_id):
         "id":comment.comment_id,
     }
     return HttpResponse(json.dumps(comment_dict))
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+def sharePublicPost(request):
+    # Takes post object and author.
+    post = json.loads(request.POST.get('thePost', False))
+    author = Author.objects.get(username=request.POST.get('author', False))
+    print("in sharePublicPost")
+    print(post)
+    print(author)
+    author_dict = {
+        "id":f"{author.host}/author/{author.consistent_id}",
+        "host":f"{author.host}/",
+        "displayName":author.username,
+        "url":f"{author.host}/firstapp/{author.userid}",
+        "github":author.github,
+    }
+    post_id = rand(2**28)
+    print(post["image"])
+    post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
+    post.save()
+    return HttpResponse("Shared")
+    
 
-        
+
 @api_view(['GET','POST', 'DELETE'])
 @authentication_classes([BasicAuthentication, TokenAuthentication])
 def inbox(request,user_id):
