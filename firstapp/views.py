@@ -36,7 +36,7 @@ from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
-from .remote_friend import get_all_remote_user
+from .remote_friend import get_all_remote_user,get_all_remote_user_2
 from django.contrib.auth.models import User
 from django.core import serializers
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
@@ -1074,11 +1074,12 @@ def account_view(request, *args, **kwargs):
     if data != None:
         print(data)
         context['id'] = data[8]
-        context['username'] = data[3]
+        context['username1'] = data[3]
         context['email'] = data[9]
         context['host'] = data[6]
         context['me_Cid'] = data[11]
-        context['githubLink']=data[5]
+        context['githubLink']=data[4]
+        print(data[4])
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -1179,6 +1180,16 @@ def account_view(request, *args, **kwargs):
         user = request.user
         if not (request.user.is_authenticated and str(request.user.id) == str(user_id)):
             is_self = False
+        cursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.userid = '%s';" % request.user.id)
+        try:
+            data = cursor.fetchall()[0]
+        except IndexError: # No token exists, must create a new one!
+            return HttpResponse("user doesn't exist") 
+        print("^^^^^^^^^^^^^^^")
+        print(data)
+        # print(new_account.github)
+        context['username2'] = data[3]
+        context['githubLink2'] = data[4]
 
         context['is_self'] =is_self
         context['friends'] = friends
@@ -1473,6 +1484,7 @@ def inbox(request,user_id):
                 remote_sender = request.data["actor"]["id"].split('/')
                 local_receiver = request.data["object"]["id"].split('/')
                 ccursor.execute("SELECT * FROM authtoken_token t, firstapp_author a WHERE a.consistent_id = '%s';" % remote_sender)
+                get_all_remote_user_2()
                 try:
                     data1 = cursor.fetchall()[0]
                     Author = get_user_model()
