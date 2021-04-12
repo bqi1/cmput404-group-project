@@ -17,6 +17,7 @@ urlpatterns = [
     path('author/<str:user_id>/posts/<int:post_id>/likecomment/', views.like_comment, name='likecomment'),
     path('author/<str:user_id>/liked/', views.liked, name='liked'),
     path('author/<str:user_id>', views.account, name='account'),
+    path('author/<str:user_id>/', views.account, name='account'),
 
     path('author/<str:user_id>/posts/<int:post_id>/commentpost/',views.commentpost,name='commentpost'),
     path('author/<str:user_id>/posts/<int:post_id>/comments/',views.viewComments,name='viewComments'),
@@ -24,9 +25,9 @@ urlpatterns = [
 
     path('posts/', views.publicposts,name='publicposts'),
     path('author/<str:user_id>/inbox', views.inbox,name='inbox'),
-    path('like',views.likeAHomePagePost,name="likeAPost"),
-    path('comment',views.commentAHomePagePost,name="commentAPost"),
+    path('like/',views.likeAHomePagePost,name="likeAPost"),
+    path('comment/',views.commentAHomePagePost,name="commentAPost"),
     path('author/<str:user_id>/posts/<int:post_id>/comments/<str:comment_id>',views.viewComment,name='viewComment'),
-    path('author/<str:user_id>/posts/<int:post_id>/comment/',views.makeComment,name='makeComment'),
-    path('publicshare',views.sharePublicPost),
+    path('author/<str:user_id>/posts/<int:post_id>/comment',views.makeComment,name='makeComment'),
+    path('publicshare/',views.sharePublicPost),
 ]

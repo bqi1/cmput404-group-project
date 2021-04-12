@@ -1346,7 +1346,7 @@ def likeAHomePagePost(request):
             like_object = json.dumps(like_dict)
             headers  = {'Content-type': 'application/json'}
             url = f"{author.host}/author/{author.consistent_id}/inbox"
-            requests.post(url, data = like_object, headers=headers)
+            requests.post(url, data = like_object, headers=headers, auth=("adminB","adminB"))
         return HttpResponse("Like processed")
     # Else, it's a remote like
     print("remote post like")
