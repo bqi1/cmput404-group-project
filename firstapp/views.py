@@ -1372,6 +1372,7 @@ def sharePublicPost(request):
 @authentication_classes([BasicAuthentication, TokenAuthentication])
 def inbox(request,user_id):
     print("In Inbox function.\n")
+    print(request.user)
     method = request.META["REQUEST_METHOD"]
     try:
         host = request.build_absolute_uri('/')
@@ -1391,6 +1392,7 @@ def inbox(request,user_id):
             inbox_object["type"]= "inbox"
             inbox_object["author"]= author_id
             inbox_post_items = []
+            print(request.user)
             try:
                 author = Author.objects.get(username=request.user)
                 token = author.api_token
