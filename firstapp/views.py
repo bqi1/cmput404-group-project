@@ -26,8 +26,10 @@ from .permissions import EditPermission
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 from friend.request_status import RequestStatus
-from friend.models import FriendList, FriendRequest,FriendShip
+from friend.follow_status import FollowStatus
+from friend.models import FriendList, FriendRequest,FriendShip,FollowingList,Follow
 from friend.is_friend import get_friend_request_or_false
+from friend.is_following import Following_Or_Not
 from firstapp.models import Author, Post, Author_Privacy, Comment, Like, Category, Node, Setting, Inbox
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
@@ -1056,12 +1058,11 @@ def account_view(request, *args, **kwargs):
             friend_list = FriendList(user=account)
             friend_list.save()
 
-
+        
         friends = friend_list.friends.all()
         context['friends'] = friends
         is_self = True 
         is_friend = False
-
         request_sent = RequestStatus.NO_REQUEST_SENT.value # range: ENUM -> friend/friend_request_status.FriendRequestStatus
         friend_requests = None
         user = request.user
@@ -1082,12 +1083,38 @@ def account_view(request, *args, **kwargs):
                 # CASE3: No request sent from YOU or THEM: FriendRequestStatus.NO_REQUEST_SENT
                 else:
                     request_sent = RequestStatus.NO_REQUEST_SENT.value
-        
+
+
+        is_following = False
+        follow_sent = None 
+        if user.is_authenticated:
+            try:
+                following_list = Follow.objects.filter(follower=user)
+            except FollowingList.DoesNotExist:
+                return HttpResponse(f"Could not find a following list for {this_user.username}")
+            # Must be friends to view a friends list
+            followings = [] # [(friend1, True), (friend2, False), ...]
+
+            # get the authenticated users friend list
+            auth_user_following_list = Follow.objects.filter(follower=user)
+            for following in following_list:
+                if following.receiver not in followings:
+                    followings.append(following.receiver)
+            if account not in followings:
+                is_following = False
+                follow_sent = 0
+            else:
+                is_following = True
+                follow_sent = 1
+
+            context['followings'] = followings
+            print("I am in first app")
+            print(followings)
+            
         elif not user.is_authenticated:
             is_self = False
         else:
             try:
-                print("friend request")
                 friend_requests = FriendRequest.objects.filter(receiver=user, is_active=True)
             except:
                 pass
@@ -1097,7 +1124,9 @@ def account_view(request, *args, **kwargs):
             is_self = False
 
         context['is_self'] =is_self
+        context['is_following'] = is_following
         context['is_friend'] = is_friend
+        context['follow_request'] = follow_sent
         context['request_sent'] = request_sent
         context['friend_requests'] = friend_requests
         context['BASE_URL'] = settings.BASE_DIR

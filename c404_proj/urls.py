@@ -35,6 +35,7 @@ urlpatterns = [
     path('firstapp/search/', search_user, name = "search"),
     path('firstapp/',include('firstapp.urls',namespace = 'account')),
     path('friend/', include('friend.urls', namespace='friend')),
+
 ]
 
 if settings.DEBUG:

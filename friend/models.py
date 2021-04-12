@@ -11,12 +11,49 @@ class FriendShip(models.Model):
 	def __str__(self):
 		return '%s %s' % (self.friend_a, self.friend_b)
 
+
+
 class Follow(models.Model):
 	follower = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="follower_set", on_delete=models.CASCADE, blank=True, null=True)
 	receiver = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="receiver_set", on_delete=models.CASCADE, blank=True, null=True)
 	ignored = models.BooleanField(default=False)
 	def __str__(self):
 		return '%s %s' % (self.follower, self.receiver)
+	def get_following(self):
+		return receiver
+
+
+class FollowingList(models.Model):
+	follower = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete= models.CASCADE,related_name="follower")
+	following = models.ManyToManyField(settings.AUTH_USER_MODEL, blank = True, related_name="following")
+	
+	def __str__ (self):
+		return self.follower.username
+	def FollowAdd(self, account):
+		if not account in self.following.all():
+			self.following.add(account)
+			self.save()
+	def FollowDelete(self,account):
+		if account in self.following.all():
+			self.following.remove(account)
+			self.save()
+
+	def unFollow(self,removee):
+		remover_friends_list = self # people start to unfriend 
+
+		remover_friends_list.FollowDelete(removee)
+		following_list = FollowingList.objects.get(user = removee)
+		following_list.FollowDelete(self.user)
+	def is_mutual_following(self, follow):
+		"""
+		Is this a friend?
+		"""
+		if follow in self.following.all():
+			return True
+		return False
+
+
+
 
 class FriendList(models.Model):
 	user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete= models.CASCADE,related_name="user")
