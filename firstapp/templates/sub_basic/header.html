@@ -17,7 +17,7 @@
 					<div>
 						<div >
 							<a href="{% url 'account:view' user_id=request.user.id %}">Account</a>
-							<a href="{% url 'inbox:view' user_id=request.user.id %}">Inbox</a>
+							<a href="{% url 'account:inbox' user_id=request.user.id %}">Inbox</a>
 							<a  href="{% url 'index' %}">Switch Account</a>
 						</div>
 					</div>
