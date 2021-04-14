@@ -973,6 +973,7 @@ def viewComments(request, user_id, post_id):
             if page_number is None or page_number < 1:
                 page_number = 1
         except Exception as e:
+            print("exception, page number is now 1")
             print(e)
             page_number = 1
         try:

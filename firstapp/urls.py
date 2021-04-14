@@ -29,5 +29,6 @@ urlpatterns = [
     path('comment/',views.commentAHomePagePost,name="commentAPost"),
     path('author/<str:user_id>/posts/<int:post_id>/comments/<str:comment_id>',views.viewComment,name='viewComment'),
     path('author/<str:user_id>/posts/<int:post_id>/comment',views.makeComment,name='makeComment'),
+    path('author/<str:user_id>/posts/<int:post_id>/comment/',views.makeComment,name='makeComment'),
     path('publicshare/',views.sharePublicPost),
 ]
