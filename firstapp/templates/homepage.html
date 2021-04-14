@@ -232,7 +232,8 @@
                             },
                             success:function(){
                                     location.reload();
-                                }
+                                },
+                            error: function (response) { console.log(response); }
                         }); 
                     }, false);
                 }
