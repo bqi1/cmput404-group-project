@@ -36,6 +36,7 @@ from django.contrib.auth.models import AnonymousUser
 import uuid
 import requests
 import base64
+from urllib.parse import urlparse
 from .remote_friend import get_all_remote_user,get_all_remote_user_2
 from django.contrib.auth.models import User
 from django.core import serializers
@@ -1467,6 +1468,7 @@ def sharePublicPost(request):
     print("in sharePublicPost")
     print(post)
     print(author)
+    print(post["image"])
     author_dict = {
         "id":f"{author.host}/author/{author.consistent_id}",
         "host":f"{author.host}/",
@@ -1478,8 +1480,30 @@ def sharePublicPost(request):
     print(post["image"])
     for item in [f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"]]:
         print(item)
-    post = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
-    post.save()
+
+    if post['image'] == None:
+        image = bytes("0",encoding="utf-8")
+    elif ";base64," in post["image"]:
+        image = bytes(post["image"],encoding="utf-8")
+    else:
+        source_url = urlparse(post["source"])
+        image_url = "{0}://{1}{2}".format(source_url.scheme,source_url.netloc,post["image"])
+        image = bytes("data:image/jpeg;base64,",encoding="utf-8")+base64.b64encode(requests.get(image_url).content)
+
+    newpost = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=image,id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
+    newpost.save()
+
+    # Send the newly created posts to friend's inboxes
+    try: friend_ids = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author.userid).friends.all()]
+    except FriendList.DoesNotExist: friend_ids = []
+    try: follow_ids = [Author.objects.get(userid=f.follower.id).consistent_id for f in Follow.objects.filter(receiver=author.userid)]
+    except Follow.DoesNotExist: follow_ids = []
+
+    payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}","post_id":post_id,"user_id":author.consistent_id,"title":post["title"],"description":post["description"],"markdown":False if post["contentType"] != "text/markdown" else True,"content":post["content"],"image":str(image),"privfriends":False,"unlisted":False,"published":str(datetime.now())}
+    for f in friend_ids:
+        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
+    for f in follow_ids:
+        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
     return HttpResponse("Shared")
     
 
