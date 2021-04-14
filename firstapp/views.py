@@ -1499,7 +1499,7 @@ def sharePublicPost(request):
     try: follow_ids = [Author.objects.get(userid=f.follower.id).consistent_id for f in Follow.objects.filter(receiver=author.userid)]
     except Follow.DoesNotExist: follow_ids = []
 
-    payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}","post_id":post_id,"user_id":author.consistent_id,"title":post["title"],"description":post["description"],"markdown":False if post["contentType"] != "text/markdown" else True,"content":post["content"],"image":str(image),"privfriends":False,"unlisted":False,"published":str(datetime.now())}
+    payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}","post_id":post_id,"user_id":author.consistent_id,"title":post["title"],"description":post["description"],"markdown":False if post["contentType"] != "text/markdown" else True,"content":post["content"],"image":image.decode("utf-8"),"privfriends":False,"unlisted":False,"published":str(datetime.now())}
     for f in friend_ids:
         r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%author.api_token,"Content-Type":"application/json"},json=payload)
     for f in follow_ids:
