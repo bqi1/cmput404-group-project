@@ -1501,9 +1501,9 @@ def sharePublicPost(request):
 
     payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}","post_id":post_id,"user_id":author.consistent_id,"title":post["title"],"description":post["description"],"markdown":False if post["contentType"] != "text/markdown" else True,"content":post["content"],"image":str(image),"privfriends":False,"unlisted":False,"published":str(datetime.now())}
     for f in friend_ids:
-        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
+        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%author.api_token,"Content-Type":"application/json"},json=payload)
     for f in follow_ids:
-        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%user_token,"Content-Type":"application/json"},json=payload)
+        r = requests.post(f"https://{request.get_host()}/author/{f}/inbox",headers={"Authorization":"Token %s"%author.api_token,"Content-Type":"application/json"},json=payload)
     return HttpResponse("Shared")
     
 
