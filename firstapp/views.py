@@ -37,6 +37,7 @@ import uuid
 import requests
 import base64
 from urllib.parse import urlparse
+from html import escape
 from .remote_friend import get_all_remote_user,get_all_remote_user_2
 from django.contrib.auth.models import User
 from django.core import serializers
@@ -195,6 +196,17 @@ def validate_int(p,optional=[]):
         return 1
     except ValueError: return 0
 
+# escapes instances of <script> and </script> tags from content
+def clean_script(content):
+    tags = ["<script>","</script>"]
+    for t in tags:
+        L = len(t)
+        n = content.find(t)
+        while n >= 0:
+            content = content[:n] + escape(content[n:n+L]) + content[n+L:]
+            n = content.find(t)
+    return content
+
 # This function will return all visible posts, and return them in html to be displayed in broswer
 # data - the list of tuples returned from sql
 # user_id - used to check to see if the current user can view the post (is it private to specific authors, or public?)
@@ -219,7 +231,7 @@ def make_post_html(data,user_id,isowner=False):
             md = Md()
             content = md.convert(content)
         starttag = jscript
-        starttag += start % (d.title,d.description,content,",".join(tags))
+        starttag += start % (clean_script(d.title),clean_script(d.description),clean_script(content),clean_script(",".join(tags)))
         if len(priv) == 0 and d.privfriends == False: # post is not private
             if image == '0':
                 resp += starttag
@@ -845,7 +857,7 @@ def publicposts(request):
                         "github": author.github,
                     }
                 else:
-                    from_author_request = requests.get(url=comment_obj.from_user)
+                    from_author_request = requests.get(url=comment_obj.from_user.replace("https","http"))
                     from_author_dict = from_author_request.json()
 
 
@@ -866,13 +878,13 @@ def publicposts(request):
             post_dict = {
 
                 "type":"post",
-                "title":post.title,
+                "title":clean_script(post.title),
                 "id":post.id,
                 "source":post.source,
                 "origin":post.origin,
-                "description":post.description,
+                "description":clean_script(post.description),
                 "contentType":"text/markdown" if post.markdown else "text/plain",
-                "content":post.content,
+                "content":clean_script(post.content),
                 "author":author_dict,
                 "categories":[],
                 "count":amount_of_comments,
@@ -892,7 +904,7 @@ def publicposts(request):
             }
             # retrieve all categories for post
             categories = Category.objects.filter(post_id=post.post_id)
-            for ca in categories:post_dict["categories"].append(ca.tag)
+            for ca in categories:post_dict["categories"].append(clean_script(ca.tag))
             post_list.append(post_dict)
     return HttpResponse(json.dumps(post_list))
     
@@ -950,7 +962,7 @@ def viewComments(request, user_id, post_id):
             comment_dict = {
                 "type":"comment",
                 "author":author_dict,
-                "comment":comment.comment_text,
+                "comment":clean_script(comment.comment_text),
                 "contentType":"text/markdown",
                 "published":str(datetime.now()),
                 "id":f"{author.host}/author/{author.consistent_id}/posts/{comment.post_id}/viewComments/{comment.comment_id}",
