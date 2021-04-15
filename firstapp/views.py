@@ -846,8 +846,8 @@ def publicposts(request):
                 author_url = str(comment_obj.from_user)
                 if request.get_host() in comment_obj.from_user:
                     print(f"https://{request.get_host()}/author/")
-                    print(comment_obj.from_user[len(f"https://{request.get_host()}/author/")+1:])
-                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"https://{request.get_host()}/author/")+1:])
+                    print(comment_obj.from_user[len(f"https://{request.get_host()}/author/"):])
+                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"https://{request.get_host()}/author/"):])
                     from_author_dict = {
                         "type":"author",
                         "id": f"{author.host}/author/{author.consistent_id}",
@@ -950,7 +950,7 @@ def viewComments(request, user_id, post_id):
         comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/")+1:])
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/"):])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
@@ -1008,7 +1008,7 @@ def viewComments(request, user_id, post_id):
         print(comments)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/")+1:])
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/"):])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
