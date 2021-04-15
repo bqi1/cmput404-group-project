@@ -857,7 +857,7 @@ def publicposts(request):
                         "github": author.github,
                     }
                 else:
-                    from_author_request = requests.get(url=comment_obj.from_user.replace("https","http"))
+                    from_author_request = requests.get(url=comment_obj.from_user)
                     from_author_dict = from_author_request.json()
 
 
