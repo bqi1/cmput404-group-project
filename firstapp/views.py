@@ -864,7 +864,7 @@ def publicposts(request):
                 comment_dict = {
                     "type":"comment",
                     "author":from_author_dict,
-                    "comment":comment_obj.comment_text,
+                    "comment":clean_script(comment_obj.comment_text),
                     "contentType":"text/plaintext",
                     "published":comment_obj.published,
                     "id":comment_obj.comment_id,
