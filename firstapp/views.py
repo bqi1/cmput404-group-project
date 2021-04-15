@@ -845,9 +845,9 @@ def publicposts(request):
                 if i >= 5: break
                 author_url = str(comment_obj.from_user)
                 if request.get_host() in comment_obj.from_user:
-                    print(f"http://{request.get_host()}/author/")
-                    print(comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
-                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"http://{request.get_host()}/author/")+1:])
+                    print(f"https://{request.get_host()}/author/")
+                    print(comment_obj.from_user[len(f"https://{request.get_host()}/author/")+1:])
+                    author = Author.objects.get(consistent_id=comment_obj.from_user[len(f"https://{request.get_host()}/author/")+1:])
                     from_author_dict = {
                         "type":"author",
                         "id": f"{author.host}/author/{author.consistent_id}",
@@ -950,7 +950,7 @@ def viewComments(request, user_id, post_id):
         comments = Comment.objects.filter(post_id=post_id)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user[len(f"http://{request.get_host()}/author/")+1:])
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/")+1:])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
@@ -1008,7 +1008,7 @@ def viewComments(request, user_id, post_id):
         print(comments)
         for comment in comments:
            # for comment in comments:
-            author = Author.objects.get(consistent_id = comment.to_user[len(f"http://{request.get_host()}/author/")+1:])
+            author = Author.objects.get(consistent_id = comment.to_user[len(f"https://{request.get_host()}/author/")+1:])
             author_dict = {
                 "type":"author",
                 "id": f"{author.host}/author/{author.consistent_id}",
@@ -1438,6 +1438,7 @@ def makeComment(request,user_id,post_id):
         print(f"\n\nThe data is:\n{request.data}\n\n")
         print(f"\n{request.data.get('comment')}\n")
         print(f"\n{request.data.get('author')}\n")
+        print(f"\n{request.data.keys()}\n")
         author_dict = json.loads(request.data.get('author',False)) # This should be the person commenting, not the creator of the post
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
