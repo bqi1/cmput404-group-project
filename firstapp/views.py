@@ -1437,7 +1437,8 @@ def makeComment(request,user_id,post_id):
         comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
         print(f"\n\nThe data is:\n{request.data}\n\n")
         print(f"\n{request.data.get('comment')}\n")
-        author_dict = json.loads(request.data.get("author",False)) # This should be the person commenting, not the creator of the post
+        print(f"\n{request.data.get('author')}\n")
+        author_dict = json.loads(request.data.get('author',False)) # This should be the person commenting, not the creator of the post
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
         to_user = f"https://{request.get_host()}/author/{user_id}"
@@ -1446,7 +1447,7 @@ def makeComment(request,user_id,post_id):
         comment.save()
     except Exception as e:
         print(e)
-        return HttpResponseBadRequest("Something went wrong. Make sure to send an author dictionary and a comment")
+        return HttpResponseBadRequest(f"Something went wrong. Make sure to send an author dictionary and a comment. The error is {e}")
     return HttpResponse("Commented!")
 
 @api_view(['GET'])
