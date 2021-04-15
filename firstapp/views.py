@@ -1581,6 +1581,8 @@ def inbox(request,user_id):
                     inbox_object["items"] = inbox_post_items
                     print(inbox_object)
                     return HttpResponse(json.dumps(inbox_object))
+            else:
+                return HttpResponse("Please sign in before you can the inbox")
         # FIX THIS
         elif method == "POST":
             print("this")

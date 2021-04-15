@@ -63,19 +63,9 @@
                     result += "</p>";
                     result+= "<h4 id=likes"+i+">";
                     result+= likes+" liked this post</h4>";
-                    result+="<h4>Comments:</h4>";
-                    // console.log(item);
-                    for (let c_index = 0; c_index < item["count"]; c_index++){
-                        if (c_index == 5){
-                            break
-                        }
-                        result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
-                        
-                    }
+
                     if (item["type"] == "post"){
                         result += "<input type='button' id ='likeButton"+i+"' value='Like'/>"
-                        result+= "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
-                        result += "<input type='text' id = 'comment"+i+"'/>";
                         console.log("what");
                         result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                     }
@@ -108,30 +98,10 @@
 
                             }); 
                         }, false);
-                        document.getElementById("commentButton"+i).addEventListener("click",function(){
-                            let post = {{stuff_to_display|safe}}[i];
-                            // console.log(post);
-                            // console.log("{{author}}");                      
-                            $.ajax({
-                                url: '/comment',
-                                type: 'POST',
-                                data: { 
-                                    csrfmiddlewaretoken: "{{ csrf_token }}",
-                                    thePost:JSON.stringify(post),
-                                    author:"{{ author }}",
-                                    theComment:document.getElementById('comment'+i).value,
-
-                                },
-                                success:function(){
-                                        document.getElementById('comment'+i).value = "";
-                                        alert("Commented on post!")
-                                    },
-                            });
-                        }, false);
+                        
                         document.getElementById("shareButton-"+i).addEventListener("click",function(){
                             let post = {{stuff_to_display|safe}}[i];
                             
-                            // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                             $.ajax({
                                 url: '/publicshare',
                                 type: 'POST',
