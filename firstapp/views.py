@@ -1567,15 +1567,15 @@ def inbox(request,user_id):
                     print("we using a browser ok")
                     json_to_display = []
                     for item in inbox.items:
+                        item["title"] = clean_script(item["title"])
+                        item["description"] = clean_script(item["description"])
+                        item["content"] = clean_script(item["content"])
                         json_to_display.append(json.dumps(item))
                         print("appended item")
                     return render(request, 'inbox.html', {'user_id':user_id,'token':token,'author_uuid':user_id,'stuff_to_display':json_to_display})
                 else:
                     for item in inbox.items:
                         if item["type"] == "post":
-                            item["title"] = clean_script(item["title"])
-                            item["description"] = clean_script(item["description"])
-                            item["content"] = clean_script(item["content"])
                             inbox_post_items.append(item)
                         print("6")
                     inbox_object["items"] = inbox_post_items
