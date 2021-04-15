@@ -1448,7 +1448,7 @@ def makeComment(request,user_id,post_id):
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
         to_user = f"https://{request.get_host()}/author/{user_id}"
-        comment_text = request.data.get("comment",False)
+        comment_text = str(request.data.get('comment'))
         comment = Comment.objects.create(post_id=post_id,comment_id=comment_id,from_user=from_user,to_user=to_user,comment_text=comment_text,published=str(datetime.now()))
         comment.save()
     except Exception as e:
