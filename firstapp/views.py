@@ -1438,6 +1438,7 @@ def makeComment(request,user_id,post_id):
         print(f"\n\nThe data is:\n{request.data}\n\n")
         print(f"\n{request.data.get('comment')}\n")
         print(f"\n{request.data.get('author')}\n")
+        print(f"\n{request.data.keys()}\n")
         author_dict = json.loads(request.data.get('author',False)) # This should be the person commenting, not the creator of the post
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
