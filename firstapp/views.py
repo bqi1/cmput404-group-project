@@ -1423,16 +1423,13 @@ def makeComment(request,user_id,post_id):
         print("\nMaking a comment\n")
         post_id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}"
         comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
-        print(f"\n\nDIE\n\n{request.data}\n\n")
+        print(f"\n\nThe data is:\n{request.data}\n\n")
         print(f"\n{request.data.get('comment')}\n")
-        print(f"\nThis is request.POST: {request.POST}\n")
-        print(f"\n{request.POST.get('author',False)}\nHUH\n{request.POST.get('author')}\n")
-        print(f"\nHERE'S THE COMMENT {request.POST.get('comment',False)}\n")
-        author_dict = json.loads(request.POST.get("author",False)) # This should be the person commenting, not the creator of the post
+        author_dict = json.loads(request.data.get("author",False)) # This should be the person commenting, not the creator of the post
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
         to_user = f"https://{request.get_host()}/author/{user_id}"
-        comment_text = request.POST.get("comment",False)
+        comment_text = request.data.get("comment",False)
         comment = Comment.objects.create(post_id=post_id,comment_id=comment_id,from_user=from_user,to_user=to_user,comment_text=comment_text,published=str(datetime.now()))
         comment.save()
     except Exception as e:
