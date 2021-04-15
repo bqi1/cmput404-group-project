@@ -1423,6 +1423,8 @@ def makeComment(request,user_id,post_id):
         print("\nMaking a comment\n")
         post_id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}"
         comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
+        print(f"\n\nDIE\n\n{request.data}\n\n")
+        print(f"\n{request.data.get('comment')}\n")
         print(f"\nThis is request.POST: {request.POST}\n")
         print(f"\n{request.POST.get('author',False)}\nHUH\n{request.POST.get('author')}\n")
         print(f"\nHERE'S THE COMMENT {request.POST.get('comment',False)}\n")
