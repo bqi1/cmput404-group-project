@@ -1573,6 +1573,9 @@ def inbox(request,user_id):
                 else:
                     for item in inbox.items:
                         if item["type"] == "post":
+                            item["title"] = clean_script(item["title"])
+                            item["description"] = clean_script(item["description"])
+                            item["content"] = clean_script(item["content"])
                             inbox_post_items.append(item)
                         print("6")
                     inbox_object["items"] = inbox_post_items
