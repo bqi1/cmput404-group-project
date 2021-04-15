@@ -1423,8 +1423,8 @@ def makeComment(request,user_id,post_id):
         print("\nMaking a comment\n")
         post_id = f"https://{request.get_host()}/author/{user_id}/posts/{post_id}"
         comment_id = f"{post_id}/comments/{uuid.uuid4().hex}"
-        print(request.POST)
-        print(f"{request.POST.get('author',False)} {request.POST.get('author')}")
+        print(f"\nThis is request.POST: {request.POST}\n")
+        print(f"\n{request.POST.get('author',False)}\nHUH\n{request.POST.get('author')}\n")
         author_dict = json.loads(request.POST.get("author",False)) # This should be the person commenting, not the creator of the post
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
