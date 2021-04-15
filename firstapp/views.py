@@ -1439,7 +1439,12 @@ def makeComment(request,user_id,post_id):
         print(f"\n{request.data.get('comment')}\n")
         print(f"\n{request.data.get('author')}\n")
         print(f"\n{request.data.keys()}\n")
-        author_dict = json.loads(request.data.get('author',False)) # This should be the person commenting, not the creator of the post
+        try:
+            author_dict = json.loads(request.data.get('author',False)) # This should be the person commenting, not the creator of the post
+        except:
+            # From Team 1 then
+            author_dict = request.data.get('author')
+        print(f"the author dict is {author_dict}")
         from_user = author_dict["id"]
         author = Author.objects.get(consistent_id=user_id)
         to_user = f"https://{request.get_host()}/author/{user_id}"
