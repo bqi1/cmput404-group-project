@@ -285,6 +285,7 @@ def make_post_list(data,user_id,isowner=False,uri=""):
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
+            "type": "author",
         }
 
 
@@ -438,6 +439,7 @@ def post(request,user_id,post_id):
                 "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
+                "type": "author",
             }
             payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
@@ -486,6 +488,7 @@ def post(request,user_id,post_id):
                 "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
+                "type": "author",
             }
             payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
             for f in friend_ids:
@@ -593,6 +596,7 @@ def allposts(request,user_id):
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
+            "type": "author",
         }
         payload = {"type":"post","author":author_dict,"id" : f"https://{request.get_host()}/author/{user_id}/posts/{post_id}","post_id":post_id,"user_id":user_id,"title":p["title"],"description":p["description"],"markdown":STR2BOOL(p["markdown"]),"content":p["content"],"image":str(image),"privfriends":STR2BOOL(p["privfriends"]),"unlisted":STR2BOOL(p["unlisted"]),"published":str(datetime.now())}
         for f in friend_ids:
@@ -736,6 +740,7 @@ def postlikes(request, user_id, post_id):
                     "displayName": author.username,
                     "url": f"{author.host}/firstapp/{author.userid}",
                     "github": author.github,
+                    "type": "author",
                 }
             except:
                 # It's another author
@@ -1112,6 +1117,7 @@ def account(request,user_id):
             "displayName": author.username,
             "url": f"{author.host}/firstapp/{author.userid}",
             "github": author.github,
+            "type": "author",
         }
         print(f"here's my thing\n\n{author_dict}\n\n")
         return HttpResponse(json.dumps(author_dict))
@@ -1496,6 +1502,7 @@ def sharePublicPost(request):
         "displayName":author.username,
         "url":f"{author.host}/firstapp/{author.userid}",
         "github":author.github,
+        "type": "author",
     }
     post_id = rand(2**28)
     print(post["image"])
