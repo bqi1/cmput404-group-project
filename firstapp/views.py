@@ -833,6 +833,7 @@ def publicposts(request):
                 "displayName": author.username,
                 "url": f"{author.host}/firstapp/{author.userid}",
                 "github": author.github,
+                "type": "author",
             }
             comments = Comment.objects.filter(post_id=post.id)
             print(post.id)
