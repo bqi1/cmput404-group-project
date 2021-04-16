@@ -107,7 +107,7 @@ def homepage(request):
                 continue
         # print(ourData)
         # print(theirData)
-        return render(request, 'homepage.html', {'user_id':user_id,'token':token,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData,"author":author})
+        return render(request, 'homepage.html', {'user_id':user_id,'author_uuid':author_uuid, 'our_server_posts':ourData,'other_server_posts':theirData,"author":author})
     
 def signup(request):
     # Called when user accesses the signup page
@@ -744,6 +744,8 @@ def postlikes(request, user_id, post_id):
                 }
             except:
                 # It's another author
+                print(f"\nfrom another author. {like.from_user}")
+                print(requests.get(f"{like.from_user}"))
                 author_dict = json.loads(requests.get(f"{like.from_user}"))
             like_dict = {
                 "@context":"",
