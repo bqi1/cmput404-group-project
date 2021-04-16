@@ -1497,15 +1497,22 @@ def sharePublicPost(request):
     print(post["image"])
     for item in [f"https://{request.get_host()}/posts",post["origin"],post["title"],sqlite3.Binary(bytes(post["image"] if post["image"] is not None else "0",encoding="utf-8")),f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id,author.consistent_id,post["description"],False if post["contentType"] != "text/markdown" else True,post["content"]]:
         print(item)
+    print("those are them all.")
 
-    if post['image'] == None:
+    if post['image'] == None or str(post['image']) == "0":
+        print("none image")
         image = bytes("0",encoding="utf-8")
     elif ";base64," in post["image"]:
+        print("base 64 image")
         image = bytes(post["image"],encoding="utf-8")
     else:
+        print("else image")
         source_url = urlparse(post["source"])
+        print("hm")
         image_url = "{0}://{1}{2}".format(source_url.scheme,source_url.netloc,post["image"])
+        print(image_url)
         image = bytes("data:image/jpeg;base64,",encoding="utf-8")+base64.b64encode(requests.get(image_url).content)
+        print(image)
 
     newpost = Post.objects.create(source=f"https://{request.get_host()}/posts",origin=post["origin"],title=post["title"],image=image,id=f"https://{request.get_host()}/author/{author.consistent_id}/posts/{post_id}",post_id=post_id,user_id=author.consistent_id,description=post["description"],markdown=False if post["contentType"] != "text/markdown" else True,content=post["content"],privfriends=False,unlisted=False,published=str(datetime.now()))
     newpost.save()
