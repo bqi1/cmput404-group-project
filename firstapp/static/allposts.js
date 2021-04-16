@@ -38,6 +38,10 @@ function viewPost(post_id) {
     window.location.replace(window.location.href + post_id);
 }
 
+function friendpostcomment(){
+    window.location.replace(window.location.href + 'friendcommentpost/');
+}
+
 // Get parameters and send ajax POST / PUT request to post api view (to create post)
 
 function makePost() {

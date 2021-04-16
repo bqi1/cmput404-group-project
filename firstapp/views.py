@@ -642,6 +642,33 @@ def publicposts(request):
             }
             post_list.append(post_dict)
     return HttpResponse(json.dumps(post_list))
+
+@api_view(['GET'])
+def friendpost(request, user_id):
+
+    resp = ""
+    friendpost_comment_list = []
+    posts = Post.objects.filter()
+    show_comment = False
+    for p in posts:
+        author = Author.objects.get(consistent_id = p.user_id)
+        try:
+            friend_id = [Author.objects.get(userid=f.id).consistent_id for f in FriendList.objects.get(user_id=author).friends.all()]
+        except:
+            friend_id = []
+        if p.user_id == friend_id:
+            if p.privfriends==True and request.user == author:
+                show_comment = True
+            
+                comments = Comment.objects.filter(post_id=post_id)
+         
+                for c in comments:
+                    comment = c.comment_text
+                    friendpost_comment_list.append(comment)
+            else:
+                return HttpResponse("you are not the user friend")
+                
+    return render(request, "friend_post_comment.html", {"comment_list":friendpost_comment_list})
     
 @api_view(['GET','POST'])
 def commentpost(request, user_id, post_id):

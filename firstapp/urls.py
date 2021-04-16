@@ -19,7 +19,7 @@ urlpatterns = [
 
     path('author/<str:user_id>/posts/<int:post_id>/commentpost/',views.commentpost,name='commentpost'),
     path('author/<str:user_id>/posts/<int:post_id>/viewComments/',views.viewComments,name='viewComments'),
-
+    path('author/<str:user_id>/posts/friendcommentpost/', views.friendpost, name='friendcommentpost'),
     path('posts/', views.publicposts,name='publicposts'),
 
     # path('author/<int:user_id>/posts/<int:post_id>/comments/<int:comment_id>/likes/', views.commlikes, name='commlikes')
