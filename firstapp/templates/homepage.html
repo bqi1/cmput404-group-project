@@ -9,6 +9,7 @@
         </style>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdn.rawgit.com/showdownjs/showdown/1.9.1/dist/showdown.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
     </head>
     <body>
         {% extends "index.html" %}
@@ -49,7 +50,7 @@
                             }
                         }); 
                     // console.log(item);
-                    var result = "<div class = 'post'>";
+                    var result = "<div class = 'post box'>";
                     result += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4>"+"<p> Description: "+item["description"]+"</p>";
                     if (item["image"] != "0"){
                         result +="<img src='"+item["image"]+"'/>";

@@ -733,6 +733,7 @@ def postlikes(request, user_id, post_id):
         like_dict_list = []
         for like in postlikes:
             try:
+                print(f"consistent id is {like.from_user.split('/')[-1] if like.from_user[-1] != '/' else like.from_user.split('/')[-2]}")
                 author = Author.objects.get(consistent_id=like.from_user.split('/')[-1] if like.from_user[-1] != "/" else like.from_user.split('/')[-2])
                 author_dict = {
                     "id": f"{author.host}/author/{author.consistent_id}",
@@ -1098,7 +1099,7 @@ def search_user(request, *args, **kwargs):
 @authentication_classes([BasicAuthentication, SessionAuthentication, TokenAuthentication])
 @permission_classes([EditPermission])
 def account(request,user_id):
-    print("Inside account function")
+    print(f"{user_id} is Inside account function")
     # This method can GET and POST an author by their UUID
     # GET retrieves the account's information. POST updates the account's information if authenticated
     resp = ""
@@ -1335,7 +1336,7 @@ def likeAHomePagePost(request):
     author = Author.objects.get(username=request.POST.get('author', False))
     print(post)
     # If it's a local like:
-    if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"http://{request.get_host()}/" == f"{post['author']['host']}":
+    if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
         print("entering.")
         # author/<str:user_id>/posts/<int:post_id>/likepost/
         try: 
@@ -1394,7 +1395,7 @@ def commentAHomePagePost(request):
     post = json.loads(request.POST.get('thePost', False))
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
-    if post['author']['host'] == request.get_host() or f"http://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
+    if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
         comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=theComment,published=str(datetime.now()))
         comment.save()
     else:
