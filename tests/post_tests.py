@@ -1,9 +1,9 @@
 '''
 
 Note: this test assumes that two users, ptest1 and ptest2 exist
-userids: fcce936c388545449ff2b5264b8d4f3d, acd8ee9336764f15ba2dfeb491c8d53b
+userids: 915b8a407f59413dae198c3df1793def, 33f3d5a8a70e4ce197f1159ee52bafaa
 passwords: Testuser1234 , Testuser5678
-api tokens: 518993fc208331608eb16c50a67e18e38793653e, 894d69d1ad00e62456cb939937d89c48d5f89fd0
+api tokens: b69839b6e58c081304789373d5cb8af26adcccf5, 66f3cabb415340c7966560313ce4722355aefe17
 first/last names: test user, test user
 emails: kandrosc98@gmail.com, kandrosc98@gmail.com
 
@@ -32,7 +32,7 @@ def validate_post(expected, actual, user_id, post_id,image='0'):
 def clean_db():
     conn = sqlite3.connect(FILEPATH+"../db.sqlite3")
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM firstapp_post WHERE user_id = 30;")
+    cursor.execute("DELETE FROM firstapp_post WHERE user_id = '915b8a407f59413dae198c3df1793def';")
     conn.commit()
     conn.close()
 
@@ -40,14 +40,14 @@ class PostTests(unittest.TestCase):
     # Initialize some variables
 
     def setUp(self):
-        self.allposts_url = "http://localhost:8000/author/%s/posts/"
-        self.user_id = "fcce936c388545449ff2b5264b8d4f3d"
-        self.post_url = "http://localhost:8000/author/%s/posts/%d"
+        self.allposts_url = "https://c404posties.herokuapp.com/author/%s/posts/"
+        self.user_id = "915b8a407f59413dae198c3df1793def"
+        self.post_url = "https://c404posties.herokuapp.com/author/%s/posts/%d"
         self.post_id2 = 12345
         self.data1 = {"title":"title_one","description":"desc_one","markdown":0,"content":"content_one","privfriends":0,"unlisted":0}
         self.data2 = {"title":"title_two","description":"desc_two","markdown":1,"content":"content_three","privfriends":0,"unlisted":0}
-        self.auth_header = {"Authorization": "Token 518993fc208331608eb16c50a67e18e38793653e" }
-        self.unauth_header = {"Authorization": "Token 894d69d1ad00e62456cb939937d89c48d5f89fd0" }
+        self.auth_header = {"Authorization": "Token b69839b6e58c081304789373d5cb8af26adcccf5" }
+        self.unauth_header = {"Authorization": "Token 66f3cabb415340c7966560313ce4722355aefe17" }
         self.image_url = "https://miro.medium.com/max/1200/1*mk1-6aYaf_Bes1E3Imhc0A.jpeg"
 
     # Tasks that should work

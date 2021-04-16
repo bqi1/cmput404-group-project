@@ -32,4 +32,6 @@ urlpatterns = [
     path('author/<str:user_id>/posts/<int:post_id>/comment',views.makeComment,name='makeComment'),
     path('author/<str:user_id>/posts/<int:post_id>/comment/',views.makeComment,name='makeComment'),
     path('publicshare/',views.sharePublicPost),
+    path('post-tests/',views.run_post_tests)
+
 ]

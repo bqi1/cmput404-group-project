@@ -42,6 +42,8 @@ from .remote_friend import get_all_remote_user,get_all_remote_user_2
 from django.contrib.auth.models import User
 from django.core import serializers
 from django.core.paginator import Paginator
+from django.contrib.admin.views.decorators import staff_member_required
+import subprocess
 FILEPATH = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 ADD_QUERY = "INSERT INTO posts VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
@@ -1729,3 +1731,9 @@ def inbox(request,user_id):
 
     except Exception as e:
         print("ERROR in inbox in views.py" + str(e))
+
+@staff_member_required    
+def run_post_tests(request):
+    process = subprocess.Popen(['python3', 'tests/post_tests.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    return HttpResponse(err.decode("utf-8").replace("\n","</br>"))
