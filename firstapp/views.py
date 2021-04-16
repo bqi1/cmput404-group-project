@@ -1176,6 +1176,7 @@ def account_view(request, *args, **kwargs):
 
 
     if data != None:
+        print("^^^^^^^^^data^^^^^^^^^^^")
         print(data)
         context['id'] = data[8]
         context['username1'] = data[3]
@@ -1183,7 +1184,6 @@ def account_view(request, *args, **kwargs):
         context['host'] = data[6]
         context['me_Cid'] = data[11]
         context['githubLink']=data[4]
-        print(data[4])
 
         try:
             friend_list = FriendList.objects.get(user=account)
@@ -1268,10 +1268,7 @@ def account_view(request, *args, **kwargs):
                 is_follower = True
 
             context['followers'] = followers
-            print("####################?")
-                        
-            print(followers)
-            print(followings)
+
             for follower in followers:
                 for follwing in followings:
                     if follower == following.receiver:
@@ -1289,8 +1286,6 @@ def account_view(request, *args, **kwargs):
             data2 = cursor.fetchall()[0]
         except IndexError: # No token exists, must create a new one!
             return HttpResponse("user doesn't exist") 
-        print("^^^^^^^^^^^^^^^")
-        print(data)
         # print(new_account.github)
         context['username2'] = data2[3]
         context['githubLink2'] = data2[4]
