@@ -1349,6 +1349,8 @@ def likeAHomePagePost(request):
                 "type":"like",
                 "author":author_dict,
                 "object":post['id'],
+                "@context":"something",
+                "summary":f"{author.displayName} Likes your post",
             }
             like_object = json.dumps(like_dict)
             headers  = {'Content-type': 'application/json'}
