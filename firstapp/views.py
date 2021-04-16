@@ -1387,6 +1387,7 @@ def commentAHomePagePost(request):
         comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=theComment,published=str(datetime.now()))
         comment.save()
     else:
+        print(f"this is the post's host: https://{post['author']['host']}")
         try:
             server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
         except:
