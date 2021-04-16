@@ -325,24 +325,27 @@
 		FollowRequestBtn.addEventListener("click", function(){
 			const URL = 'https://iconicity-part2.herokuapp.com/author/' +  '{{me_Cid}}/inbox/';
 			var data = {
-	          "type": "Follow",      
+	          "type": "follow",      
 	          "summary":"follow request",
 	          "actor":{
-	              "type":"author",
-	              "id":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
-	              "url":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
-	              
-	              "host":"iconicity-test-a.herokuapp.com",
-	              "displayName":"{{username1}}",
-	              "github": "{{githubLink}}"
-	          },
-	          "object":{
-	              "type":"author",
+	          	"type":"author",
 					"id":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
 					"host":"c404posties.herokuapp.com",
 					"displayName":"{{username2}}",
 					"url":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
 					"github": "{{githubLink2}}"
+	              
+	          },
+	          "object":{
+	          	"type":"author",
+	              // "id":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
+	              // "url":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
+	              "id":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
+	              "url":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
+
+	              "host":"iconicity-test-a.herokuapp.com",
+	              "displayName":"{{username1}}",
+	              "github": "{{githubLink}}"
 	          }
 	      	};
 	      	csrftoken = document.querySelector('*[name=csrfmiddlewaretoken]').value;
@@ -386,7 +389,16 @@
 	          "type": "follow",      
 	          "summary":"follow request",
 	          "actor":{
-	              "type":"author",
+	          	"type":"author",
+					"id":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
+					"host":"c404posties.herokuapp.com",
+					"displayName":"{{username2}}",
+					"url":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
+					"github": "{{githubLink2}}"
+	              
+	          },
+	          "object":{
+	          	"type":"author",
 	              // "id":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
 	              // "url":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
 	              "id":'https://iconicity-part2.herokuapp.com/author/' + '{{me_Cid}}',
@@ -395,14 +407,6 @@
 	              "host":"iconicity-test-a.herokuapp.com",
 	              "displayName":"{{username1}}",
 	              "github": "{{githubLink}}"
-	          },
-	          "object":{
-	              "type":"author",
-					"id":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
-					"host":"c404posties.herokuapp.com",
-					"displayName":"{{username2}}",
-					"url":"https://c404posties.herokuapp.com/author/"+"{{receiver_Cid}}",
-					"github": "{{githubLink2}}"
 	          }
 	      	};
 	      	csrftoken = document.querySelector('*[name=csrfmiddlewaretoken]').value;
