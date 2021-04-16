@@ -1395,6 +1395,8 @@ def commentAHomePagePost(request):
     post = json.loads(request.POST.get('thePost', False))
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
+    print(f"\n\n\n\nit's me: {post['author']['host']} and {request.get_host()}")
+    print(f"haha{author.host}/author/{author.consistent_id}\n\n\n\n")
     if post['author']['host'] == request.get_host() or f"https://{request.get_host()}/" == f"{post['author']['host']}" or f"https://{request.get_host()}/" == f"{post['author']['host']}":
         comment = Comment.objects.create(post_id=post["id"],comment_id=f"{post['id']}/comments/{uuid.uuid4().hex}",from_user=f"{author.host}/author/{author.consistent_id}",to_user=post["author"]["id"],comment_text=theComment,published=str(datetime.now()))
         comment.save()
