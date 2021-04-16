@@ -1569,7 +1569,9 @@ def inbox(request,user_id):
                 if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: # is the agent a browser? If yes, show html, if no, show regular post list
                     print("we using a browser ok")
                     json_to_display = []
+                    print(inbox.items)
                     for item in inbox.items:
+                        print(item)
                         item["title"] = clean_script(item["title"])
                         item["description"] = clean_script(item["description"])
                         item["content"] = clean_script(item["content"])
