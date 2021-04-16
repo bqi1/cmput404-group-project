@@ -1480,9 +1480,9 @@ def viewComment(request,user_id,post_id,comment_id):
 @authentication_classes([BasicAuthentication])
 def sharePublicPost(request):
     # Takes post object and author.
+    print("in sharePublicPost\n")
     post = json.loads(request.POST.get('thePost', False))
     author = Author.objects.get(username=request.POST.get('author', False))
-    print("in sharePublicPost")
     print(post)
     print(author)
     print(post["image"])
