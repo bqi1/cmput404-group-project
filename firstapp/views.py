@@ -220,9 +220,9 @@ def make_post_html(data,user_id,isowner=False):
   #  with open(FILEPATH+"static/comment.js","r") as f1: script1 = f1.read()
     #add javascript likePost function and the jquery library for ajax
     jscript = '<script>' + script + '</script>' + '<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>'
-    start = '<div class="post" style="border:solid;" ><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><p class="tags">%s</p></br>'
-    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
-    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
+    start = '<div class="post box"><p class="title">%s</p><p class="desc">%s</p></br><p class="content">%s</p></br><p class="tags">%s</p></br>'
+    endimage = '<img src="%s"/><span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" class="button is-info" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
+    endnoimage = '<span class="md" style="display:none" value="%s"></span></br>'+('<input type = "button" class="button is-info" value="Edit" onclick="viewPost(\'{0}\')">' if isowner else '')
 
     for d in data:
         priv = Author_Privacy.objects.filter(post_id=d.post_id)
@@ -238,12 +238,12 @@ def make_post_html(data,user_id,isowner=False):
             if image == '0':
                 resp += starttag
                 resp += endnoimage.format(d.post_id) % (d.markdown,)
-                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
-                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
+                resp += '<button class="button is-info" onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button class="button is-info" onclick="viewComments(\'{}\')">View Comment</button></div>'.format(d.post_id)
             else: 
                 resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
-                resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
-                resp += '<button onclick="viewComment(\'{}\')">View Comment</button>'.format(d.post_id)
+                resp += '<button class="button is-info" onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                resp += '<button class="button is-info" onclick="viewComments(\'{}\')">View Comment</button></div>'.format(d.post_id)
 
             resp += "</br>"
         else: # post is private
@@ -263,12 +263,12 @@ def make_post_html(data,user_id,isowner=False):
                 if image == '0':
                     resp += starttag
                     resp += endnoimage.format(d.post_id) % (d.markdown,)
-                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
-                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                    resp += '<button class="button is-info" onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button class="button is-info" onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
                 else:
                     resp += starttag + endimage.format(d.post_id) % (image,d.markdown)
-                    resp += '<button onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
-                    resp += '<button onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
+                    resp += '<button class="button is-info" onclick="likePost(\'{}\')">Like</button>'.format(d.post_id)
+                    resp += '<button class="button is-info" onclick="viewLikes(\'{}\')">View Likes</button>'.format(d.post_id)
                 resp += "</br>"
     return resp
 
