@@ -180,9 +180,9 @@
                 console.log(item);
                 
                 var result = "<div class = 'post box'><article class='media'><div class='media-content'><div class='content'>";
-                result += "<span class='is-size-4'><strong>"+item["title"]+"</strong> <span>- "+item["author"]["displayName"]+" <i style='color: grey; padding-left: 5px;'>"+parseDate(new Date(item["published"]))+"</i></span></span><br /><strong>"+item["description"]+"</strong>";
-                if (item["image"] != "0"){
-                    result +="<br /><img src='"+item["image"]+"'/>";
+                result += "<span class='is-size-4'><strong>"+item["title"]+"</strong> <span>- "+item["author"]["displayName"]+" <i style='color: grey; padding-left: 5px;'>"+parseDate(new Date(item["published"]))+"</i></span></span><span style='float: right;'><i>From Other Server</i></span><br /><strong>"+item["description"]+"</strong>";
+                if (item["image"] != null){
+                    result +="<br /><img src='https://"+item["author"]["host"] + item["image"]+"'/>";
                 }
                 result +="<p>";
 
@@ -200,7 +200,7 @@
                 // result+="<h4>Comments:</h4>";
                 // console.log(item);
                 result += "</div>"; // end content class div
-                for (let c_index = 0; c_index < item["count"]; c_index++){
+                for (let c_index = 0; c_index < item["comments"].length; c_index++){
                     if (c_index == 5){
                         break;
                     }
