@@ -1108,7 +1108,10 @@ def account(request,user_id):
     method = request.META["REQUEST_METHOD"]
 
     try: 
-        print("trying to get an author")
+        print(f"trying to get an author of {user_id}")
+        for a in Author.objects.filter():
+            print(a)
+            print(a.consistent_id)
         author = Author.objects.get(consistent_id=user_id) # Try to retrieve the author. If not, give error HTTP response
         print("got an author")
     except:
