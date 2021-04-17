@@ -761,14 +761,15 @@ def postlikes(request, user_id, post_id):
         return HttpResponse(json.dumps(like_dict_list), content_type="application/json")
     else:
         if "Mozilla" in agent or "Chrome" in agent or "Edge" in agent or "Safari" in agent: #if using browser
-            cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
-            data = cursor.fetchall()
-            author_list = []
-            for d in data:
-                author = d[0]
-                author_list.append(author)
-            num_likes = len(author_list)
-            return render(request, "likes.html", {"author_list":author_list,"num_likes":num_likes})
+            # cursor.execute("SELECT a.username FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
+            # data = cursor.fetchall()
+            # author_list = []
+            # for d in data:
+            #     author = d[0]
+            #     author_list.append(author)
+            # num_likes = len(author_list)
+            likes = Like.objects.filter(object=object)
+            return render(request, "likes.html", {"num_likes":len(likes)})
         else: 
             #return a list of like objects
             cursor.execute("SELECT a.consistent_id FROM firstapp_like l, firstapp_author a WHERE l.object='%s' AND l.from_user = a.consistent_id;"%object)
@@ -1648,7 +1649,7 @@ def inbox(request,user_id):
                         author_id = author_id[:-1]
                     try: #if already liked then remove the like from db
                         print("getting like object")
-                        like = Like.objects.get(from_user = f"https://{request.get_host()}/author/{author_id}", to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
+                        like = Like.objects.get(from_user = request.data["author"]["id"], to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
                         print("removing like object from inbox")
                         print(like)
                         print(inbox.items)
