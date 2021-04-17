@@ -1373,10 +1373,12 @@ def likeAHomePagePost(request):
     # Else, it's a remote like
     print("remote post like")
     try:
-        server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+        server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
     except:
-        server = Node.objects.get(hostserver=f"{post['author']['host']}")
-    
+        try:
+            server = Node.objects.get(hostserver=f"{post['author']['host']}")
+        except:
+            server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
     auth_dict = {
         "type":"author",
         "id": f"{author.host}/author/{author.consistent_id}",
@@ -1395,6 +1397,7 @@ def likeAHomePagePost(request):
 def commentAHomePagePost(request):
     theComment = request.POST.get("theComment",False)
     post = json.loads(request.POST.get('thePost', False))
+    print(post)
     # If it's a local comment:
     author = Author.objects.get(username=request.POST.get('author', False))
     print(f"\n\n\n\nit's me: {post['author']['host']} and {request.get_host()}")
@@ -1405,9 +1408,12 @@ def commentAHomePagePost(request):
     else:
         print(f"this is the post's host: https://{post['author']['host']}")
         try:
-            server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
+            server = Node.objects.get(hostserver=f"http://{post['author']['host']}")
         except:
-            server = Node.objects.get(hostserver=f"{post['author']['host']}")
+            try:
+                server = Node.objects.get(hostserver=f"{post['author']['host']}")
+            except:
+                server = Node.objects.get(hostserver=f"https://{post['author']['host']}")
         author_dict = {
             "type":"author",
             "id":f"{author.host}/author/{author.consistent_id}",

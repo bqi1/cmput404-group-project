@@ -59,7 +59,7 @@
                         success: function(data){
                             // console.log("data is "+data);
                             amount_likes = data.length==0?0:data.length;
-                            document.getElementById("likes"+i).innerHTML = amount_likes+" liked this post";
+                            document.getElementById("likes"+i).innerHTML = amount_likes;
 
                             // // console.log(likes);
                         },
@@ -85,8 +85,9 @@
                     result+=item["content"];
                 }
                 result += "</p>";
-                result+= "<h4 id=likes"+i+">";
-                result+= likes+" liked this post</h4>";
+                result += "<p><a>Like (<span id='likes"+ i +"''>5</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a>Share</a></p>";
+                // result+= "<h4 id=likes"+i+">";
+                // result+= likes+" liked this post</h4>";
                 // result+="<h4>Comments:</h4>";
                 // console.log(item);
                 result += "</div>"; // end content class div
@@ -115,8 +116,8 @@
             }
             document.getElementById("demo").innerHTML += "<br>";
             for (let i = 0; i < public_posts_from_our_server.length; i++){
+                const post = public_posts_from_our_server[i];
                 document.getElementById("likeButton"+i).addEventListener("click",function(){
-                    let post = {{our_server_posts|safe}}[i];
                     $.ajax({
                         url: '/like/',
                         type: 'POST',
@@ -132,7 +133,6 @@
                     }); 
                 }, false);
                 document.getElementById("commentButton"+i).addEventListener("click",function(){
-                    let post = {{our_server_posts|safe}}[i];
                     // console.log(post);
                     // console.log("{{author}}");                      
                     $.ajax({
@@ -152,8 +152,7 @@
                     });
                 }, false);
                 document.getElementById("shareButton-"+i).addEventListener("click",function(){
-                    let post = {{our_server_posts|safe}}[i];
-                    
+                    console.log("for"+i+" it's "+JSON.stringify(post));             
                     // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                     $.ajax({
                         url: '/publicshare/',
@@ -211,9 +210,10 @@
                 // console.log(item);
 
             }
-            for (let i = index; i < public_posts_from_other_server.length+index; i++){            
+            for (let i = index; i < public_posts_from_other_server.length+index; i++){   
+                const post = public_posts_from_other_server[i-index];   
+                const tempI = i;      
                 document.getElementById("likeButton"+i).addEventListener("click",function(){
-                    let post = {{other_server_posts|safe}}[i-index];
                     $.ajax({
                         url: '/like/',
                         type: 'POST',
@@ -229,7 +229,6 @@
                     }); 
                 }, false);
                 document.getElementById("commentButton"+i).addEventListener("click",function(){
-                    let post = {{other_server_posts|safe}}[i-index];
                     
                     // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                     $.ajax({
@@ -239,17 +238,16 @@
                             csrfmiddlewaretoken: "{{ csrf_token }}",
                             thePost:JSON.stringify(post),
                             author:"{{ author }}",
-                            theComment:document.getElementById('comment'+i).value,
+                            theComment:document.getElementById('comment'+tempI).value,
                             
                         },
                         success:function(){
-                                document.getElementById('comment'+i).value = "";
+                                document.getElementById('comment'+tempI).value = "";
                                 location.reload();
                             },
                     }); 
                 }, false);
                 document.getElementById("shareButton-"+i).addEventListener("click",function(){
-                    let post = {{other_server_posts|safe}}[i-index];
                     
                     // location.href = "http://127.0.0.1:8000/author/ffa82d24d67443f9969da5051c17a12a/posts/253639633/commentpost/";
                     $.ajax({
