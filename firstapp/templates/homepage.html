@@ -86,7 +86,11 @@
                     result+=item["content"];
                 }
                 result += "</p>";
-                result += "<p><a id='likeButton" + i +  "'>Like (<span id='likes"+ i +"''>0</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a id='shareButton-"+i+"'>Share</a></p>";
+
+                const tagsList = item["categories"].join(", ");
+                const tagsHtml = item["categories"].length > 0 ? "<span style='color:gray; opacity: 0.5'>| <i>" + tagsList +"</i></span>" : "";
+
+                result += "<p><a id='likeButton" + i +  "'>Like (<span id='likes"+ i +"''>0</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a id='shareButton-"+i+"'>Share</a> "+tagsHtml+"</p>";
                 // result+= "<h4 id=likes"+i+">";
                 // result+= likes+" liked this post</h4>";
                 // result+="<h4>Comments:</h4>";
