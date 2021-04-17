@@ -85,7 +85,7 @@
                     result+=item["content"];
                 }
                 result += "</p>";
-                result += "<p><a>Like (<span id='likes"+ i +"''>5</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a>Share</a></p>";
+                result += "<p><a id='likeButton" + i +  "'>Like (<span id='likes"+ i +"''>0</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a id='shareButton-"+i+"'>Share</a></p>";
                 // result+= "<h4 id=likes"+i+">";
                 // result+= likes+" liked this post</h4>";
                 // result+="<h4>Comments:</h4>";
@@ -107,9 +107,9 @@
                 result += "<p class='control'><input type='button' class='button is-info' id ='commentButton"+i+"' value = 'Comment'/></p>";
                 result += "</div></div></div></article>";
                 
-                result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
+                // result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
                 console.log("what");
-                result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
+                // result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                 result+= "</div></article></div>";
                 document.getElementById("demo").innerHTML += result;
                 index += 1;
