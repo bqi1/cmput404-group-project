@@ -106,10 +106,7 @@
                 result += "<p class='control is-expanded'><input type='text' class = 'input' id = 'comment"+i+"'/></p>";
                 result += "<p class='control'><input type='button' class='button is-info' id ='commentButton"+i+"' value = 'Comment'/></p>";
                 result += "</div></div></div></article>";
-                
-                // result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
                 console.log("what");
-                // result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
                 result+= "</div></article></div>";
                 document.getElementById("demo").innerHTML += result;
                 index += 1;
@@ -182,12 +179,13 @@
                 var item = public_posts_from_other_server[i-index];
                 console.log(item);
                 
-                var result = "<div class = 'post box'>";
-                result += "<h4>"+item["title"]+" from "+item["author"]["displayName"]+" on "+item["published"]+"</h4>"+"<p> Description: "+item["description"]+"</p>";
-                if (item["image"] != null){
-                    result +="<img src='https://"+item["author"]["host"] + item["image"]+"'/>";
+                var result = "<div class = 'post box'><article class='media'><div class='media-content'><div class='content'>";
+                result += "<span class='is-size-4'><strong>"+item["title"]+"</strong> <span>- "+item["author"]["displayName"]+" <i style='color: grey; padding-left: 5px;'>"+parseDate(new Date(item["published"]))+"</i></span></span><br /><strong>"+item["description"]+"</strong>";
+                if (item["image"] != "0"){
+                    result +="<br /><img src='"+item["image"]+"'/>";
                 }
-                result +="<p> Content: ";
+                result +="<p>";
+
                 if (item["contentType"] == "text/markdown"){
                     var converter = new showdown.Converter();
                     var html = converter.makeHtml(item["content"]) 
@@ -196,16 +194,28 @@
                     result+=item["content"];
                 }
                 result += "</p>";
-                result += "<h4>"+item["like_count"]+" liked this post</h4>";
+                result += "<p><a id='likeButton" + i +  "'>Like (<span id='likes"+ i +"''>0</span>)</a> <span style='color:gray; opacity: 0.5'>|</span> <a id='shareButton-"+i+"'>Share</a></p>";
+                // result+= "<h4 id=likes"+i+">";
+                // result+= likes+" liked this post</h4>";
                 // result+="<h4>Comments:</h4>";
-                for (let c_index = 0; c_index < item["comments"].length; c_index++){
-                    result+="<h6>"+item["comments"][c_index]["author"]["displayName"]+": "+item["comments"][c_index]["comment"]+"</h6>";
+                // console.log(item);
+                result += "</div>"; // end content class div
+                for (let c_index = 0; c_index < item["count"]; c_index++){
+                    if (c_index == 5){
+                        break;
+                    }
+                    result +="<article class='media'><div class='media-left' style='margin-right: 2rem;'></div><div class='media-content'><div class='content'>";
+                    result += "<strong>" + item["comments"][c_index]["author"]["displayName"] + "</strong><i style='color: grey; padding-left: 5px;'>" + parseDate(new Date(item["comments"][c_index]["published"])) + "</i><br />";
+                    result += item["comments"][c_index]["comment"] + "</div></div></article>";
+                    
                 }
-                result += "<input type='button' id ='likeButton"+i+"' value='Like'/>";
-                result += "<input type='button' id ='commentButton"+i+"' value = 'Comment'/>";
-                result += "<input id = 'comment"+i+"'/>";
-                result += "<input type='button' id ='shareButton-"+i+"' value = 'Share'/>";
-                result += "</div>";
+                // comment box
+                result += "<article class='media'><div class='media-left' style='margin-right: 2rem;'></div><div class='media-content'><div class='content'>";
+                result += "<div class='field is-grouped'>";
+                result += "<p class='control is-expanded'><input type='text' class = 'input' id = 'comment"+i+"'/></p>";
+                result += "<p class='control'><input type='button' class='button is-info' id ='commentButton"+i+"' value = 'Comment'/></p>";
+                result += "</div></div></div></article>";
+                result+= "</div></article></div>";
                 document.getElementById("other_servers").innerHTML += result;
                 // console.log(item);
 
