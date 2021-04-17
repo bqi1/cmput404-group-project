@@ -1673,7 +1673,7 @@ def inbox(request,user_id):
                     except Exception as e: #if not liked then add like to database
                         print(e)
                         print("making like object for table")
-                        like = Like(like_id=like_id, from_user =f"https://{request.get_host()}/author/{author_id}", to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
+                        like = Like(like_id=like_id, from_user = request.data["author"]["id"], to_user = f"https://{request.get_host()}/author/{to_user}", object = object)
                         print("saving like object to table")
                         like.save()
                         print("adding object to inbox")
